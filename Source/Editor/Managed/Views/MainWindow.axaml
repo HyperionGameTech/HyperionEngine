@@ -1935,6 +1935,18 @@
                                                         </ItemsControl.ItemTemplate>
                                                     </ItemsControl>
 
+                                                    <StackPanel
+                                                        Margin="0,8,0,0"
+                                                        DataContext="{Binding Inspector}"
+                                                        IsVisible="{Binding HasEditModeContent}">
+                                                        <TextBlock
+                                                            Margin="8,0,8,4"
+                                                            Classes="header"
+                                                            FontSize="14"
+                                                            Text="{Binding EditModeHeading}" />
+                                                        <ContentControl Content="{Binding EditModeContent}" ContentTemplate="{Binding ViewLocator, Source={x:Static services:EditorPluginService.Instance}}" />
+                                                    </StackPanel>
+
                                                     <!--  The asset an edit mode is editing, while no node is selected  -->
                                                     <StackPanel
                                                         Margin="0,8,0,0"

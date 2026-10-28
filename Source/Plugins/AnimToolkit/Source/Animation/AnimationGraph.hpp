@@ -21,6 +21,8 @@
 #include <Core/Name/Name.hpp>
 
 #include <Core/Utilities/Span.hpp>
+
+#include <Core/Functional/Proc.hpp>
 #include <Core/Utilities/Result.hpp>
 
 #include <Core/Types.hpp>
@@ -63,7 +65,7 @@ struct AnimationBlendSample
 {
     HYP_STRUCT_BODY(AnimationBlendSample);
 
-    HYP_FIELD(Property = "Input", Serialize = true, Editor = true)
+    HYP_FIELD(Property = "Input", Serialize = true, Editor = false)
     uint32 input = InvalidAnimationGraphNode;
 
     // a Blend1D sample only uses x
@@ -117,6 +119,10 @@ public:
 
     virtual void OnNodeRemoved(uint32 removedIndex);
 
+    virtual void ForEachParameter(const ProcRef<void(Name&)>& visit)
+    {
+    }
+
     void GetInputs(Array<uint32>& outInputs) const;
 
     virtual void Update(AnimationGraphContext& context, uint32 nodeIndex, float weight) const = 0;
@@ -139,6 +145,12 @@ public:
     void Update(AnimationGraphContext& context, uint32 nodeIndex, float weight) const override;
     void Evaluate(AnimationGraphContext& context, uint32 nodeIndex, Span<Transform> outPose) const override;
 
+    void ForEachParameter(const ProcRef<void(Name&)>& visit) override
+    {
+        visit(timeParameter);
+        visit(speedParameter);
+    }
+
     HYP_FIELD(Property = "Clip", Serialize = true, Editor = true)
     Handle<Animation> clip;
 
@@ -152,7 +164,7 @@ public:
     float startOffset = 0.0f;
 
     // when set, the clip's time is this float parameter instead of advancing
-    HYP_FIELD(Property = "TimeParameter", Serialize = true, Editor = true)
+    HYP_FIELD(Property = "TimeParameter", Serialize = true, Editor = true, EditorType = "GraphParameter")
     Name timeParameter;
 
     HYP_FIELD(Property = "SyncGroup", Serialize = true, Editor = true)
@@ -161,7 +173,7 @@ public:
     HYP_FIELD(Property = "SyncLeader", Serialize = true, Editor = true)
     bool syncLeader = false;
 
-    HYP_FIELD(Property = "SpeedParameter", Serialize = true, Editor = true)
+    HYP_FIELD(Property = "SpeedParameter", Serialize = true, Editor = true, EditorType = "GraphParameter")
     Name speedParameter;
 
     HYP_FIELD(Property = "ReferenceSpeed", Serialize = true, Editor = true)
@@ -193,12 +205,17 @@ public:
     void Update(AnimationGraphContext& context, uint32 nodeIndex, float weight) const override;
     void Evaluate(AnimationGraphContext& context, uint32 nodeIndex, Span<Transform> outPose) const override;
 
+    void ForEachParameter(const ProcRef<void(Name&)>& visit) override
+    {
+        visit(parameter);
+    }
+
     void ComputeWeights(float value, Array<float>& outWeights) const;
 
-    HYP_FIELD(Property = "Parameter", Serialize = true, Editor = true)
+    HYP_FIELD(Property = "Parameter", Serialize = true, Editor = true, EditorType = "GraphParameter")
     Name parameter;
 
-    HYP_FIELD(Property = "Samples", Serialize = true, Editor = true)
+    HYP_FIELD(Property = "Samples", Serialize = true, Editor = false)
     Array<AnimationBlendSample> samples;
 
     HYP_FIELD(Property = "Smooth", Serialize = true, Editor = true)
@@ -227,12 +244,17 @@ public:
     void Update(AnimationGraphContext& context, uint32 nodeIndex, float weight) const override;
     void Evaluate(AnimationGraphContext& context, uint32 nodeIndex, Span<Transform> outPose) const override;
 
+    void ForEachParameter(const ProcRef<void(Name&)>& visit) override
+    {
+        visit(parameter);
+    }
+
     void ComputeWeights(const Vec2f& value, Array<float>& outWeights) const;
 
-    HYP_FIELD(Property = "Parameter", Serialize = true, Editor = true)
+    HYP_FIELD(Property = "Parameter", Serialize = true, Editor = true, EditorType = "GraphParameter")
     Name parameter;
 
-    HYP_FIELD(Property = "Samples", Serialize = true, Editor = true)
+    HYP_FIELD(Property = "Samples", Serialize = true, Editor = false)
     Array<AnimationBlendSample> samples;
 };
 
@@ -250,10 +272,15 @@ public:
     void Update(AnimationGraphContext& context, uint32 nodeIndex, float weight) const override;
     void Evaluate(AnimationGraphContext& context, uint32 nodeIndex, Span<Transform> outPose) const override;
 
-    HYP_FIELD(Property = "Base", Serialize = true, Editor = true)
+    void ForEachParameter(const ProcRef<void(Name&)>& visit) override
+    {
+        visit(weightParameter);
+    }
+
+    HYP_FIELD(Property = "Base", Serialize = true, Editor = false)
     uint32 base = InvalidAnimationGraphNode;
 
-    HYP_FIELD(Property = "Layer", Serialize = true, Editor = true)
+    HYP_FIELD(Property = "Layer", Serialize = true, Editor = false)
     uint32 layer = InvalidAnimationGraphNode;
 
     HYP_FIELD(Property = "Mask", Serialize = true, Editor = true)
@@ -263,7 +290,7 @@ public:
     float weight = 1.0f;
 
     // when set, this float parameter replaces weight
-    HYP_FIELD(Property = "WeightParameter", Serialize = true, Editor = true)
+    HYP_FIELD(Property = "WeightParameter", Serialize = true, Editor = true, EditorType = "GraphParameter")
     Name weightParameter;
 };
 
@@ -281,17 +308,22 @@ public:
     void Update(AnimationGraphContext& context, uint32 nodeIndex, float weight) const override;
     void Evaluate(AnimationGraphContext& context, uint32 nodeIndex, Span<Transform> outPose) const override;
 
-    HYP_FIELD(Property = "Base", Serialize = true, Editor = true)
+    void ForEachParameter(const ProcRef<void(Name&)>& visit) override
+    {
+        visit(weightParameter);
+    }
+
+    HYP_FIELD(Property = "Base", Serialize = true, Editor = false)
     uint32 base = InvalidAnimationGraphNode;
 
     // its difference from the rest pose is added onto the base
-    HYP_FIELD(Property = "Additive", Serialize = true, Editor = true)
+    HYP_FIELD(Property = "Additive", Serialize = true, Editor = false)
     uint32 additive = InvalidAnimationGraphNode;
 
     HYP_FIELD(Property = "Weight", Serialize = true, Editor = true)
     float weight = 1.0f;
 
-    HYP_FIELD(Property = "WeightParameter", Serialize = true, Editor = true)
+    HYP_FIELD(Property = "WeightParameter", Serialize = true, Editor = true, EditorType = "GraphParameter")
     Name weightParameter;
 };
 
@@ -309,7 +341,12 @@ public:
     void Update(AnimationGraphContext& context, uint32 nodeIndex, float weight) const override;
     void Evaluate(AnimationGraphContext& context, uint32 nodeIndex, Span<Transform> outPose) const override;
 
-    HYP_FIELD(Property = "Input", Serialize = true, Editor = true)
+    void ForEachParameter(const ProcRef<void(Name&)>& visit) override
+    {
+        visit(angleParameter);
+    }
+
+    HYP_FIELD(Property = "Input", Serialize = true, Editor = false)
     uint32 input = InvalidAnimationGraphNode;
 
     HYP_FIELD(Property = "RootBone", Serialize = true, Editor = true, EditorType = "Bone")
@@ -321,7 +358,7 @@ public:
     HYP_FIELD(Property = "Angle", Serialize = true, Editor = true)
     float angle = 0.0f;
 
-    HYP_FIELD(Property = "AngleParameter", Serialize = true, Editor = true)
+    HYP_FIELD(Property = "AngleParameter", Serialize = true, Editor = true, EditorType = "GraphParameter")
     Name angleParameter;
 
     HYP_FIELD(Property = "SmoothingTime", Serialize = true, Editor = true)
@@ -345,7 +382,7 @@ public:
     HYP_FIELD(Property = "Slot", Serialize = true, Editor = true)
     Name slot;
 
-    HYP_FIELD(Property = "Base", Serialize = true, Editor = true)
+    HYP_FIELD(Property = "Base", Serialize = true, Editor = false)
     uint32 base = InvalidAnimationGraphNode;
 
     HYP_FIELD(Property = "Mask", Serialize = true, Editor = true)
@@ -366,19 +403,26 @@ public:
     void Update(AnimationGraphContext& context, uint32 nodeIndex, float weight) const override;
     void Evaluate(AnimationGraphContext& context, uint32 nodeIndex, Span<Transform> outPose) const override;
 
-    HYP_FIELD(Property = "Input", Serialize = true, Editor = true)
+    void ForEachParameter(const ProcRef<void(Name&)>& visit) override
+    {
+        visit(leftOffsetParameter);
+        visit(rightOffsetParameter);
+        visit(weightParameter);
+    }
+
+    HYP_FIELD(Property = "Input", Serialize = true, Editor = false)
     uint32 input = InvalidAnimationGraphNode;
 
-    HYP_FIELD(Property = "LeftOffsetParameter", Serialize = true, Editor = true)
+    HYP_FIELD(Property = "LeftOffsetParameter", Serialize = true, Editor = true, EditorType = "GraphParameter")
     Name leftOffsetParameter = NAME("LeftFootOffset");
 
-    HYP_FIELD(Property = "RightOffsetParameter", Serialize = true, Editor = true)
+    HYP_FIELD(Property = "RightOffsetParameter", Serialize = true, Editor = true, EditorType = "GraphParameter")
     Name rightOffsetParameter = NAME("RightFootOffset");
 
     HYP_FIELD(Property = "Weight", Serialize = true, Editor = true)
     float weight = 1.0f;
 
-    HYP_FIELD(Property = "WeightParameter", Serialize = true, Editor = true)
+    HYP_FIELD(Property = "WeightParameter", Serialize = true, Editor = true, EditorType = "GraphParameter")
     Name weightParameter;
 };
 
@@ -419,7 +463,7 @@ struct AnimationTransitionCondition
     HYP_STRUCT_BODY(AnimationTransitionCondition);
 
     // the State* ops read the current state's time and ignore this
-    HYP_FIELD(Property = "Parameter", Serialize = true, Editor = true)
+    HYP_FIELD(Property = "Parameter", Serialize = true, Editor = true, EditorType = "GraphParameter")
     Name parameter;
 
     HYP_FIELD(Property = "Op", Serialize = true, Editor = true)
@@ -473,7 +517,7 @@ struct AnimationState
     HYP_FIELD(Property = "Name", Serialize = true, Editor = true)
     Name name;
 
-    HYP_FIELD(Property = "Input", Serialize = true, Editor = true)
+    HYP_FIELD(Property = "Input", Serialize = true, Editor = false)
     uint32 input = InvalidAnimationGraphNode;
 
     HYP_FIELD(Property = "EditorPosition", Serialize = true, Editor = false)
@@ -500,6 +544,17 @@ public:
 
     void Update(AnimationGraphContext& context, uint32 nodeIndex, float weight) const override;
     void Evaluate(AnimationGraphContext& context, uint32 nodeIndex, Span<Transform> outPose) const override;
+
+    void ForEachParameter(const ProcRef<void(Name&)>& visit) override
+    {
+        for (AnimationStateTransition& transition : transitions)
+        {
+            for (AnimationTransitionCondition& condition : transition.conditions)
+            {
+                visit(condition.parameter);
+            }
+        }
+    }
 
     HYP_METHOD()
     Name GetStateName(uint32 stateIndex) const;
@@ -567,13 +622,13 @@ public:
     HYP_METHOD()
     float GetConditionValue(uint32 transitionIndex, uint32 conditionIndex) const;
 
-    HYP_FIELD(Property = "States", Serialize = true, Editor = true)
+    HYP_FIELD(Property = "States", Serialize = true, Editor = false)
     Array<AnimationState> states;
 
-    HYP_FIELD(Property = "Transitions", Serialize = true, Editor = true)
+    HYP_FIELD(Property = "Transitions", Serialize = true, Editor = false)
     Array<AnimationStateTransition> transitions;
 
-    HYP_FIELD(Property = "EntryState", Serialize = true, Editor = true)
+    HYP_FIELD(Property = "EntryState", Serialize = true, Editor = false)
     uint32 entryState = 0;
 
 private:
@@ -657,6 +712,24 @@ public:
     uint32 GetParameterType(Name name) const;
 
     HYP_METHOD()
+    Vec2f GetParameterDefault(Name name) const;
+
+    void SetParameterDefault(Name name, const Vec2f& value);
+
+    void SetParameterType(Name name, AnimationGraphParameterType type);
+
+    void RenameParameter(Name from, Name to);
+
+    HYP_METHOD()
+    Array<Name> GetNodeParameters(uint32 nodeIndex) const;
+
+    HYP_METHOD()
+    Name GetNodeSubject(uint32 nodeIndex) const;
+
+    HYP_METHOD()
+    float GetNodeClipLength(uint32 nodeIndex) const;
+
+    HYP_METHOD()
     Handle<AnimationGraphNode> GetNodeObject(uint32 nodeIndex) const;
 
     HYP_METHOD()
@@ -703,13 +776,13 @@ public:
     Result LoadContents(const String& text);
 
 private:
-    HYP_FIELD(Property = "Nodes", Serialize = true)
+    HYP_FIELD(Property = "Nodes", Serialize = true, Editor = false)
     Array<Handle<AnimationGraphNode>> m_nodes;
 
-    HYP_FIELD(Property = "RootNode", Serialize = true)
+    HYP_FIELD(Property = "RootNode", Serialize = true, Editor = false)
     uint32 m_rootNode = 0;
 
-    HYP_FIELD(Property = "Parameters", Serialize = true)
+    HYP_FIELD(Property = "Parameters", Serialize = true, Editor = false)
     Array<AnimationGraphParameter> m_parameters;
 
     uint32 m_revision = 0;

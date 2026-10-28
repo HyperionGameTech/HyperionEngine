@@ -26,6 +26,9 @@ namespace Hyperion.Editor.ViewModels
             registry.RegisterView<AnimationGraphDocumentViewModel, AnimationGraphDocumentView>();
             registry.RegisterView<SkeletonChoicePropertyViewModel, SkeletonChoicePropertyEditor>();
             registry.RegisterView<AnimationPreviewViewModel, AnimationPreviewEditor>();
+            registry.RegisterView<AnimationGraphLinkViewModel, AnimationGraphLinkEditor>();
+            registry.RegisterView<AnimationGraphInspectorViewModel, AnimationGraphInspectorView>();
+            registry.RegisterView<AnimationGraphParameterChoiceViewModel, AnimationGraphParameterChoiceEditor>();
 
             registry.AddEditModeBar(Timeline);
             registry.AddDocument(GraphDocument);
@@ -52,22 +55,37 @@ namespace Hyperion.Editor.ViewModels
                     }
                 });
 
+            registry.AddNodeMenuItem("Edit Animation Graph",
+                node => node is Entity entity && GetState()?.FindEntityGraph(entity) != null,
+                node =>
+                {
+                    if (node is Entity entity)
+                    {
+                        OpenEntityGraph(entity);
+                    }
+                });
+
             registry.RegisterPropertyEditor("Bone", (classAddress, targetAddressResolver, property, isReadOnly, ownerEntity, isNameType) =>
                 isNameType ? new SkeletonChoicePropertyViewModel(classAddress, targetAddressResolver, property, isReadOnly, ownerEntity, SkeletonChoiceKind.Bone) : null);
 
             registry.RegisterPropertyEditor("Socket", (classAddress, targetAddressResolver, property, isReadOnly, ownerEntity, isNameType) =>
                 isNameType ? new SkeletonChoicePropertyViewModel(classAddress, targetAddressResolver, property, isReadOnly, ownerEntity, SkeletonChoiceKind.Socket) : null);
 
+            registry.RegisterObjectPropertyEditor("GraphParameter", (target, property, isReadOnly, isNameType) =>
+                isNameType ? new AnimationGraphParameterChoiceViewModel(target, property, isReadOnly) : null);
+
             registry.RegisterPropertyEditor("AnimationClip", (classAddress, targetAddressResolver, property, isReadOnly, ownerEntity, _) =>
                 new SkeletonChoicePropertyViewModel(classAddress, targetAddressResolver, property, isReadOnly, ownerEntity, SkeletonChoiceKind.AnimationClip));
 
             registry.AddComponentInspectorItem("AnimationComponent", entity => new AnimationPreviewViewModel(entity));
+            registry.AddComponentInspectorItem("CharacterModelComponent", entity => new AnimationGraphLinkViewModel(entity));
 
             registry.AddInspectorWarning(CheckAnimationHasSkeleton);
             registry.AddInspectorWarning(CheckClipMatchesSkeleton);
 
             registry.RegisterAssetIcon("Animation", "AssetAnimation");
             registry.RegisterAssetIcon("AnimationTrack", "AssetAnimationTrack");
+            registry.RegisterAssetIcon("AnimationGraph", "Graph");
             registry.RegisterAssetIcon("EditorBoneNode", "AssetSkeleton");
 
             registry.AddEntityDropAssetClass("Animation");
@@ -87,14 +105,43 @@ namespace Hyperion.Editor.ViewModels
             });
         }
 
-        public void OpenGraphDebugger(Entity entity)
+        public static void OpenEntityGraph(Entity entity)
         {
             Dispatcher.UIThread.VerifyAccess();
 
             if (MainWindowViewModel.Instance?.IsSimulating ?? false)
             {
-                GraphDocument.AttachDebug(entity);
+                Instance?.OpenGraphDebugger(entity);
+
+                return;
             }
+
+            RequestEditAnimation(state => state.EnterEntityGraph(entity));
+        }
+
+        public void OpenGraphDebugger(Entity entity)
+        {
+            Dispatcher.UIThread.VerifyAccess();
+
+            if (!(MainWindowViewModel.Instance?.IsSimulating ?? false))
+            {
+                return;
+            }
+
+            _ = EngineManager.PostToSimThread(() =>
+            {
+                Entity? running = GetState()?.FindRunningGraphEntity(entity);
+
+                if (running != null)
+                {
+                    Dispatcher.UIThread.Post(() => GraphDocument.AttachDebug(running));
+                }
+            });
+        }
+
+        internal static EditorAnimationEditState? GetState()
+        {
+            return EngineManager.EditorGame?.EditorSubsystem?.GetAnimationEditState();
         }
 
         private static AnimationEditorExtension? GetExtension()

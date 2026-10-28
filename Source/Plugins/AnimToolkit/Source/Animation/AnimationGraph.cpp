@@ -1338,6 +1338,169 @@ uint32 AnimationGraph::GetParameterType(Name name) const
     return ~0u;
 }
 
+Vec2f AnimationGraph::GetParameterDefault(Name name) const
+{
+    for (const AnimationGraphParameter& parameter : m_parameters)
+    {
+        if (parameter.name == name)
+        {
+            return parameter.defaultValue;
+        }
+    }
+
+    return Vec2f::Zero();
+}
+
+void AnimationGraph::SetParameterDefault(Name name, const Vec2f& value)
+{
+    for (AnimationGraphParameter& parameter : m_parameters)
+    {
+        if (parameter.name == name)
+        {
+            parameter.defaultValue = value;
+
+            MarkChanged();
+
+            return;
+        }
+    }
+}
+
+void AnimationGraph::SetParameterType(Name name, AnimationGraphParameterType type)
+{
+    for (AnimationGraphParameter& parameter : m_parameters)
+    {
+        if (parameter.name == name)
+        {
+            parameter.type = type;
+
+            MarkChanged();
+
+            return;
+        }
+    }
+}
+
+void AnimationGraph::RenameParameter(Name from, Name to)
+{
+    for (AnimationGraphParameter& parameter : m_parameters)
+    {
+        if (parameter.name == from)
+        {
+            parameter.name = to;
+        }
+    }
+
+    auto rename = [from, to](Name& parameter)
+    {
+        if (parameter == from)
+        {
+            parameter = to;
+        }
+    };
+
+    for (const Handle<AnimationGraphNode>& node : m_nodes)
+    {
+        if (!node.IsValid())
+        {
+            continue;
+        }
+
+        node->ForEachParameter(rename);
+    }
+
+    MarkChanged();
+}
+
+Array<Name> AnimationGraph::GetNodeParameters(uint32 nodeIndex) const
+{
+    Array<Name> parameters;
+
+    if (nodeIndex >= m_nodes.Size() || !m_nodes[nodeIndex].IsValid())
+    {
+        return parameters;
+    }
+
+    auto collect = [&parameters](Name& parameter)
+    {
+        if (parameter.IsValid() && !parameters.Contains(parameter))
+        {
+            parameters.PushBack(parameter);
+        }
+    };
+
+    m_nodes[nodeIndex]->ForEachParameter(collect);
+
+    return parameters;
+}
+
+Name AnimationGraph::GetNodeSubject(uint32 nodeIndex) const
+{
+    const AnimationGraphNode* node = GetNode(nodeIndex);
+
+    if (const AnimationClipNode* clipNode = TryCast<AnimationClipNode>(node))
+    {
+        if (clipNode->clip.IsValid())
+        {
+            return clipNode->clip->GetName();
+        }
+
+        return Name::Invalid();
+    }
+
+    if (const AnimationBlend1DNode* blend1D = TryCast<AnimationBlend1DNode>(node))
+    {
+        return blend1D->parameter;
+    }
+
+    if (const AnimationBlend2DNode* blend2D = TryCast<AnimationBlend2DNode>(node))
+    {
+        return blend2D->parameter;
+    }
+
+    if (const AnimationLayerNode* layer = TryCast<AnimationLayerNode>(node))
+    {
+        return layer->weightParameter;
+    }
+
+    if (const AnimationAdditiveNode* additive = TryCast<AnimationAdditiveNode>(node))
+    {
+        return additive->weightParameter;
+    }
+
+    if (const AnimationSlotNode* slotNode = TryCast<AnimationSlotNode>(node))
+    {
+        return slotNode->slot;
+    }
+
+    if (const AnimationChainTwistNode* twist = TryCast<AnimationChainTwistNode>(node))
+    {
+        return twist->endBone;
+    }
+
+    if (const AnimationMotionMatchingNode* motionMatching = TryCast<AnimationMotionMatchingNode>(node))
+    {
+        if (motionMatching->database.IsValid())
+        {
+            return motionMatching->database->GetName();
+        }
+    }
+
+    return Name::Invalid();
+}
+
+float AnimationGraph::GetNodeClipLength(uint32 nodeIndex) const
+{
+    const AnimationClipNode* clipNode = TryCast<AnimationClipNode>(GetNode(nodeIndex));
+
+    if (!clipNode || !clipNode->clip.IsValid())
+    {
+        return 0.0f;
+    }
+
+    return clipNode->clip->GetLength();
+}
+
 Handle<AnimationGraphNode> AnimationGraph::GetNodeObject(uint32 nodeIndex) const
 {
     return nodeIndex < m_nodes.Size() ? m_nodes[nodeIndex] : Handle<AnimationGraphNode>::empty;

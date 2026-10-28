@@ -50,6 +50,7 @@ namespace Hyperion.Editor.Views.Inspector
 
         private ObjectPropertyViewModel? _subscribedVm;
         private AssetObjectEditPanelViewModel? _editPanel;
+        private bool _isResolvingEditMode;
 
         private void OnDataContextChanged(object? sender, EventArgs e)
         {
@@ -119,23 +120,59 @@ namespace Hyperion.Editor.Views.Inspector
                     return;
                 }
 
-                if (_editPanel != null)
+                if (_editPanel != null || _isResolvingEditMode)
                 {
                     return;
                 }
 
-                var panel = new AssetObjectEditPanelViewModel(vm, onClosed: () =>
+                if (vm.SubObject.Target is AssetObject asset)
                 {
-                    _editPanel = null;
-                    vm.IsEditorExpanded = false;
-                });
-                _editPanel = panel;
-                PanelService.Instance.OpenPanel(panel);
+                    OpenAssetEditor(vm, asset);
+                    return;
+                }
+
+                OpenEditPanel(vm);
             }
             else if (!vm.IsEditorExpanded)
             {
                 CloseEditPanel();
             }
+        }
+
+        private void OpenEditPanel(ObjectPropertyViewModel vm)
+        {
+            var panel = new AssetObjectEditPanelViewModel(vm, onClosed: () =>
+            {
+                _editPanel = null;
+                vm.IsEditorExpanded = false;
+            });
+            _editPanel = panel;
+            PanelService.Instance.OpenPanel(panel);
+        }
+
+        private void OpenAssetEditor(ObjectPropertyViewModel vm, AssetObject asset)
+        {
+            _isResolvingEditMode = true;
+
+            _ = EngineManager.PostToSimThread(() =>
+            {
+                bool hasEditMode = asset.IsValid && EngineManager.EditorGame?.EditorSubsystem?.FindEditStateForAsset(asset) != null;
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    _isResolvingEditMode = false;
+
+                    if (hasEditMode)
+                    {
+                        vm.IsEditorExpanded = false;
+                        MainWindowViewModel.Instance?.RequestEditAsset(asset);
+                    }
+                    else if (vm.IsEditorExpanded && _editPanel == null && DataContext == vm)
+                    {
+                        OpenEditPanel(vm);
+                    }
+                });
+            });
         }
 
         private void OnIconTileClicked(object? sender, RoutedEventArgs e)

@@ -1,0 +1,15 @@
+<UserControl
+    x:Class="Hyperion.Editor.Views.Inspector.AnimationGraphParameterChoiceEditor"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="using:Hyperion.Editor.ViewModels"
+    x:DataType="vm:AnimationGraphParameterChoiceViewModel"
+    mc:Ignorable="d">
+    <ComboBox
+        HorizontalAlignment="Stretch"
+        IsEnabled="{Binding !IsReadOnly}"
+        ItemsSource="{Binding Choices}"
+        SelectedItem="{Binding SelectedChoice}" />
+</UserControl>

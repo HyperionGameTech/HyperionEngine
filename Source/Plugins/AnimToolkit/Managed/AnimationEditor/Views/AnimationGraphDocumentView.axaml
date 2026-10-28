@@ -4,114 +4,33 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:controls="using:Hyperion.Editor.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:inspector="using:Hyperion.Editor.Views.Inspector"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:vm="using:Hyperion.Editor.ViewModels"
     x:DataType="vm:AnimationGraphDocumentViewModel"
     mc:Ignorable="d">
-    <Grid ColumnDefinitions="210,*,260">
-        <Border
-            Grid.Column="0"
-            Background="{DynamicResource Brush.Panel}"
-            BorderBrush="{DynamicResource Brush.Border}"
-            BorderThickness="0,0,1,0">
-            <DockPanel Margin="8" IsEnabled="{Binding IsEditable}">
-                <TextBlock
-                    Margin="0,0,0,6"
-                    Classes="section-label"
-                    DockPanel.Dock="Top"
-                    Text="Parameters" />
-                <Grid
-                    Margin="0,0,0,8"
-                    ColumnDefinitions="*,80,Auto"
-                    DockPanel.Dock="Top">
-                    <TextBox
-                        Grid.Column="0"
-                        Text="{Binding NewParameterName}"
-                        Watermark="Name" />
-                    <ComboBox
-                        Grid.Column="1"
-                        Margin="4,0"
-                        HorizontalAlignment="Stretch"
-                        ItemsSource="{Binding ParameterTypes}"
-                        SelectedIndex="{Binding NewParameterType}" />
-                    <Button
-                        Grid.Column="2"
-                        Width="24"
-                        Height="24"
-                        Classes="gizmo"
-                        Command="{Binding AddParameterCommand}"
-                        ToolTip.Tip="Add parameter">
-                        <controls:Codicon Kind="Add" Size="14" />
-                    </Button>
-                </Grid>
-                <ScrollViewer>
-                    <ItemsControl ItemsSource="{Binding Parameters}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="vm:AnimationGraphParameterViewModel">
-                                <Grid Margin="0,2" ColumnDefinitions="*,Auto,Auto">
-                                    <TextBlock
-                                        Grid.Column="0"
-                                        VerticalAlignment="Center"
-                                        Text="{Binding Name}"
-                                        TextTrimming="CharacterEllipsis" />
-                                    <StackPanel
-                                        Grid.Column="1"
-                                        Orientation="Horizontal"
-                                        Spacing="2">
-                                        <NumericUpDown
-                                            Width="80"
-                                            FormatString="0.###"
-                                            Increment="0.1"
-                                            IsVisible="{Binding IsFloat}"
-                                            Value="{Binding X}" />
-                                        <CheckBox IsChecked="{Binding BoolValue}" IsVisible="{Binding IsBool}" />
-                                        <Button
-                                            Padding="8,2"
-                                            Command="{Binding FireCommand}"
-                                            Content="Fire"
-                                            IsVisible="{Binding IsTrigger}" />
-                                        <NumericUpDown
-                                            Width="62"
-                                            FormatString="0.##"
-                                            Increment="0.1"
-                                            IsVisible="{Binding IsVector2}"
-                                            ShowButtonSpinner="False"
-                                            Value="{Binding X}" />
-                                        <NumericUpDown
-                                            Width="62"
-                                            FormatString="0.##"
-                                            Increment="0.1"
-                                            IsVisible="{Binding IsVector2}"
-                                            ShowButtonSpinner="False"
-                                            Value="{Binding Y}" />
-                                    </StackPanel>
-                                    <Button
-                                        Grid.Column="2"
-                                        Width="22"
-                                        Height="22"
-                                        Margin="2,0,0,0"
-                                        Classes="gizmo"
-                                        Command="{Binding RemoveCommand}"
-                                        ToolTip.Tip="Remove">
-                                        <controls:Codicon Kind="Trash" Size="12" />
-                                    </Button>
-                                </Grid>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </ScrollViewer>
-            </DockPanel>
-        </Border>
+    <UserControl.Styles>
+        <Style Selector="Border.parameter-row">
+            <Setter Property="Padding" Value="4,1" />
+            <Setter Property="CornerRadius" Value="3" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="Border.parameter-row.selected">
+            <Setter Property="Background" Value="{DynamicResource Brush.AccentSubtle}" />
+        </Style>
+    </UserControl.Styles>
 
-        <Grid Grid.Column="1" RowDefinitions="Auto,*,Auto">
-            <Border
-                Grid.Row="0"
-                Padding="6,3"
-                Background="{DynamicResource Brush.PanelAlt}"
-                BorderBrush="{DynamicResource Brush.Border}"
-                BorderThickness="0,0,0,1">
-                <StackPanel Orientation="Horizontal" Spacing="4">
+    <Grid RowDefinitions="Auto,*">
+        <Border
+            Grid.Row="0"
+            Padding="6,3"
+            Background="{DynamicResource Brush.PanelAlt}"
+            BorderBrush="{DynamicResource Brush.Border}"
+            BorderThickness="0,0,0,1">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <StackPanel
+                    Grid.Column="0"
+                    Orientation="Horizontal"
+                    Spacing="4">
                     <Button
                         Padding="6,1"
                         Classes="gizmo"
@@ -126,161 +45,220 @@
                         VerticalAlignment="Center"
                         IsVisible="{Binding IsInStateMachine}"
                         Text="{Binding StateMachineTitle}" />
-                    <TextBlock
-                        Margin="12,0,0,0"
+                    <Border
+                        Margin="8,0,0,0"
+                        Padding="6,1"
                         VerticalAlignment="Center"
-                        Foreground="{DynamicResource Brush.TextMuted}"
-                        IsVisible="{Binding IsReadOnly}"
-                        Text="Read-only" />
+                        Background="{DynamicResource Brush.WarningSubtle}"
+                        CornerRadius="3"
+                        IsVisible="{Binding IsReadOnly}">
+                        <TextBlock FontSize="11" Text="{Binding ReadOnlyLabel}" />
+                    </Border>
+                    <Button
+                        Padding="8,1"
+                        Command="{Binding CopyToProjectCommand}"
+                        Content="Copy to Project"
+                        IsVisible="{Binding CanCopyToProject}" />
                 </StackPanel>
-            </Border>
-            <controls:AnimationGraphCanvas Grid.Row="1" />
-            <Border
-                Grid.Row="2"
-                Height="190"
-                BorderBrush="{DynamicResource Brush.Border}"
-                BorderThickness="0,1,0,0"
-                IsVisible="{Binding IsBlendSelected}">
-                <controls:AnimationBlendSpaceControl />
-            </Border>
-        </Grid>
-
-        <Border
-            Grid.Column="2"
-            Background="{DynamicResource Brush.Panel}"
-            BorderBrush="{DynamicResource Brush.Border}"
-            BorderThickness="1,0,0,0">
-            <Panel>
-                <ScrollViewer IsVisible="{Binding HasSelection}">
-                    <StackPanel Margin="8" Spacing="6">
-                        <TextBlock Classes="section-label" Text="{Binding SelectedNodeProperties.Label}" />
-                        <inspector:InspectorPropertyItemsControl ItemsSource="{Binding SelectedNodeProperties.Properties}" />
-                    </StackPanel>
-                </ScrollViewer>
 
                 <StackPanel
-                    Margin="8"
-                    IsEnabled="{Binding IsEditable}"
-                    IsVisible="{Binding IsStateSelected}"
-                    Spacing="6">
-                    <TextBlock Classes="section-label" Text="State" />
-                    <TextBox Text="{Binding StateName, UpdateSourceTrigger=LostFocus}" />
-                    <TextBlock Classes="hint-text" Text="Input" />
-                    <ComboBox
-                        HorizontalAlignment="Stretch"
-                        ItemsSource="{Binding StateInputChoices}"
-                        SelectedIndex="{Binding StateInputIndex}" />
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                        <Button
-                            Padding="10,2"
-                            Command="{Binding SetEntryStateCommand}"
-                            Content="Set as Entry"
-                            IsEnabled="{Binding !IsSelectedStateEntry}" />
-                        <Button
-                            Padding="10,2"
-                            Command="{Binding RemoveStateCommand}"
-                            Content="Delete" />
-                    </StackPanel>
-                </StackPanel>
-
-                <ScrollViewer IsVisible="{Binding IsTransitionSelected}">
+                    Grid.Column="2"
+                    Orientation="Horizontal"
+                    Spacing="4">
                     <StackPanel
-                        Margin="8"
+                        IsVisible="{Binding HasPreviewControls}"
+                        Orientation="Horizontal"
+                        Spacing="4">
+                        <ComboBox
+                            MinWidth="120"
+                            ItemsSource="{Binding PreviewChoices}"
+                            SelectedIndex="{Binding SelectedPreviewIndex}"
+                            ToolTip.Tip="Preview on" />
+                        <Button
+                            Width="24"
+                            Height="24"
+                            Classes="gizmo"
+                            Command="{Binding TogglePlayCommand}"
+                            ToolTip.Tip="Play/Pause">
+                            <controls:Codicon Kind="{Binding PlayIcon}" Size="14" />
+                        </Button>
+                        <Button
+                            Width="24"
+                            Height="24"
+                            Classes="gizmo"
+                            Command="{Binding RestartCommand}"
+                            ToolTip.Tip="Restart">
+                            <controls:Codicon Kind="DebugRestart" Size="14" />
+                        </Button>
+                    </StackPanel>
+                    <Border
+                        Width="1"
+                        Margin="4,2"
+                        Background="{DynamicResource Brush.Border}" />
+                    <Button
+                        Padding="6,1"
+                        Command="{Binding AddNodeCommand}"
                         IsEnabled="{Binding IsEditable}"
-                        Spacing="6">
-                        <TextBlock Classes="section-label" Text="{Binding TransitionTitle}" />
-                        <Grid ColumnDefinitions="*,110" RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="4">
-                            <TextBlock Grid.Row="0" VerticalAlignment="Center" Text="Duration" />
-                            <NumericUpDown
-                                Grid.Row="0"
-                                Grid.Column="1"
-                                FormatString="0.###"
-                                Increment="0.05"
-                                Minimum="0"
-                                Value="{Binding TransitionDuration}" />
-                            <TextBlock Grid.Row="1" VerticalAlignment="Center" Text="Curve" />
-                            <ComboBox
-                                Grid.Row="1"
-                                Grid.Column="1"
-                                HorizontalAlignment="Stretch"
-                                ItemsSource="{Binding Curves}"
-                                SelectedIndex="{Binding TransitionCurve}" />
-                            <TextBlock Grid.Row="2" VerticalAlignment="Center" Text="Priority" />
-                            <NumericUpDown
-                                Grid.Row="2"
-                                Grid.Column="1"
-                                FormatString="0"
-                                Increment="1"
-                                Value="{Binding TransitionPriority}" />
-                            <CheckBox
-                                Grid.Row="3"
-                                Grid.ColumnSpan="2"
-                                Content="Interruptible"
-                                IsChecked="{Binding TransitionInterruptible}" />
-                            <CheckBox
-                                Grid.Row="4"
-                                Grid.ColumnSpan="2"
-                                Content="Inertialize"
-                                IsChecked="{Binding TransitionInertialize}"
-                                ToolTip.Tip="Play only the new state, easing out the difference from the old pose" />
-                        </Grid>
-                        <Grid ColumnDefinitions="*,Auto">
-                            <TextBlock Classes="section-label" Text="Conditions" />
-                            <Button
-                                Grid.Column="1"
-                                Width="22"
-                                Height="22"
-                                Classes="gizmo"
-                                Command="{Binding AddConditionCommand}"
-                                ToolTip.Tip="Add condition">
-                                <controls:Codicon Kind="Add" Size="12" />
-                            </Button>
-                        </Grid>
-                        <ItemsControl ItemsSource="{Binding Conditions}">
+                        ToolTip.Tip="Add node (Space)">
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <controls:Codicon Kind="Add" Size="14" />
+                            <TextBlock VerticalAlignment="Center" Text="Node" />
+                        </StackPanel>
+                    </Button>
+                    <Button
+                        Width="24"
+                        Height="24"
+                        Classes="gizmo"
+                        Command="{Binding ArrangeCommand}"
+                        IsEnabled="{Binding IsEditable}"
+                        ToolTip.Tip="Arrange">
+                        <controls:Codicon Kind="ListTree" Size="14" />
+                    </Button>
+                    <Button
+                        Width="24"
+                        Height="24"
+                        Classes="gizmo"
+                        Command="{Binding FrameCommand}"
+                        ToolTip.Tip="Frame (F)">
+                        <controls:Codicon Kind="ScreenFull" Size="14" />
+                    </Button>
+                    <StackPanel
+                        IsVisible="{Binding HasApplyControls}"
+                        Orientation="Horizontal"
+                        Spacing="4">
+                        <Border
+                            Width="1"
+                            Margin="4,2"
+                            Background="{DynamicResource Brush.Border}" />
+                        <Button
+                            Padding="10,1"
+                            Command="{Binding RevertEditModeCommand, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                            Content="Revert" />
+                        <Button
+                            Padding="10,1"
+                            Classes="Primary"
+                            Command="{Binding ApplyEditModeCommand, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                            Content="Apply" />
+                    </StackPanel>
+                    <Button
+                        Width="24"
+                        Height="24"
+                        Classes="gizmo"
+                        Command="{Binding ExitEditModeCommand, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                        IsVisible="{Binding !IsDebugging}"
+                        ToolTip.Tip="Close">
+                        <controls:Codicon Kind="Close" Size="14" />
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1" ColumnDefinitions="200,*">
+            <Border
+                Grid.Column="0"
+                Background="{DynamicResource Brush.Panel}"
+                BorderBrush="{DynamicResource Brush.Border}"
+                BorderThickness="0,0,1,0">
+                <DockPanel Margin="6">
+                    <TextBlock
+                        Margin="0,0,0,4"
+                        Classes="section-label"
+                        DockPanel.Dock="Top"
+                        Text="Parameters" />
+                    <Grid
+                        Margin="0,0,0,6"
+                        ColumnDefinitions="*,74,Auto"
+                        DockPanel.Dock="Top"
+                        IsEnabled="{Binding IsEditable}">
+                        <TextBox
+                            Grid.Column="0"
+                            Text="{Binding NewParameterName}"
+                            Watermark="Name" />
+                        <ComboBox
+                            Grid.Column="1"
+                            Margin="4,0"
+                            HorizontalAlignment="Stretch"
+                            ItemsSource="{Binding ParameterTypes}"
+                            SelectedIndex="{Binding NewParameterType}" />
+                        <Button
+                            Grid.Column="2"
+                            Width="24"
+                            Height="24"
+                            Classes="gizmo"
+                            Command="{Binding AddParameterCommand}"
+                            ToolTip.Tip="Add parameter">
+                            <controls:Codicon Kind="Add" Size="14" />
+                        </Button>
+                    </Grid>
+                    <ScrollViewer>
+                        <ItemsControl ItemsSource="{Binding Parameters}">
                             <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="vm:AnimationTransitionConditionViewModel">
-                                    <Grid Margin="0,2" ColumnDefinitions="*,*,60,Auto">
-                                        <ComboBox
-                                            Grid.Column="0"
-                                            HorizontalAlignment="Stretch"
-                                            IsEnabled="{Binding UsesParameter}"
-                                            ItemsSource="{Binding ParameterNames}"
-                                            SelectedItem="{Binding Parameter}" />
-                                        <ComboBox
-                                            Grid.Column="1"
-                                            Margin="2,0"
-                                            HorizontalAlignment="Stretch"
-                                            ItemsSource="{Binding Ops}"
-                                            SelectedIndex="{Binding OpIndex}" />
-                                        <NumericUpDown
-                                            Grid.Column="2"
-                                            FormatString="0.##"
-                                            Increment="0.1"
-                                            IsEnabled="{Binding UsesValue}"
-                                            ShowButtonSpinner="False"
-                                            Value="{Binding Value}" />
-                                        <Button
-                                            Grid.Column="3"
-                                            Width="22"
-                                            Height="22"
-                                            Margin="2,0,0,0"
-                                            Classes="gizmo"
-                                            Command="{Binding RemoveCommand}"
-                                            ToolTip.Tip="Remove">
-                                            <controls:Codicon Kind="Trash" Size="12" />
-                                        </Button>
-                                    </Grid>
+                                <DataTemplate x:DataType="vm:AnimationGraphParameterViewModel">
+                                    <Border Classes="parameter-row" Classes.selected="{Binding IsSelected}">
+                                        <Grid Margin="0,1" ColumnDefinitions="*,Auto">
+                                            <Button
+                                                Grid.Column="0"
+                                                Padding="2,0"
+                                                HorizontalAlignment="Stretch"
+                                                HorizontalContentAlignment="Left"
+                                                Background="Transparent"
+                                                BorderThickness="0"
+                                                Command="{Binding SelectCommand}"
+                                                ToolTip.Tip="{Binding TypeLabel}">
+                                                <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                            </Button>
+                                            <StackPanel
+                                                Grid.Column="1"
+                                                Orientation="Horizontal"
+                                                Spacing="2">
+                                                <NumericUpDown
+                                                    Width="70"
+                                                    FormatString="0.###"
+                                                    Increment="0.1"
+                                                    IsVisible="{Binding IsFloat}"
+                                                    ShowButtonSpinner="False"
+                                                    Value="{Binding X}" />
+                                                <CheckBox IsChecked="{Binding BoolValue}" IsVisible="{Binding IsBool}" />
+                                                <Button
+                                                    Padding="8,1"
+                                                    Command="{Binding FireCommand}"
+                                                    Content="Fire"
+                                                    IsVisible="{Binding IsTrigger}" />
+                                                <NumericUpDown
+                                                    Width="44"
+                                                    FormatString="0.##"
+                                                    Increment="0.1"
+                                                    IsVisible="{Binding IsVector2}"
+                                                    ShowButtonSpinner="False"
+                                                    Value="{Binding X}" />
+                                                <NumericUpDown
+                                                    Width="44"
+                                                    FormatString="0.##"
+                                                    Increment="0.1"
+                                                    IsVisible="{Binding IsVector2}"
+                                                    ShowButtonSpinner="False"
+                                                    Value="{Binding Y}" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
-                        <Button
-                            Padding="10,2"
-                            HorizontalAlignment="Left"
-                            Command="{Binding RemoveTransitionCommand}"
-                            Content="Delete Transition" />
-                    </StackPanel>
-                </ScrollViewer>
-            </Panel>
-        </Border>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+
+            <Grid Grid.Column="1" ColumnDefinitions="*,Auto">
+                <controls:AnimationGraphCanvas Grid.Column="0" />
+                <Border
+                    Grid.Column="1"
+                    Width="240"
+                    BorderBrush="{DynamicResource Brush.Border}"
+                    BorderThickness="1,0,0,0"
+                    IsVisible="{Binding IsBlendSelected}">
+                    <controls:AnimationBlendSpaceControl />
+                </Border>
+            </Grid>
+        </Grid>
     </Grid>
 </UserControl>

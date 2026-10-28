@@ -27,7 +27,7 @@ namespace Hyperion.Editor.ViewModels
 
             TogglePlayCommand = new RelayCommand(TogglePlay);
             EditCommand = new RelayCommand(() => AnimationEditorWiring.RequestEditAnimation(state => state.EnterEntity(_entity)));
-            OpenGraphCommand = new RelayCommand(() => AnimationEditorWiring.Instance?.OpenGraphDebugger(_entity));
+            OpenGraphCommand = new RelayCommand(() => AnimationEditorWiring.OpenEntityGraph(_entity));
 
             _pollTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(PollIntervalMs) };
             _pollTimer.Tick += (_, _) => RefreshValue();
@@ -41,7 +41,6 @@ namespace Hyperion.Editor.ViewModels
 
         public ICommand OpenGraphCommand { get; }
 
-        // while simulating, an entity running a graph can be watched in the graph document
         public bool CanOpenGraph
         {
             get => _canOpenGraph;
@@ -120,7 +119,7 @@ namespace Hyperion.Editor.ViewModels
 
                 Dispatcher.UIThread.Post(() =>
                 {
-                    CanOpenGraph = hasGraph && (MainWindowViewModel.Instance?.IsSimulating ?? false);
+                    CanOpenGraph = hasGraph;
 
                     ApplyState(isActive, isPlaying, time, length);
                 });

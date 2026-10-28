@@ -45,7 +45,12 @@ namespace Hyperion.Editor.ViewModels
 
             InspectorPropertyViewModelBase vm;
 
-            if (typeInfo.IsArray)
+            if (FindPluginObjectPropertyEditor(property) is { } pluginEditor
+                && pluginEditor(target, property, isReadOnly, isNameType) is { } pluginVm)
+            {
+                vm = pluginVm;
+            }
+            else if (typeInfo.IsArray)
             {
                 vm = new ArrayPropertyViewModel(target, property, isReadOnly, depth);
             }
@@ -281,6 +286,18 @@ namespace Hyperion.Editor.ViewModels
             AttachCallbacks(vm, preWriteCallback, postWriteCallback, valueChangedCallback);
 
             return initialize ? Initialize(vm) : vm;
+        }
+
+        private static ObjectPropertyEditorFactory? FindPluginObjectPropertyEditor(Property property)
+        {
+            ClassAttribute? attrEditorType = property.GetAttribute("editortype");
+
+            if (attrEditorType == null || !attrEditorType.Value.IsString)
+            {
+                return null;
+            }
+
+            return EditorPluginService.Instance.FindObjectPropertyEditor(attrEditorType.Value.GetString());
         }
 
         private static PropertyEditorFactory? FindPluginPropertyEditor(Property property)

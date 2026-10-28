@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Media;
 using Hyperion.Editor.ViewModels;
@@ -16,18 +17,33 @@ namespace Hyperion.Editor.Controls
     {
         private const double NodeWidth = 170.0;
         private const double HeaderHeight = 24.0;
+        private const double DetailHeight = 16.0;
         private const double RowHeight = 18.0;
         private const double PinRadius = 5.0;
+        private const double OutputWidth = 90.0;
+        private const double OutputGap = 70.0;
         private const double StateWidth = 150.0;
         private const double StateHeight = 46.0;
+        private const double StateEdge = 8.0;
         private const double TransitionOffset = 5.0;
         private const double GridSpacing = 32.0;
         private const double MinZoom = 0.25;
         private const double MaxZoom = 2.0;
+        private const double FrameMargin = 40.0;
+        private const double PasteOffset = 30.0;
 
         private static readonly DataFormat<string> AssetDragFormat = DataFormat.CreateStringApplicationFormat("hyperion-asset");
         private static readonly Typeface LabelTypeface = new Typeface(FontFamily.Default);
         private static readonly Color OutputColor = Color.Parse("#FFFFB347");
+        private static readonly Color InvalidColor = Color.Parse("#FFE5534B");
+
+        private static readonly Dictionary<AnimationGraphNodeCategory, Color> CategoryColors = new()
+        {
+            [AnimationGraphNodeCategory.Source] = Color.Parse("#FF2E7D5B"),
+            [AnimationGraphNodeCategory.Blend] = Color.Parse("#FF2F5E9E"),
+            [AnimationGraphNodeCategory.Modify] = Color.Parse("#FF9E6A2F"),
+            [AnimationGraphNodeCategory.State] = Color.Parse("#FF6E4A9E")
+        };
 
         private AnimationGraphDocumentViewModel? _viewModel;
 
@@ -40,9 +56,11 @@ namespace Hyperion.Editor.Controls
         {
             None,
             Pan,
-            MoveNode,
+            MoveNodes,
             Wire,
-            MoveState
+            MoveState,
+            BoxSelect,
+            Transition
         }
 
         private DragMode _dragMode;
@@ -50,7 +68,10 @@ namespace Hyperion.Editor.Controls
         private Point _pointer;
         private int _dragNode = AnimationGraphNodeView.NoInput;
         private Point _dragNodeStart;
+        private Dictionary<int, Point> _dragStarts = new Dictionary<int, Point>();
         private bool _dragMoved;
+        private bool _isRightPan;
+        private bool _isFramePending;
         private (int Node, int Slot)? _rewiredInput;
 
         // set while a transition is being drawn from this state
@@ -75,6 +96,8 @@ namespace Hyperion.Editor.Controls
                 _viewModel.GraphChanged -= InvalidateVisual;
                 _viewModel.PreviewChanged -= InvalidateVisual;
                 _viewModel.FocusNodeRequested -= FocusNode;
+                _viewModel.FrameRequested -= Frame;
+                _viewModel.AddNodeRequested -= OnAddNodeRequested;
             }
 
             _viewModel = DataContext as AnimationGraphDocumentViewModel;
@@ -84,6 +107,8 @@ namespace Hyperion.Editor.Controls
                 _viewModel.GraphChanged += InvalidateVisual;
                 _viewModel.PreviewChanged += InvalidateVisual;
                 _viewModel.FocusNodeRequested += FocusNode;
+                _viewModel.FrameRequested += Frame;
+                _viewModel.AddNodeRequested += OnAddNodeRequested;
             }
 
             InvalidateVisual();
@@ -146,23 +171,137 @@ namespace Hyperion.Editor.Controls
             InvalidateVisual();
         }
 
+        protected override void OnSizeChanged(SizeChangedEventArgs e)
+        {
+            base.OnSizeChanged(e);
+
+            if (_isFramePending)
+            {
+                Frame();
+            }
+        }
+
+        private void Frame()
+        {
+            if (_viewModel == null)
+            {
+                return;
+            }
+
+            if (Bounds.Width < 1.0 || Bounds.Height < 1.0)
+            {
+                _isFramePending = true;
+
+                return;
+            }
+
+            _isFramePending = false;
+
+            List<Rect> rects = new List<Rect>();
+
+            if (InStateMachine)
+            {
+                rects.AddRange(_viewModel.States.Select(s => StateRect(s.Index)));
+                rects.Add(StateRect(AnimationStateView.AnyState));
+            }
+            else
+            {
+                List<AnimationGraphNodeView> nodes = _viewModel.Nodes.Where(n => _viewModel.SelectedNodes.Contains(n.Index)).ToList();
+
+                if (nodes.Count == 0)
+                {
+                    nodes = _viewModel.Nodes;
+
+                    if (OutputRect() is { } outputRect)
+                    {
+                        rects.Add(outputRect);
+                    }
+                }
+
+                rects.AddRange(nodes.Select(NodeRect));
+            }
+
+            if (rects.Count == 0)
+            {
+                return;
+            }
+
+            Rect bounds = rects.Aggregate((a, b) => a.Union(b)).Inflate(FrameMargin);
+
+            double zoom = Math.Clamp(Math.Min(Bounds.Width / bounds.Width, Bounds.Height / bounds.Height), MinZoom, 1.0);
+
+            Zoom = zoom;
+            Pan = new Vector(Bounds.Width * 0.5 - bounds.Center.X * zoom, Bounds.Height * 0.5 - bounds.Center.Y * zoom);
+
+            InvalidateVisual();
+        }
+
         #region Graph
+
+        private static double DetailRows(AnimationGraphNodeView node) => node.Detail.Length > 0 ? DetailHeight : 0.0;
 
         private static int NumRows(AnimationGraphNodeView node) => Math.Max(1, node.Inputs.Count + (node.CanAddInputs ? 1 : 0));
 
         private static double StatusHeight(AnimationGraphNodeView node) => node.IsStateMachine ? RowHeight : 0.0;
 
-        private static Rect NodeRect(AnimationGraphNodeView node) => new Rect(node.Position, new Size(NodeWidth, HeaderHeight + NumRows(node) * RowHeight + StatusHeight(node) + 6.0));
+        private static Rect NodeRect(AnimationGraphNodeView node) => new Rect(node.Position, new Size(NodeWidth, HeaderHeight + DetailRows(node) + NumRows(node) * RowHeight + StatusHeight(node) + 6.0));
 
         private static Point OutputPin(AnimationGraphNodeView node) => new Point(node.Position.X + NodeWidth, node.Position.Y + HeaderHeight * 0.5);
 
-        private static Point InputPin(AnimationGraphNodeView node, int slot) => new Point(node.Position.X, node.Position.Y + HeaderHeight + (slot + 0.5) * RowHeight);
+        private static Point InputPin(AnimationGraphNodeView node, int slot) => new Point(node.Position.X, node.Position.Y + HeaderHeight + DetailRows(node) + (slot + 0.5) * RowHeight);
 
         private AnimationGraphNodeView? FindNode(int index) => _viewModel?.Nodes.FirstOrDefault(node => node.Index == index);
+
+        private AnimationGraphNodeView? RootNode() => _viewModel?.Nodes.FirstOrDefault(node => node.IsOutput);
+
+        private Rect? OutputRect()
+        {
+            if (_viewModel == null || _viewModel.Nodes.Count == 0)
+            {
+                return null;
+            }
+
+            if (RootNode() is { } root)
+            {
+                Rect rootRect = NodeRect(root);
+
+                return new Rect(rootRect.Right + OutputGap, root.Position.Y, OutputWidth, HeaderHeight + RowHeight + 6.0);
+            }
+
+            double right = _viewModel.Nodes.Max(n => NodeRect(n).Right);
+            double top = _viewModel.Nodes.Min(n => n.Position.Y);
+
+            return new Rect(right + OutputGap, top, OutputWidth, HeaderHeight + RowHeight + 6.0);
+        }
+
+        private Point? OutputTerminalPin()
+        {
+            if (OutputRect() is not { } rect)
+            {
+                return null;
+            }
+
+            return new Point(rect.X, rect.Y + HeaderHeight + RowHeight * 0.5);
+        }
+
+        private bool HitOutputTerminal(Point world)
+        {
+            if (OutputRect() is not { } rect)
+            {
+                return false;
+            }
+
+            return rect.Inflate(PinRadius + 3.0).Contains(world);
+        }
 
         private AnimationGraphNodeView? HitNode(Point world)
         {
             return _viewModel?.Nodes.LastOrDefault(node => NodeRect(node).Contains(world));
+        }
+
+        private AnimationGraphNodeView? HitNodeHeader(Point world)
+        {
+            return _viewModel?.Nodes.LastOrDefault(node => new Rect(node.Position, new Size(NodeWidth, HeaderHeight)).Contains(world));
         }
 
         private AnimationGraphNodeView? HitOutputPin(Point world)
@@ -200,6 +339,16 @@ namespace Hyperion.Editor.Controls
             return null;
         }
 
+        private bool IsInvalidWireTarget(int sourceNode, Point world)
+        {
+            if (_viewModel == null || HitInputPin(world) is not { } input)
+            {
+                return false;
+            }
+
+            return input.Node.Index == sourceNode || _viewModel.WouldCycle(sourceNode, input.Node.Index);
+        }
+
         private void RenderGraph(DrawingContext context, Palette palette)
         {
             AnimationGraphDocumentViewModel viewModel = _viewModel!;
@@ -220,22 +369,28 @@ namespace Hyperion.Editor.Controls
                 }
             }
 
+            if (RootNode() is { } root && OutputTerminalPin() is { } terminalPin)
+            {
+                DrawWire(context, root.Weight > 0.0f ? palette.ActiveWire : palette.Wire, OutputPin(root), terminalPin);
+            }
+
             foreach (AnimationGraphNodeView node in viewModel.Nodes)
             {
                 Rect rect = NodeRect(node);
                 Pen nodePen = palette.Border;
+                bool isSelected = viewModel.SelectedNodes.Contains(node.Index) || node.Index == viewModel.SelectedNode;
 
-                if (node.Index == viewModel.SelectedNode)
+                if (isSelected)
                 {
                     nodePen = palette.Selected;
                 }
-                else if (node.IsOutput)
+                else if (viewModel.UsesSelectedParameter(node.Parameters))
                 {
-                    nodePen = palette.Output;
+                    nodePen = palette.Highlight;
                 }
 
                 context.DrawRectangle(palette.Node, nodePen, rect, 4.0, 4.0);
-                context.DrawRectangle(palette.Header, null, new Rect(rect.X, rect.Y, rect.Width, HeaderHeight), 4.0, 4.0);
+                context.DrawRectangle(palette.CategoryHeaders[node.Category], null, new Rect(rect.X, rect.Y, rect.Width, HeaderHeight), 4.0, 4.0);
 
                 if (node.Weight > 0.0f)
                 {
@@ -244,14 +399,19 @@ namespace Hyperion.Editor.Controls
 
                 DrawText(context, node.Title, 11.0, palette.Text, new Point(rect.X + 8.0, rect.Y + 4.0), NodeWidth - 30.0);
 
-                if (node.Status.Length > 0)
-                {
-                    DrawText(context, node.Status, 10.0, palette.Accent, new Point(rect.X + 8.0, rect.Bottom - RowHeight - 3.0), NodeWidth - 16.0);
-                }
-
                 if (node.Title != node.Kind)
                 {
                     DrawText(context, node.Kind, 9.0, palette.Muted, new Point(rect.Right - 8.0 - MeasureText(node.Kind, 9.0), rect.Y + 6.0), 60.0);
+                }
+
+                if (node.Detail.Length > 0)
+                {
+                    DrawText(context, node.Detail, 10.0, palette.Muted, new Point(rect.X + 8.0, rect.Y + HeaderHeight + 1.0), NodeWidth - 16.0);
+                }
+
+                if (node.Status.Length > 0)
+                {
+                    DrawText(context, node.Status, 10.0, palette.Accent, new Point(rect.X + 8.0, rect.Bottom - RowHeight - 3.0), NodeWidth - 16.0);
                 }
 
                 context.DrawEllipse(node.IsOutput ? palette.Output.Brush : palette.Muted, null, OutputPin(node), PinRadius, PinRadius);
@@ -275,19 +435,51 @@ namespace Hyperion.Editor.Controls
                 }
             }
 
+            if (OutputRect() is { } outputRect && OutputTerminalPin() is { } outputPin)
+            {
+                context.DrawRectangle(palette.Node, palette.Output, outputRect, 4.0, 4.0);
+                DrawText(context, "Output", 11.0, palette.Text, new Point(outputRect.X + 8.0, outputRect.Y + 4.0), OutputWidth - 16.0);
+                context.DrawEllipse(palette.Output.Brush, null, outputPin, PinRadius, PinRadius);
+                DrawText(context, "Pose", 10.0, palette.Muted, new Point(outputPin.X + 10.0, outputPin.Y - 7.0), OutputWidth - 20.0);
+            }
+
             if (_dragMode == DragMode.Wire && FindNode(_dragNode) is { } wireSource)
             {
-                DrawWire(context, palette.ActiveWire, OutputPin(wireSource), ToWorld(_pointer));
+                Point end = ToWorld(_pointer);
+                Pen pen = palette.ActiveWire;
+
+                if (IsInvalidWireTarget(wireSource.Index, end))
+                {
+                    pen = palette.Invalid;
+                }
+
+                DrawWire(context, pen, OutputPin(wireSource), end);
+            }
+
+            if (_dragMode == DragMode.BoxSelect)
+            {
+                Rect box = new Rect(ToWorld(_dragStart), ToWorld(_pointer)).Normalize();
+
+                context.DrawRectangle(palette.BoxFill, new Pen(palette.Accent, 1.0 / Zoom), box);
             }
         }
 
-        private void PressGraph(Point world, int clickCount)
+        private void PressGraph(Point world, int clickCount, KeyModifiers modifiers)
         {
             AnimationGraphDocumentViewModel viewModel = _viewModel!;
+            bool isAdditive = (modifiers & (KeyModifiers.Shift | KeyModifiers.Control)) != 0;
 
-            if (clickCount == 2 && HitNode(world) is { IsStateMachine: true } stateMachine)
+            if (clickCount == 2 && HitNode(world) is { } doubleClicked)
             {
-                viewModel.OpenStateMachineNode(stateMachine.Index);
+                if (doubleClicked.IsStateMachine)
+                {
+                    viewModel.OpenStateMachineNode(doubleClicked.Index);
+                }
+                else if (IsEditable && HitNodeHeader(world) == doubleClicked)
+                {
+                    ShowRename(doubleClicked);
+                }
+
                 _dragMode = DragMode.None;
 
                 return;
@@ -306,62 +498,221 @@ namespace Hyperion.Editor.Controls
             }
             else if (HitNode(world) is { } node)
             {
-                _dragMode = DragMode.MoveNode;
-                _dragNode = node.Index;
-                _dragNodeStart = node.Position;
+                HashSet<int> selection = new HashSet<int>(viewModel.SelectedNodes);
 
-                viewModel.Select(node.Index);
+                if (isAdditive)
+                {
+                    if (!selection.Remove(node.Index))
+                    {
+                        selection.Add(node.Index);
+                    }
+
+                    viewModel.SetNodeSelection(selection, selection.Contains(node.Index) ? node.Index : AnimationGraphNodeView.NoInput);
+
+                    return;
+                }
+
+                if (!selection.Contains(node.Index))
+                {
+                    selection = new HashSet<int> { node.Index };
+                    viewModel.Select(node.Index);
+                }
+
+                _dragMode = DragMode.MoveNodes;
+                _dragNode = node.Index;
+                _dragStarts = viewModel.Nodes.Where(n => selection.Contains(n.Index)).ToDictionary(n => n.Index, n => n.Position);
             }
             else
             {
-                _dragMode = DragMode.Pan;
+                _dragMode = DragMode.BoxSelect;
 
-                viewModel.Select(AnimationGraphNodeView.NoInput);
+                if (!isAdditive)
+                {
+                    viewModel.Select(AnimationGraphNodeView.NoInput);
+                }
             }
+        }
+
+        private void FinishBoxSelect(KeyModifiers modifiers)
+        {
+            AnimationGraphDocumentViewModel viewModel = _viewModel!;
+
+            if (!_dragMoved)
+            {
+                return;
+            }
+
+            Rect box = new Rect(ToWorld(_dragStart), ToWorld(_pointer)).Normalize();
+            HashSet<int> selection = (modifiers & (KeyModifiers.Shift | KeyModifiers.Control)) != 0 ? new HashSet<int>(viewModel.SelectedNodes) : new HashSet<int>();
+
+            foreach (AnimationGraphNodeView node in viewModel.Nodes)
+            {
+                if (box.Intersects(NodeRect(node)))
+                {
+                    selection.Add(node.Index);
+                }
+            }
+
+            viewModel.SetNodeSelection(selection, AnimationGraphNodeView.NoInput);
         }
 
         private void ShowGraphContextMenu(Point world)
         {
             AnimationGraphDocumentViewModel viewModel = _viewModel!;
-            ContextMenu menu = new ContextMenu();
 
-            if (HitNode(world) is { } node)
+            if (HitNode(world) is not { } node)
             {
-                if (node.IsStateMachine)
-                {
-                    MenuItem open = new MenuItem { Header = "Open" };
-                    open.Click += (_, _) => viewModel.OpenStateMachineNode(node.Index);
-
-                    menu.Items.Add(open);
-                }
-
                 if (IsEditable)
                 {
-                    MenuItem output = new MenuItem { Header = "Set as Output", IsEnabled = !node.IsOutput };
-                    output.Click += (_, _) => viewModel.SetOutput(node.Index);
-
-                    MenuItem delete = new MenuItem { Header = "Delete" };
-                    delete.Click += (_, _) => viewModel.RemoveNode(node.Index);
-
-                    menu.Items.Add(output);
-                    menu.Items.Add(delete);
+                    ShowAddNodePopup(world, AnimationGraphNodeView.NoInput);
                 }
+
+                return;
             }
-            else if (IsEditable)
-            {
-                foreach ((string className, string label) in viewModel.NodeKinds)
-                {
-                    MenuItem add = new MenuItem { Header = $"Add {label}" };
-                    add.Click += (_, _) => viewModel.AddNode(className, world);
 
-                    menu.Items.Add(add);
-                }
+            ContextMenu menu = new ContextMenu();
+
+            if (node.IsStateMachine)
+            {
+                MenuItem open = new MenuItem { Header = "Open" };
+                open.Click += (_, _) => viewModel.OpenStateMachineNode(node.Index);
+
+                menu.Items.Add(open);
+            }
+
+            if (IsEditable)
+            {
+                List<int> targets = viewModel.SelectedNodes.Contains(node.Index) ? viewModel.SelectedNodes.ToList() : new List<int> { node.Index };
+
+                MenuItem rename = new MenuItem { Header = "Rename", InputGesture = new KeyGesture(Key.F2) };
+                rename.Click += (_, _) => ShowRename(node);
+
+                MenuItem output = new MenuItem { Header = "Use as Output", IsEnabled = !node.IsOutput };
+                output.Click += (_, _) => viewModel.SetOutput(node.Index);
+
+                MenuItem duplicate = new MenuItem { Header = "Duplicate", InputGesture = new KeyGesture(Key.D, KeyModifiers.Control) };
+                duplicate.Click += (_, _) => viewModel.DuplicateNodes(targets, new Vector(PasteOffset, PasteOffset));
+
+                MenuItem delete = new MenuItem { Header = "Delete", InputGesture = new KeyGesture(Key.Delete) };
+                delete.Click += (_, _) => viewModel.RemoveNodes(targets);
+
+                menu.Items.Add(rename);
+                menu.Items.Add(output);
+                menu.Items.Add(duplicate);
+                menu.Items.Add(delete);
             }
 
             if (menu.Items.Count > 0)
             {
                 menu.Open(this);
             }
+        }
+
+        private void OnAddNodeRequested()
+        {
+            if (!IsEditable)
+            {
+                return;
+            }
+
+            Point at = Bounds.Width > 0.0 ? ToWorld(new Point(Bounds.Width * 0.5, Bounds.Height * 0.5)) : new Point(0.0, 0.0);
+
+            if (InStateMachine)
+            {
+                _viewModel!.AddState(at);
+
+                return;
+            }
+
+            ShowAddNodePopup(at, AnimationGraphNodeView.NoInput);
+        }
+
+        private void ShowAddNodePopup(Point world, int connectFrom)
+        {
+            AnimationGraphDocumentViewModel viewModel = _viewModel!;
+
+            List<(string Label, Action Add)> entries = new List<(string, Action)>();
+
+            foreach ((string className, string label) in viewModel.NodeKindChoices)
+            {
+                entries.Add((label, () => viewModel.AddNode(className, world, connectFrom)));
+            }
+
+            foreach (string clip in viewModel.ClipChoices)
+            {
+                entries.Add(($"Clip: {clip}", () => viewModel.AddClipNode(clip, world, connectFrom)));
+            }
+
+            TextBox search = new TextBox { Watermark = "Search", MinWidth = 220 };
+            ListBox results = new ListBox { MaxHeight = 260, ItemsSource = entries.Select(e => e.Label).ToList(), SelectedIndex = 0 };
+            Flyout flyout = new Flyout { Content = new StackPanel { Spacing = 4, Children = { search, results } }, Placement = PlacementMode.Pointer };
+
+            void Pick(string? label)
+            {
+                (string Label, Action Add) entry = entries.FirstOrDefault(e => e.Label == label);
+
+                flyout.Hide();
+                entry.Add?.Invoke();
+            }
+
+            search.TextChanged += (_, _) =>
+            {
+                string filter = search.Text ?? string.Empty;
+                List<string> matches = entries.Select(e => e.Label).Where(l => l.Contains(filter, StringComparison.OrdinalIgnoreCase)).ToList();
+
+                results.ItemsSource = matches;
+                results.SelectedIndex = matches.Count > 0 ? 0 : -1;
+            };
+
+            search.KeyDown += (_, e) =>
+            {
+                if (e.Key == Key.Enter)
+                {
+                    Pick(results.SelectedItem as string);
+                    e.Handled = true;
+                }
+                else if (e.Key == Key.Down && results.ItemCount > 0)
+                {
+                    results.SelectedIndex = Math.Min(results.SelectedIndex + 1, results.ItemCount - 1);
+                    e.Handled = true;
+                }
+                else if (e.Key == Key.Up && results.ItemCount > 0)
+                {
+                    results.SelectedIndex = Math.Max(results.SelectedIndex - 1, 0);
+                    e.Handled = true;
+                }
+            };
+
+            results.Tapped += (_, _) => Pick(results.SelectedItem as string);
+
+            flyout.Opened += (_, _) => search.Focus();
+            flyout.ShowAt(this, true);
+        }
+
+        private void ShowRename(AnimationGraphNodeView node)
+        {
+            AnimationGraphDocumentViewModel viewModel = _viewModel!;
+
+            TextBox name = new TextBox { Text = node.Title == node.Kind ? string.Empty : node.Title, Watermark = node.Kind, MinWidth = 160 };
+            Flyout flyout = new Flyout { Content = name, Placement = PlacementMode.Pointer };
+
+            name.KeyDown += (_, e) =>
+            {
+                if (e.Key == Key.Enter)
+                {
+                    viewModel.RenameNode(node.Index, name.Text ?? string.Empty);
+                    flyout.Hide();
+                    e.Handled = true;
+                }
+            };
+
+            flyout.Opened += (_, _) =>
+            {
+                name.Focus();
+                name.SelectAll();
+            };
+
+            flyout.ShowAt(this, true);
         }
 
         #endregion Graph
@@ -405,6 +756,14 @@ namespace Hyperion.Editor.Controls
             }
 
             return null;
+        }
+
+        private bool IsOnStateEdge(int stateIndex, Point world)
+        {
+            Rect rect = StateRect(stateIndex);
+            double edge = StateEdge / Math.Min(Zoom, 1.0);
+
+            return rect.Contains(world) && !rect.Deflate(edge).Contains(world);
         }
 
         // where a transition's arrow runs, between the edges of its two boxes and offset to one side so a pair going both ways stays apart
@@ -476,6 +835,10 @@ namespace Hyperion.Editor.Controls
                 else if (transition.IsActive)
                 {
                     pen = palette.ActiveWire;
+                }
+                else if (viewModel.UsesSelectedParameter(transition.Parameters))
+                {
+                    pen = palette.Highlight;
                 }
 
                 DrawArrow(context, pen, line.From, line.To);
@@ -587,6 +950,14 @@ namespace Hyperion.Editor.Controls
                     return;
                 }
 
+                if (IsEditable && (stateIndex == AnimationStateView.AnyState || IsOnStateEdge(stateIndex, world)))
+                {
+                    _dragMode = DragMode.Transition;
+                    _transitionSource = stateIndex;
+
+                    return;
+                }
+
                 viewModel.SelectState(stateIndex);
 
                 if (stateIndex >= 0 && IsEditable)
@@ -628,7 +999,7 @@ namespace Hyperion.Editor.Controls
 
                 if (stateIndex >= 0)
                 {
-                    MenuItem open = new MenuItem { Header = "Open Input" };
+                    MenuItem open = new MenuItem { Header = "Show Pose" };
                     open.Click += (_, _) => viewModel.OpenStateInput(stateIndex);
 
                     menu.Items.Add(open);
@@ -687,11 +1058,15 @@ namespace Hyperion.Editor.Controls
             public IBrush Text = Brushes.White;
             public IBrush Muted = Brushes.Gray;
             public IBrush Accent = Brushes.Blue;
+            public IBrush BoxFill = Brushes.Transparent;
+            public Dictionary<AnimationGraphNodeCategory, IBrush> CategoryHeaders = new();
             public Pen Wire = new Pen();
             public Pen ActiveWire = new Pen();
             public Pen Border = new Pen();
             public Pen Selected = new Pen();
             public Pen Output = new Pen();
+            public Pen Highlight = new Pen();
+            public Pen Invalid = new Pen();
         }
 
         public override void Render(DrawingContext context)
@@ -705,11 +1080,19 @@ namespace Hyperion.Editor.Controls
                 Accent = Resource("Brush.Accent", Color.Parse("#FF3D7EFF"))
             };
 
+            foreach ((AnimationGraphNodeCategory category, Color color) in CategoryColors)
+            {
+                palette.CategoryHeaders[category] = new SolidColorBrush(color, 0.55);
+            }
+
+            palette.BoxFill = new SolidColorBrush(Color.Parse("#FF3D7EFF"), 0.12);
             palette.Wire = new Pen(palette.Muted, 2.0);
             palette.ActiveWire = new Pen(palette.Accent, 2.5);
             palette.Border = new Pen(Resource("Brush.BorderLight", Color.Parse("#FF1A1C1F")), 1.0);
             palette.Selected = new Pen(palette.Text, 2.0);
             palette.Output = new Pen(new SolidColorBrush(OutputColor), 2.0);
+            palette.Highlight = new Pen(palette.Accent, 2.0) { DashStyle = DashStyle.Dash };
+            palette.Invalid = new Pen(new SolidColorBrush(InvalidColor), 2.5);
 
             Pen gridPen = new Pen(Resource("Brush.Border", Color.Parse("#FF121416")), 1.0);
 
@@ -743,6 +1126,7 @@ namespace Hyperion.Editor.Controls
                     RenderGraph(context, palette);
                 }
             }
+
         }
 
         private static void DrawWire(DrawingContext context, Pen pen, Point from, Point to)
@@ -812,6 +1196,7 @@ namespace Hyperion.Editor.Controls
             _dragStart = pointer.Position;
             _pointer = pointer.Position;
             _dragMoved = false;
+            _isRightPan = false;
 
             if (pointer.Properties.IsMiddleButtonPressed)
             {
@@ -820,19 +1205,8 @@ namespace Hyperion.Editor.Controls
             else if (pointer.Properties.IsRightButtonPressed)
             {
                 _transitionSource = null;
-
-                if (InStateMachine)
-                {
-                    ShowStateMachineContextMenu(world);
-                }
-                else
-                {
-                    ShowGraphContextMenu(world);
-                }
-
-                e.Handled = true;
-
-                return;
+                _dragMode = DragMode.Pan;
+                _isRightPan = true;
             }
             else if (pointer.Properties.IsLeftButtonPressed)
             {
@@ -842,7 +1216,7 @@ namespace Hyperion.Editor.Controls
                 }
                 else
                 {
-                    PressGraph(world, e.ClickCount);
+                    PressGraph(world, e.ClickCount, e.KeyModifiers);
                 }
             }
 
@@ -868,10 +1242,17 @@ namespace Hyperion.Editor.Controls
                 Pan += moved;
                 InvalidateVisual();
                 break;
-            case DragMode.MoveNode:
-                if (IsEditable && FindNode(_dragNode) is { } node)
+            case DragMode.MoveNodes:
+                if (IsEditable)
                 {
-                    node.Position = _dragNodeStart + (position - _dragStart) / Zoom;
+                    foreach ((int index, Point start) in _dragStarts)
+                    {
+                        if (FindNode(index) is { } node)
+                        {
+                            node.Position = start + (position - _dragStart) / Zoom;
+                        }
+                    }
+
                     InvalidateVisual();
                 }
 
@@ -885,6 +1266,8 @@ namespace Hyperion.Editor.Controls
 
                 break;
             case DragMode.Wire:
+            case DragMode.BoxSelect:
+            case DragMode.Transition:
                 InvalidateVisual();
                 break;
             default:
@@ -893,7 +1276,30 @@ namespace Hyperion.Editor.Controls
                     InvalidateVisual();
                 }
 
+                UpdateHoverCursor(ToWorld(position));
+
                 break;
+            }
+        }
+
+        private void UpdateHoverCursor(Point world)
+        {
+            if (_viewModel == null || !IsEditable || !InStateMachine)
+            {
+                Cursor = Cursor.Default;
+
+                return;
+            }
+
+            bool onEdge = HitState(world) is { } stateIndex && (stateIndex == AnimationStateView.AnyState || IsOnStateEdge(stateIndex, world));
+
+            if (onEdge)
+            {
+                Cursor = new Cursor(StandardCursorType.Cross);
+            }
+            else
+            {
+                Cursor = Cursor.Default;
             }
         }
 
@@ -905,41 +1311,107 @@ namespace Hyperion.Editor.Controls
             {
                 Point world = ToWorld(e.GetPosition(this));
 
-                if (_dragMode == DragMode.MoveNode && _dragMoved && IsEditable && FindNode(_dragNode) is { } node)
+                if (_isRightPan && !_dragMoved)
                 {
-                    _viewModel.MoveNode(node.Index, node.Position);
+                    if (InStateMachine)
+                    {
+                        ShowStateMachineContextMenu(world);
+                    }
+                    else
+                    {
+                        ShowGraphContextMenu(world);
+                    }
+                }
+                else if (_dragMode == DragMode.MoveNodes && _dragMoved && IsEditable)
+                {
+                    List<(int, Point)> moves = _dragStarts.Keys.Select(index => FindNode(index)).Where(n => n != null).Select(n => (n!.Index, n.Position)).ToList();
+
+                    _viewModel.MoveNodes(moves);
                 }
                 else if (_dragMode == DragMode.MoveState && _dragMoved && _viewModel.States.FirstOrDefault(s => s.Index == _dragNode) is { } stateView)
                 {
                     _viewModel.MoveState(stateView.Index, stateView.Position);
                 }
-                else if (_dragMode == DragMode.Wire && _rewiredInput is { } rewired)
+                else if (_dragMode == DragMode.BoxSelect)
                 {
-                    if (HitInputPin(world) is { } input)
+                    FinishBoxSelect(e.KeyModifiers);
+                }
+                else if (_dragMode == DragMode.Transition && _transitionSource is { } source)
+                {
+                    if (HitState(world) is { } target && target >= 0 && target != source)
                     {
-                        if (input.Node.Index != _dragNode)
-                        {
-                            _viewModel.Rewire(rewired.Node, rewired.Slot, input.Node.Index, input.Slot);
-                        }
+                        _viewModel.AddTransition(source, target);
+                        _transitionSource = null;
                     }
                     else if (_dragMoved)
                     {
-                        _viewModel.Disconnect(rewired.Node, rewired.Slot);
+                        _transitionSource = null;
+                    }
+                    else if (source >= 0)
+                    {
+                        _transitionSource = null;
+                        _viewModel.SelectState(source);
                     }
                 }
-                else if (_dragMode == DragMode.Wire && HitInputPin(world) is { } input && input.Node.Index != _dragNode)
+                else if (_dragMode == DragMode.Wire)
                 {
-                    _viewModel.Connect(_dragNode, input.Node.Index, input.Slot);
+                    ReleaseWire(world);
                 }
             }
 
             _dragMode = DragMode.None;
             _dragNode = AnimationGraphNodeView.NoInput;
             _rewiredInput = null;
+            _dragStarts.Clear();
 
             e.Pointer.Capture(null);
 
             InvalidateVisual();
+        }
+
+        private void ReleaseWire(Point world)
+        {
+            AnimationGraphDocumentViewModel viewModel = _viewModel!;
+            int source = _dragNode;
+
+            if (HitOutputTerminal(world) && _rewiredInput == null)
+            {
+                viewModel.SetOutput(source);
+
+                return;
+            }
+
+            if (_rewiredInput is { } rewired)
+            {
+                if (HitInputPin(world) is { } input)
+                {
+                    if (input.Node.Index != source && !viewModel.WouldCycle(source, input.Node.Index))
+                    {
+                        viewModel.Rewire(rewired.Node, rewired.Slot, input.Node.Index, input.Slot);
+                    }
+                }
+                else if (_dragMoved)
+                {
+                    viewModel.Disconnect(rewired.Node, rewired.Slot);
+                }
+
+                return;
+            }
+
+            if (HitInputPin(world) is { } target)
+            {
+                if (target.Node.Index != source && !viewModel.WouldCycle(source, target.Node.Index))
+                {
+                    viewModel.Connect(source, target.Node.Index, target.Slot);
+                }
+
+                return;
+            }
+
+            if (_dragMoved && HitNode(world) == null)
+            {
+                ShowAddNodePopup(world, source);
+            }
         }
 
         protected override void OnPointerWheelChanged(PointerWheelEventArgs e)
@@ -966,8 +1438,11 @@ namespace Hyperion.Editor.Controls
                 return;
             }
 
-            if (e.Key == Key.Escape)
+            bool isControl = (e.KeyModifiers & KeyModifiers.Control) != 0;
+
+            switch (e.Key)
             {
+            case Key.Escape:
                 if (_transitionSource != null)
                 {
                     _transitionSource = null;
@@ -981,27 +1456,94 @@ namespace Hyperion.Editor.Controls
                 e.Handled = true;
 
                 return;
+            case Key.F:
+                Frame();
+                e.Handled = true;
+
+                return;
+            case Key.Home:
+                _viewModel.Select(AnimationGraphNodeView.NoInput);
+                Frame();
+                e.Handled = true;
+
+                return;
+            case Key.Space:
+                OnAddNodeAtPointer();
+                e.Handled = true;
+
+                return;
             }
 
-            if (e.Key != Key.Delete || !IsEditable)
+            if (!IsEditable)
             {
                 return;
             }
 
-            if (InStateMachine && _viewModel.SelectedTransition >= 0)
+            if (InStateMachine)
             {
-                _viewModel.RemoveTransition(_viewModel.SelectedTransition);
-            }
-            else if (InStateMachine && _viewModel.SelectedState >= 0)
-            {
-                _viewModel.RemoveState(_viewModel.SelectedState);
-            }
-            else if (!InStateMachine && _viewModel.SelectedNode >= 0)
-            {
-                _viewModel.RemoveNode(_viewModel.SelectedNode);
+                if (e.Key == Key.Delete && _viewModel.SelectedTransition >= 0)
+                {
+                    _viewModel.RemoveTransition(_viewModel.SelectedTransition);
+                    e.Handled = true;
+                }
+                else if (e.Key == Key.Delete && _viewModel.SelectedState >= 0)
+                {
+                    _viewModel.RemoveState(_viewModel.SelectedState);
+                    e.Handled = true;
+                }
+
+                return;
             }
 
-            e.Handled = true;
+            List<int> selection = _viewModel.SelectedNodes.ToList();
+
+            if (e.Key == Key.Delete && selection.Count > 0)
+            {
+                _viewModel.RemoveNodes(selection);
+                e.Handled = true;
+            }
+            else if (e.Key == Key.F2 && FindNode(_viewModel.SelectedNode) is { } node)
+            {
+                ShowRename(node);
+                e.Handled = true;
+            }
+            else if (isControl && e.Key == Key.A)
+            {
+                _viewModel.SetNodeSelection(_viewModel.Nodes.Select(n => n.Index), AnimationGraphNodeView.NoInput);
+                e.Handled = true;
+            }
+            else if (isControl && e.Key == Key.C && selection.Count > 0)
+            {
+                _viewModel.CopyNodes(selection);
+                e.Handled = true;
+            }
+            else if (isControl && e.Key == Key.V)
+            {
+                _viewModel.PasteNodes(ToWorld(_pointer));
+                e.Handled = true;
+            }
+            else if (isControl && e.Key == Key.D && selection.Count > 0)
+            {
+                _viewModel.DuplicateNodes(selection, new Vector(PasteOffset, PasteOffset));
+                e.Handled = true;
+            }
+        }
+
+        private void OnAddNodeAtPointer()
+        {
+            if (!IsEditable)
+            {
+                return;
+            }
+
+            if (InStateMachine)
+            {
+                _viewModel!.AddState(ToWorld(_pointer));
+
+                return;
+            }
+
+            ShowAddNodePopup(ToWorld(_pointer), AnimationGraphNodeView.NoInput);
         }
 
         private static bool TryGetDraggedClip(DragEventArgs e, out string clipName)

@@ -249,6 +249,7 @@ namespace Hyperion.Editor.ViewModels
                 if (SetProperty(ref _selectedNode, value))
                 {
                     OnPropertyChanged(nameof(HasAsset));
+                    OnPropertyChanged(nameof(HasEditModeContent));
                 }
             }
         }
@@ -272,7 +273,34 @@ namespace Hyperion.Editor.ViewModels
         public string AssetHeading => _asset?.Name.ToString() ?? string.Empty;
 
         /// <summary>The asset an edit mode is editing is shown while no node is selected.</summary>
-        public bool HasAsset => _assetProperties != null && _selectedNode == null;
+        public bool HasAsset => _assetProperties != null && _selectedNode == null && _editModeContent == null;
+
+        private object? _editModeContent;
+        public object? EditModeContent
+        {
+            get => _editModeContent;
+            private set => SetProperty(ref _editModeContent, value);
+        }
+
+        private string _editModeHeading = string.Empty;
+        public string EditModeHeading
+        {
+            get => _editModeHeading;
+            private set => SetProperty(ref _editModeHeading, value);
+        }
+
+        public bool HasEditModeContent => _editModeContent != null && _selectedNode == null;
+
+        public void SetEditModeContent(string heading, object? content)
+        {
+            Dispatcher.UIThread.VerifyAccess();
+
+            EditModeHeading = heading;
+            EditModeContent = content;
+
+            OnPropertyChanged(nameof(HasEditModeContent));
+            OnPropertyChanged(nameof(HasAsset));
+        }
 
         public void SetEditedAsset(AssetObject? asset)
         {
@@ -465,6 +493,8 @@ namespace Hyperion.Editor.ViewModels
 
             if (SelectedNode == null || !SelectedNode.IsValid)
             {
+                IsEntity = false;
+
                 return;
             }
 
@@ -670,9 +700,9 @@ namespace Hyperion.Editor.ViewModels
                             {
                                 componentVm = descriptor.CreateViewModel(entity);
                             }
-                            else if (Class.TryGetClass(typeId) is Class runtimeClass && runtimeClass.IsValid && runtimeClass.IsDynamic)
+                            else if (Class.TryGetClass(typeId) is Class runtimeClass && runtimeClass.IsValid)
                             {
-                                // a script-defined component (C# or Strata), registered when its script loaded
+                                // a script-defined component (C# or Strata), or a native one with no managed struct (e.g. from a plugin)
                                 componentVm = new InspectorComponentViewModel(entity, runtimeClass);
                             }
                             else

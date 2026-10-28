@@ -94,7 +94,7 @@ namespace Hyperion.Editor
         private PackagingSettingsWindow? _packagingSettingsWindow;
         private IDock? _dynamicPanelsDock;
         private readonly Dictionary<EditorPanelViewModel, Tool> _dynamicPanelTools = new();
-        private readonly Dictionary<EditorDocumentViewModel, Document> _pluginDocuments = new();
+        private readonly Dictionary<EditorDocumentViewModel, IDockable> _pluginDocuments = new();
         private int _frameCounter;
         private bool _viewportNativeHidden;
         private bool _isClosing;
@@ -869,6 +869,7 @@ namespace Hyperion.Editor
             _dynamicPanelTools.Clear();
             PanelService.Instance.ClosePanel();
             _pluginDocuments.Clear();
+            _savedBottomProportions = null;
 
             IDock root = BuildDefaultLayout();
             DockControl.Layout = root;
@@ -906,7 +907,7 @@ namespace Hyperion.Editor
                 return;
             }
 
-            if (e.PropertyName == nameof(EditorDocumentViewModel.Title) && _pluginDocuments.TryGetValue(document, out Document? dockable))
+            if (e.PropertyName == nameof(EditorDocumentViewModel.Title) && _pluginDocuments.TryGetValue(document, out IDockable? dockable))
             {
                 dockable.Title = document.Title;
             }
@@ -924,13 +925,18 @@ namespace Hyperion.Editor
                 return;
             }
 
-            foreach ((EditorDocumentViewModel document, Document dockable) in _pluginDocuments.ToList())
+            foreach ((EditorDocumentViewModel document, IDockable dockable) in _pluginDocuments.ToList())
             {
                 if (!document.IsOpen || !EditorPluginService.Instance.Documents.Contains(document))
                 {
                     factory.RemoveDockable(dockable, false);
                     _pluginDocuments.Remove(document);
                 }
+            }
+
+            if (!_pluginDocuments.Keys.Any(document => document.DocksAtBottom))
+            {
+                RestoreBottomDock();
             }
 
             foreach (EditorDocumentViewModel document in EditorPluginService.Instance.Documents)
@@ -940,7 +946,16 @@ namespace Hyperion.Editor
                     continue;
                 }
 
-                if (FindDockableById(layout, "Documents") is not IDock documentsDock)
+                IDock? targetDock = null;
+
+                if (document.DocksAtBottom)
+                {
+                    targetDock = FindDockableById(layout, "AssetsPane") as IDock;
+                }
+
+                targetDock ??= FindDockableById(layout, "Documents") as IDock;
+
+                if (targetDock == null)
                 {
                     return;
                 }
@@ -954,23 +969,83 @@ namespace Hyperion.Editor
 
                 content.DataContext = document;
 
-                Document dockable = new Document
+                IDockable dockable;
+
+                if (targetDock is ToolDock)
                 {
-                    Id = document.Id,
-                    Title = document.Title,
-                    Content = content,
-                    CanFloat = false,
-                    CanPin = false,
-                    CanClose = false
-                };
+                    dockable = new Tool
+                    {
+                        Id = document.Id,
+                        Title = document.Title,
+                        Content = content,
+                        CanFloat = false,
+                        CanPin = false,
+                        CanClose = false
+                    };
+                }
+                else
+                {
+                    dockable = new Document
+                    {
+                        Id = document.Id,
+                        Title = document.Title,
+                        Content = content,
+                        CanFloat = false,
+                        CanPin = false,
+                        CanClose = false
+                    };
+                }
 
                 _pluginDocuments[document] = dockable;
 
-                documentsDock.VisibleDockables ??= factory.CreateList<IDockable>();
-                factory.AddDockable(documentsDock, dockable);
+                targetDock.VisibleDockables ??= factory.CreateList<IDockable>();
+                factory.AddDockable(targetDock, dockable);
                 factory.SetActiveDockable(dockable);
-                factory.SetFocusedDockable(documentsDock, dockable);
+                factory.SetFocusedDockable(targetDock, dockable);
+
+                if (targetDock is ToolDock)
+                {
+                    ExpandBottomDock(layout);
+                }
             }
+        }
+
+        private List<(IDockable Dockable, double Proportion)>? _savedBottomProportions;
+
+        private void ExpandBottomDock(IDock layout)
+        {
+            if (_savedBottomProportions != null
+                || FindDockableById(layout, "Bottom") is not { } bottom
+                || FindDockableById(layout, "AssetsPane") is not { } assets)
+            {
+                return;
+            }
+
+            _savedBottomProportions = new List<(IDockable, double)> { (bottom, bottom.Proportion), (assets, assets.Proportion) };
+
+            bottom.Proportion = Math.Max(double.IsNaN(bottom.Proportion) ? 0.0 : bottom.Proportion, 0.45);
+            assets.Proportion = 0.72;
+
+            if (FindDockableById(layout, "ConsolePane") is { } console)
+            {
+                _savedBottomProportions.Add((console, console.Proportion));
+                console.Proportion = 0.28;
+            }
+        }
+
+        private void RestoreBottomDock()
+        {
+            if (_savedBottomProportions == null)
+            {
+                return;
+            }
+
+            foreach ((IDockable dockable, double proportion) in _savedBottomProportions)
+            {
+                dockable.Proportion = proportion;
+            }
+
+            _savedBottomProportions = null;
         }
 
         /// <summary>

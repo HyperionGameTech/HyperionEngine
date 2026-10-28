@@ -194,18 +194,6 @@ float GetCapsuleFeetOffset(
     return -(capsuleHalfHeight + (isPlaying ? SceneHelpers::GetCapsuleHeightOffset(characterController) : 0.0f));
 }
 
-Handle<AnimationGraph> GetDefaultLocomotionGraph()
-{
-    const Handle<AssetRegistry> engineRegistry = GetEngineAssetRegistry();
-
-    if (!engineRegistry.IsValid())
-    {
-        return Handle<AnimationGraph>::empty;
-    }
-
-    return engineRegistry->GetAsset<AnimationGraph>(AssetBuckets::Animations, NAME("HumanoidLocomotion"));
-}
-
 float GetGraphClipLength(const AnimationGraph& graph, Name nodeName)
 {
     const AnimationClipNode* clipNode = TryCast<AnimationClipNode>(graph.GetNode(graph.FindNode(nodeName)));
@@ -610,6 +598,18 @@ void ApplyRootMotion(const Entity& meshEntity, const AnimationGraphInstance& ins
 
 } // namespace
 
+Handle<AnimationGraph> GetDefaultCharacterGraph()
+{
+    const Handle<AssetRegistry> engineRegistry = GetEngineAssetRegistry();
+
+    if (!engineRegistry.IsValid())
+    {
+        return Handle<AnimationGraph>::empty;
+    }
+
+    return engineRegistry->GetAsset<AnimationGraph>(AssetBuckets::Animations, NAME("HumanoidLocomotion"));
+}
+
 bool CharacterModelSystem::ShouldProcessScene(Scene* scene) const
 {
     static constexpr EnumFlags<SceneFlags> ExpectedFlags = SceneFlags::FOREGROUND;
@@ -752,7 +752,7 @@ void CharacterModelSystem::Process(float delta, Span<Handle<Scene>> scenes)
                 break;
             }
 
-            const Handle<AnimationGraph> graph = component.graph.IsValid() ? component.graph : GetDefaultLocomotionGraph();
+            const Handle<AnimationGraph> graph = component.graph.IsValid() ? component.graph : GetDefaultCharacterGraph();
             const TurnStepClips turnStepClips = graph.IsValid() ? FindTurnStepClips(*graph) : TurnStepClips {};
 
             // With no facing mode the model keeps whatever rotation it has

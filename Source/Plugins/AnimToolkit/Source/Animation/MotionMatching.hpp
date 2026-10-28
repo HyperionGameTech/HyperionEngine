@@ -252,6 +252,15 @@ public:
     void Update(AnimationGraphContext& context, uint32 nodeIndex, float weight) const override;
     void Evaluate(AnimationGraphContext& context, uint32 nodeIndex, Span<Transform> outPose) const override;
 
+    void ForEachParameter(const ProcRef<void(Name&)>& visit) override
+    {
+        visit(velocityParameter);
+        visit(desiredVelocityParameter);
+        visit(desiredFacingParameter);
+        visit(accelerationParameter);
+        visit(turnSharpnessParameter);
+    }
+
     // "Walk 0.42s"
     String DescribeState(const AnimationGraphNodeState& state) const;
 
@@ -268,19 +277,19 @@ public:
     HYP_FIELD(Property = "SameClipWindow", Serialize = true, Editor = true)
     float sameClipWindow = 0.2f;
 
-    HYP_FIELD(Property = "VelocityParameter", Serialize = true, Editor = true)
+    HYP_FIELD(Property = "VelocityParameter", Serialize = true, Editor = true, EditorType = "GraphParameter")
     Name velocityParameter = NAME("Velocity");
 
-    HYP_FIELD(Property = "DesiredVelocityParameter", Serialize = true, Editor = true)
+    HYP_FIELD(Property = "DesiredVelocityParameter", Serialize = true, Editor = true, EditorType = "GraphParameter")
     Name desiredVelocityParameter = NAME("DesiredVelocity");
 
-    HYP_FIELD(Property = "DesiredFacingParameter", Serialize = true, Editor = true)
+    HYP_FIELD(Property = "DesiredFacingParameter", Serialize = true, Editor = true, EditorType = "GraphParameter")
     Name desiredFacingParameter = NAME("DesiredFacing");
 
-    HYP_FIELD(Property = "AccelerationParameter", Serialize = true, Editor = true)
+    HYP_FIELD(Property = "AccelerationParameter", Serialize = true, Editor = true, EditorType = "GraphParameter")
     Name accelerationParameter = NAME("TrajectoryAcceleration");
 
-    HYP_FIELD(Property = "TurnSharpnessParameter", Serialize = true, Editor = true)
+    HYP_FIELD(Property = "TurnSharpnessParameter", Serialize = true, Editor = true, EditorType = "GraphParameter")
     Name turnSharpnessParameter = NAME("TrajectoryTurnSharpness");
 
     HYP_FIELD(Property = "Acceleration", Serialize = true, Editor = true)

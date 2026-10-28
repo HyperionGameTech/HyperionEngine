@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Globalization;
 using System.Linq;
 using System.Windows.Input;
 using Avalonia;
@@ -11,6 +13,14 @@ using Hyperion.Editor.Services;
 
 namespace Hyperion.Editor.ViewModels
 {
+    public enum AnimationGraphNodeCategory
+    {
+        Source,
+        Blend,
+        Modify,
+        State
+    }
+
     public sealed class AnimationGraphNodeView
     {
         public const int NoInput = -1;
@@ -18,8 +28,11 @@ namespace Hyperion.Editor.ViewModels
         public int Index { get; init; }
         public string Title { get; init; } = string.Empty;
         public string Kind { get; init; } = string.Empty;
+        public string Detail { get; init; } = string.Empty;
+        public AnimationGraphNodeCategory Category { get; init; }
         public Point Position { get; set; }
         public IReadOnlyList<(string Name, int Source)> Inputs { get; init; } = Array.Empty<(string, int)>();
+        public IReadOnlyList<string> Parameters { get; init; } = Array.Empty<string>();
         public bool CanAddInputs { get; init; }
         public bool IsOutput { get; init; }
         public bool IsStateMachine { get; init; }
@@ -48,6 +61,7 @@ namespace Hyperion.Editor.ViewModels
         public int From { get; init; }
         public int To { get; init; }
         public bool IsActive { get; set; }
+        public IReadOnlyList<string> Parameters { get; init; } = Array.Empty<string>();
     }
 
     public class AnimationGraphParameterViewModel : ViewModelBase
@@ -57,6 +71,7 @@ namespace Hyperion.Editor.ViewModels
         private decimal _x;
         private decimal _y;
         private bool _isApplyingValue;
+        private bool _isSelected;
 
         public AnimationGraphParameterViewModel(AnimationGraphDocumentViewModel document, string name, uint type)
         {
@@ -67,11 +82,14 @@ namespace Hyperion.Editor.ViewModels
 
             RemoveCommand = new RelayCommand(() => _document.RemoveParameter(Name));
             FireCommand = new RelayCommand(() => _document.TriggerParameter(Name));
+            SelectCommand = new RelayCommand(() => _document.SelectParameter(Name));
         }
 
         public string Name { get; }
 
         public uint Type { get; }
+
+        public string TypeLabel => AnimationGraphDocumentViewModel.ParameterTypeLabels[(int)Math.Min(Type, 3)];
 
         public bool IsFloat => Type == 0;
         public bool IsBool => Type == 1;
@@ -80,6 +98,13 @@ namespace Hyperion.Editor.ViewModels
 
         public ICommand RemoveCommand { get; }
         public ICommand FireCommand { get; }
+        public ICommand SelectCommand { get; }
+
+        public bool IsSelected
+        {
+            get => _isSelected;
+            set => SetProperty(ref _isSelected, value);
+        }
 
         public decimal X
         {
@@ -167,6 +192,8 @@ namespace Hyperion.Editor.ViewModels
         // bool and trigger tests have nothing to compare against
         public bool UsesValue => _opIndex < 4 || _opIndex >= NumParameterOps;
 
+        public string ValueUnit => _opIndex == 7 || _opIndex == 8 ? "s" : string.Empty;
+
         public string Parameter
         {
             get => _parameter;
@@ -188,6 +215,7 @@ namespace Hyperion.Editor.ViewModels
                 {
                     OnPropertyChanged(nameof(UsesParameter));
                     OnPropertyChanged(nameof(UsesValue));
+                    OnPropertyChanged(nameof(ValueUnit));
                     Push();
                 }
             }
@@ -212,26 +240,28 @@ namespace Hyperion.Editor.ViewModels
     {
         private const int PollIntervalMs = 150;
 
-        private static readonly Dictionary<string, string> NodeKindLabels = new()
+        private static readonly Dictionary<string, (string Label, AnimationGraphNodeCategory Category)> NodeKinds = new()
         {
-            ["AnimationClipNode"] = "Clip",
-            ["AnimationBlend1DNode"] = "Blend 1D",
-            ["AnimationBlend2DNode"] = "Blend 2D",
-            ["AnimationLayerNode"] = "Layer",
-            ["AnimationAdditiveNode"] = "Additive",
-            ["AnimationChainTwistNode"] = "Chain Twist",
-            ["AnimationStateMachineNode"] = "State Machine",
-            ["AnimationSlotNode"] = "Slot",
-            ["AnimationFootIKNode"] = "Foot IK",
-            ["AnimationMotionMatchingNode"] = "Motion Matching"
+            ["AnimationClipNode"] = ("Clip", AnimationGraphNodeCategory.Source),
+            ["AnimationMotionMatchingNode"] = ("Motion Matching", AnimationGraphNodeCategory.Source),
+            ["AnimationBlend1DNode"] = ("Blend 1D", AnimationGraphNodeCategory.Blend),
+            ["AnimationBlend2DNode"] = ("Blend 2D", AnimationGraphNodeCategory.Blend),
+            ["AnimationLayerNode"] = ("Layer", AnimationGraphNodeCategory.Blend),
+            ["AnimationAdditiveNode"] = ("Additive", AnimationGraphNodeCategory.Blend),
+            ["AnimationSlotNode"] = ("Slot", AnimationGraphNodeCategory.Blend),
+            ["AnimationChainTwistNode"] = ("Chain Twist", AnimationGraphNodeCategory.Modify),
+            ["AnimationFootIKNode"] = ("Foot IK", AnimationGraphNodeCategory.Modify),
+            ["AnimationStateMachineNode"] = ("State Machine", AnimationGraphNodeCategory.State)
         };
 
         public static readonly IReadOnlyList<string> ConditionOps = new[]
         {
-            ">", "<", "=", "!=", "is true", "is false", "triggered", "time in state >=", "time left <", "normalized time >="
+            ">", "<", "=", "!=", "is true", "is false", "is triggered", "time in state >=", "time left <", "progress >="
         };
 
         public static readonly IReadOnlyList<string> BlendCurves = new[] { "Linear", "Smooth Step", "Ease In", "Ease Out" };
+
+        public static readonly IReadOnlyList<string> ParameterTypeLabels = new[] { "Float", "Bool", "Trigger", "Vector2" };
 
         private readonly DispatcherTimer _pollTimer;
 
@@ -241,14 +271,25 @@ namespace Hyperion.Editor.ViewModels
         private AnimationGraph? _debugGraph;
         private AnimationGraphInstance? _capturedInstance;
 
+        private string _graphName = string.Empty;
         private bool _isDebugging;
+        private bool _isGraphReadOnly;
+        private bool _frameOnNextRefresh;
         private int _selectedNode = AnimationGraphNodeView.NoInput;
+        private HashSet<int> _selectedNodes = new HashSet<int>();
+        private List<int> _copiedNodes = new List<int>();
         private ComponentSubObjectViewModel? _selectedNodeProperties;
+        private string _selectedParameter = string.Empty;
         private string _blendParameter = string.Empty;
         private bool _isBlend2D;
         private Vector _blendCursor;
         private string _newParameterName = string.Empty;
         private int _newParameterType;
+
+        private List<Entity> _previewEntities = new List<Entity>();
+        private int _selectedPreviewIndex = -1;
+        private bool _isApplyingPreview;
+        private bool _isPreviewPlaying;
 
         private int _openStateMachine = AnimationGraphNodeView.NoInput;
         private string _stateMachineTitle = string.Empty;
@@ -256,7 +297,7 @@ namespace Hyperion.Editor.ViewModels
         private int _selectedTransition = AnimationGraphNodeView.NoInput;
         private bool _isApplyingSelection;
         private string _stateName = string.Empty;
-        private int _stateInputIndex;
+        private string _stateSourceTitle = string.Empty;
         private bool _isSelectedStateEntry;
         private string _transitionTitle = string.Empty;
         private decimal _transitionDuration;
@@ -266,22 +307,52 @@ namespace Hyperion.Editor.ViewModels
         private bool _transitionInertialize;
         private List<(int From, int To, float Duration, int Curve, int Priority, bool Interruptible, bool Inertialize, List<(string Parameter, int Op, float Value)> Conditions)> _transitionDetails = new();
 
+        private string _parameterName = string.Empty;
+        private int _parameterType;
+        private decimal _parameterDefaultX;
+        private decimal _parameterDefaultY;
+
         public AnimationGraphDocumentViewModel()
         {
             AddParameterCommand = new RelayCommand(AddParameter);
             CloseStateMachineCommand = new RelayCommand(CloseStateMachine);
             SetEntryStateCommand = new RelayCommand(() => SetEntryState(_selectedState));
             RemoveStateCommand = new RelayCommand(() => RemoveState(_selectedState));
+            ShowStateSourceCommand = new RelayCommand(() => OpenStateInput(_selectedState));
             RemoveTransitionCommand = new RelayCommand(() => RemoveTransition(_selectedTransition));
             AddConditionCommand = new RelayCommand(AddCondition);
+            RemoveParameterCommand = new RelayCommand(() => RemoveParameter(_selectedParameter));
+            CopyToProjectCommand = new RelayCommand(CopyToProject);
+            TogglePlayCommand = new RelayCommand(TogglePlay);
+            RestartCommand = new RelayCommand(Restart);
+            AddNodeCommand = new RelayCommand(() => AddNodeRequested?.Invoke());
+            FrameCommand = new RelayCommand(() => FrameRequested?.Invoke());
+            ArrangeCommand = new RelayCommand(() =>
+            {
+                _frameOnNextRefresh = true;
+                PostEdit(state => state.ArrangeGraphNodes());
+            });
+
+            Inspector = new AnimationGraphInspectorViewModel(this);
 
             _pollTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(PollIntervalMs) };
             _pollTimer.Tick += (_, _) => PollPreview();
+
+            if (MainWindowViewModel.Instance is { } mainWindow)
+            {
+                mainWindow.PropertyChanged += OnMainWindowPropertyChanged;
+            }
         }
 
         public event Action? GraphChanged;
         public event Action? PreviewChanged;
         public event Action<int>? FocusNodeRequested;
+        public event Action? FrameRequested;
+        public event Action? AddNodeRequested;
+
+        public override bool DocksAtBottom => true;
+
+        public AnimationGraphInspectorViewModel Inspector { get; }
 
         public List<AnimationGraphNodeView> Nodes { get; private set; } = new List<AnimationGraphNodeView>();
 
@@ -293,11 +364,13 @@ namespace Hyperion.Editor.ViewModels
 
         public ObservableCollection<AnimationTransitionConditionViewModel> Conditions { get; } = new ObservableCollection<AnimationTransitionConditionViewModel>();
 
-        public ObservableCollection<string> StateInputChoices { get; } = new ObservableCollection<string>();
+        public ObservableCollection<string> PreviewChoices { get; } = new ObservableCollection<string>();
 
-        public IReadOnlyList<(string ClassName, string Label)> NodeKinds { get; } = NodeKindLabels.Select(kv => (kv.Key, kv.Value)).ToList();
+        public IReadOnlyList<string> ClipChoices { get; private set; } = Array.Empty<string>();
 
-        public IReadOnlyList<string> ParameterTypes { get; } = new[] { "Float", "Bool", "Trigger", "Vector2" };
+        public IReadOnlyList<(string ClassName, string Label)> NodeKindChoices { get; } = NodeKinds.Select(kv => (kv.Key, kv.Value.Label)).ToList();
+
+        public IReadOnlyList<string> ParameterTypes => ParameterTypeLabels;
 
         public IReadOnlyList<string> Curves => BlendCurves;
 
@@ -307,8 +380,18 @@ namespace Hyperion.Editor.ViewModels
         public ICommand CloseStateMachineCommand { get; }
         public ICommand SetEntryStateCommand { get; }
         public ICommand RemoveStateCommand { get; }
+        public ICommand ShowStateSourceCommand { get; }
         public ICommand RemoveTransitionCommand { get; }
         public ICommand AddConditionCommand { get; }
+        public ICommand RemoveParameterCommand { get; }
+        public ICommand CopyToProjectCommand { get; }
+        public ICommand TogglePlayCommand { get; }
+        public ICommand RestartCommand { get; }
+        public ICommand AddNodeCommand { get; }
+        public ICommand FrameCommand { get; }
+        public ICommand ArrangeCommand { get; }
+
+        public override string Id => "AnimationGraph";
 
         public bool IsDebugging
         {
@@ -317,17 +400,62 @@ namespace Hyperion.Editor.ViewModels
             {
                 if (SetProperty(ref _isDebugging, value))
                 {
-                    OnPropertyChanged(nameof(IsReadOnly));
-                    OnPropertyChanged(nameof(IsEditable));
+                    OnReadOnlyChanged();
                 }
             }
         }
 
-        public bool IsReadOnly => _isDebugging;
+        public bool IsGraphReadOnly
+        {
+            get => _isGraphReadOnly;
+            private set
+            {
+                if (SetProperty(ref _isGraphReadOnly, value))
+                {
+                    OnReadOnlyChanged();
+                }
+            }
+        }
 
-        public bool IsEditable => !_isDebugging;
+        public bool IsReadOnly => _isDebugging || _isGraphReadOnly;
 
-        public override string Id => "AnimationGraph";
+        public bool IsEditable => !IsReadOnly;
+
+        public bool CanCopyToProject => _isGraphReadOnly && !_isDebugging;
+
+        public bool HasPreviewControls => !_isDebugging;
+
+        public bool HasApplyControls => !_isDebugging && !_isGraphReadOnly;
+
+        public string ReadOnlyLabel => _isDebugging ? "Debugging" : "Read-only";
+
+        public bool IsPreviewPlaying
+        {
+            get => _isPreviewPlaying;
+            private set
+            {
+                if (SetProperty(ref _isPreviewPlaying, value))
+                {
+                    OnPropertyChanged(nameof(PlayIcon));
+                }
+            }
+        }
+
+        public string PlayIcon => _isPreviewPlaying ? "DebugPause" : "Play";
+
+        public int SelectedPreviewIndex
+        {
+            get => _selectedPreviewIndex;
+            set
+            {
+                if (SetProperty(ref _selectedPreviewIndex, value) && !_isApplyingPreview && value >= 0 && value < _previewEntities.Count)
+                {
+                    Entity entity = _previewEntities[value];
+
+                    PostEdit(state => state.SetGraphPreviewSource(entity), allowReadOnly: true);
+                }
+            }
+        }
 
         public int SelectedNode
         {
@@ -341,6 +469,8 @@ namespace Hyperion.Editor.ViewModels
             }
         }
 
+        public IReadOnlyCollection<int> SelectedNodes => _selectedNodes;
+
         public bool HasSelection => _selectedNode >= 0 && !IsInStateMachine;
 
         public ComponentSubObjectViewModel? SelectedNodeProperties
@@ -348,6 +478,10 @@ namespace Hyperion.Editor.ViewModels
             get => _selectedNodeProperties;
             private set => SetProperty(ref _selectedNodeProperties, value);
         }
+
+        public string SelectedParameter => _selectedParameter;
+
+        public bool IsParameterSelected => _selectedParameter.Length > 0;
 
         public bool IsBlendSelected { get; private set; }
 
@@ -407,34 +541,18 @@ namespace Hyperion.Editor.ViewModels
                 if (value != null && SetProperty(ref _stateName, value) && !_isApplyingSelection && value.Trim().Length > 0)
                 {
                     int stateIndex = _selectedState;
+                    int stateMachine = _openStateMachine;
                     string name = value.Trim();
 
-                    PostEdit(state => state.RenameGraphState((uint)_openStateMachine, (uint)stateIndex, new Name(name)));
+                    PostEdit(state => state.RenameGraphState((uint)stateMachine, (uint)stateIndex, new Name(name)));
                 }
             }
         }
 
-        public int StateInputIndex
+        public string StateSourceTitle
         {
-            get => _stateInputIndex;
-            set
-            {
-                if (SetProperty(ref _stateInputIndex, value) && !_isApplyingSelection && value >= 0)
-                {
-                    int stateIndex = _selectedState;
-                    int stateMachine = _openStateMachine;
-                    int inputNode = value - 1;
-
-                    if (value == 0)
-                    {
-                        PostEdit(state => state.DisconnectGraphInput((uint)stateMachine, (uint)stateIndex));
-                    }
-                    else
-                    {
-                        PostEdit(state => state.ConnectGraphNodes((uint)inputNode, (uint)stateMachine, (uint)stateIndex));
-                    }
-                }
-            }
+            get => _stateSourceTitle;
+            private set => SetProperty(ref _stateSourceTitle, value);
         }
 
         public bool IsSelectedStateEntry
@@ -509,7 +627,111 @@ namespace Hyperion.Editor.ViewModels
             }
         }
 
+        public string ParameterName
+        {
+            get => _parameterName;
+            set
+            {
+                if (value == null || !SetProperty(ref _parameterName, value) || _isApplyingSelection)
+                {
+                    return;
+                }
+
+                string from = _selectedParameter;
+                string to = value.Trim();
+
+                if (to.Length == 0 || to == from)
+                {
+                    return;
+                }
+
+                _selectedParameter = to;
+
+                PostEdit(state => state.RenameGraphParameter(new Name(from), new Name(to)));
+            }
+        }
+
+        public int ParameterType
+        {
+            get => _parameterType;
+            set
+            {
+                if (SetProperty(ref _parameterType, value) && !_isApplyingSelection && value >= 0)
+                {
+                    string name = _selectedParameter;
+
+                    PostEdit(state => state.SetGraphParameterType(new Name(name), (uint)value));
+                }
+            }
+        }
+
+        public bool IsParameterVector2 => _parameterType == 3;
+
+        public bool IsParameterBool => _parameterType == 1 || _parameterType == 2;
+
+        public decimal ParameterDefaultX
+        {
+            get => _parameterDefaultX;
+            set
+            {
+                if (SetProperty(ref _parameterDefaultX, value))
+                {
+                    PushParameterDefault();
+                }
+            }
+        }
+
+        public decimal ParameterDefaultY
+        {
+            get => _parameterDefaultY;
+            set
+            {
+                if (SetProperty(ref _parameterDefaultY, value))
+                {
+                    PushParameterDefault();
+                }
+            }
+        }
+
+        public bool ParameterDefaultBool
+        {
+            get => _parameterDefaultX != 0;
+            set => ParameterDefaultX = value ? 1 : 0;
+        }
+
         private static EditorAnimationEditState? GetState() => EngineManager.EditorGame?.EditorSubsystem?.GetAnimationEditState();
+
+        private void OnReadOnlyChanged()
+        {
+            OnPropertyChanged(nameof(IsReadOnly));
+            OnPropertyChanged(nameof(IsEditable));
+            OnPropertyChanged(nameof(CanCopyToProject));
+            OnPropertyChanged(nameof(HasPreviewControls));
+            OnPropertyChanged(nameof(HasApplyControls));
+            OnPropertyChanged(nameof(ReadOnlyLabel));
+        }
+
+        private void OnMainWindowPropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(MainWindowViewModel.IsEditModeDirty))
+            {
+                UpdateTitle();
+            }
+        }
+
+        private void UpdateTitle()
+        {
+            if (_isDebugging)
+            {
+                Title = $"Debug: {_graphName} ({_debugEntity?.Name.ToString() ?? string.Empty})";
+
+                return;
+            }
+
+            bool isDirty = MainWindowViewModel.Instance?.IsEditModeDirty ?? false;
+
+            Title = isDirty ? $"Graph: {_graphName} *" : $"Graph: {_graphName}";
+        }
 
         // sim thread: the graph and running instance the document shows
         private (AnimationGraph? Graph, AnimationGraphInstance? Instance) ResolveSource()
@@ -612,7 +834,7 @@ namespace Hyperion.Editor.ViewModels
             Close();
         }
 
-        // an open debugger moves to a newly selected entity that plays the same graph
+        // an open debugger moves to a newly selected character that plays the same graph
         public void FollowSelection(Entity entity)
         {
             if (!_isDebugging || entity == _debugEntity)
@@ -624,7 +846,9 @@ namespace Hyperion.Editor.ViewModels
 
             _ = EngineManager.PostToSimThread(() =>
             {
-                if (!entity.IsValid || !entity.TryGetComponent(out AnimationComponent animationComponent))
+                Entity? running = GetState()?.FindRunningGraphEntity(entity);
+
+                if (running == null || running == _debugEntity || !running.TryGetComponent(out AnimationComponent animationComponent))
                 {
                     return;
                 }
@@ -633,7 +857,7 @@ namespace Hyperion.Editor.ViewModels
 
                 if (graph != null && debugGraph != null && graph.Name.ToString() == debugGraph.Name.ToString())
                 {
-                    Dispatcher.UIThread.Post(() => AttachDebug(entity));
+                    Dispatcher.UIThread.Post(() => AttachDebug(running));
                 }
             });
         }
@@ -642,6 +866,7 @@ namespace Hyperion.Editor.ViewModels
         {
             IsOpen = true;
 
+            _frameOnNextRefresh = true;
             _pollTimer.Start();
 
             Refresh();
@@ -655,8 +880,13 @@ namespace Hyperion.Editor.ViewModels
             SelectedNodeProperties?.Dispose();
             SelectedNodeProperties = null;
             SelectedNode = AnimationGraphNodeView.NoInput;
+            _selectedNodes.Clear();
+            _selectedParameter = string.Empty;
             SetStateMachine(AnimationGraphNodeView.NoInput, string.Empty);
+            IsGraphReadOnly = false;
             IsOpen = false;
+
+            PushInspector();
         }
 
         private void ReleaseCapture()
@@ -676,6 +906,16 @@ namespace Hyperion.Editor.ViewModels
             }
         }
 
+        private static string FormatSample(Vec2f position, bool is2D)
+        {
+            if (is2D)
+            {
+                return string.Format(CultureInfo.InvariantCulture, "({0:0.##}, {1:0.##})", position.x, position.y);
+            }
+
+            return position.x.ToString("0.##", CultureInfo.InvariantCulture);
+        }
+
         public void Refresh()
         {
             if (!IsOpen)
@@ -686,7 +926,7 @@ namespace Hyperion.Editor.ViewModels
             int selectedNode = _selectedNode;
             int openStateMachine = _openStateMachine;
             int selectedTransition = _selectedTransition;
-            string debugName = _debugEntity?.Name.ToString() ?? string.Empty;
+            bool isDebugging = _isDebugging;
 
             _ = EngineManager.PostToSimThread(() =>
             {
@@ -697,23 +937,57 @@ namespace Hyperion.Editor.ViewModels
                     return;
                 }
 
+                EditorAnimationEditState? state = isDebugging ? null : GetState();
+
                 string graphName = graph.Name.ToString();
                 uint rootNode = graph.GetRootNode();
 
                 List<AnimationGraphNodeView> nodes = new List<AnimationGraphNodeView>();
+                List<string> titles = new List<string>();
 
                 for (uint nodeIndex = 0; nodeIndex < graph.NumNodes(); ++nodeIndex)
                 {
                     string className = graph.GetNodeClassName(nodeIndex).ToString();
                     string name = graph.GetNodeName(nodeIndex).ToString();
-                    string kind = NodeKindLabels.TryGetValue(className, out string? label) ? label : className;
+                    string kind = NodeKinds.TryGetValue(className, out var kindInfo) ? kindInfo.Label : className;
+
+                    titles.Add(name.Length > 0 ? name : kind);
+                }
+
+                for (uint nodeIndex = 0; nodeIndex < graph.NumNodes(); ++nodeIndex)
+                {
+                    string className = graph.GetNodeClassName(nodeIndex).ToString();
+                    bool hasKind = NodeKinds.TryGetValue(className, out var kindInfo);
+                    string kind = hasKind ? kindInfo.Label : className;
+                    AnimationGraphNodeCategory category = hasKind ? kindInfo.Category : AnimationGraphNodeCategory.Modify;
+                    bool isBlend = className == "AnimationBlend1DNode" || className == "AnimationBlend2DNode";
+                    bool is2D = className == "AnimationBlend2DNode";
 
                     List<(string, int)> inputs = new List<(string, int)>();
 
                     for (uint slot = 0; slot < graph.GetNodeInputCount(nodeIndex); ++slot)
                     {
                         uint source = graph.GetNodeInput(nodeIndex, slot);
-                        inputs.Add((graph.GetNodeInputName(nodeIndex, slot).ToString(), source == uint.MaxValue ? AnimationGraphNodeView.NoInput : (int)source));
+                        string label = graph.GetNodeInputName(nodeIndex, slot).ToString();
+
+                        if (isBlend && state != null)
+                        {
+                            label = FormatSample(state.GetBlendSamplePosition(nodeIndex, slot), is2D);
+                        }
+
+                        inputs.Add((label, source == uint.MaxValue ? AnimationGraphNodeView.NoInput : (int)source));
+                    }
+
+                    string subject = graph.GetNodeSubject(nodeIndex).ToString();
+                    string detail = subject;
+
+                    if (className == "AnimationClipNode" && subject.Length > 0)
+                    {
+                        detail = string.Format(CultureInfo.InvariantCulture, "{0}  {1:0.00}s", subject, graph.GetNodeClipLength(nodeIndex));
+                    }
+                    else if (isBlend && subject.Length > 0)
+                    {
+                        detail = $"by {subject}";
                     }
 
                     Vec2f position = graph.GetNodeEditorPosition(nodeIndex);
@@ -721,10 +995,13 @@ namespace Hyperion.Editor.ViewModels
                     nodes.Add(new AnimationGraphNodeView
                     {
                         Index = (int)nodeIndex,
-                        Title = name.Length > 0 ? name : kind,
+                        Title = titles[(int)nodeIndex],
                         Kind = kind,
+                        Detail = detail,
+                        Category = category,
                         Position = new Point(position.x, position.y),
                         Inputs = inputs,
+                        Parameters = graph.GetNodeParameters(nodeIndex).Cast<Name>().Select(p => p.ToString()).ToList(),
                         CanAddInputs = graph.CanNodeAddInputs(nodeIndex),
                         IsOutput = nodeIndex == rootNode,
                         IsStateMachine = className == "AnimationStateMachineNode"
@@ -748,12 +1025,45 @@ namespace Hyperion.Editor.ViewModels
                 AnimationStateMachineNode? stateMachine = openStateMachine >= 0 ? graph.GetNodeObject((uint)openStateMachine) as AnimationStateMachineNode : null;
                 StateMachineSnapshot? stateMachineSnapshot = stateMachine != null ? StateMachineSnapshot.Read(stateMachine, nodes, selectedTransition) : null;
 
+                bool isGraphReadOnly = state?.IsGraphReadOnly() ?? false;
+
+                List<Entity> previewEntities = new List<Entity>();
+                List<string> previewNames = new List<string>();
+                int previewIndex = -1;
+                List<string> clipChoices = new List<string>();
+
+                if (state != null)
+                {
+                    Entity? previewSource = state.GetPreviewSource();
+
+                    foreach (Entity candidate in state.GetGraphPreviewCandidates())
+                    {
+                        if (candidate == previewSource)
+                        {
+                            previewIndex = previewEntities.Count;
+                        }
+
+                        string parentName = candidate.GetParent()?.Name.ToString() ?? string.Empty;
+
+                        previewEntities.Add(candidate);
+                        previewNames.Add(parentName.Length > 0 ? $"{candidate.Name} ({parentName})" : candidate.Name.ToString());
+                    }
+
+                    clipChoices = state.GetClipNames().Cast<Name>().Select(n => n.ToString()).ToList();
+                }
+
                 Dispatcher.UIThread.Post(() =>
                 {
                     _debugGraph = _isDebugging ? graph : null;
+                    _graphName = graphName;
 
-                    Title = _isDebugging ? $"Debug: {graphName} ({debugName})" : $"Graph: {graphName}";
+                    UpdateTitle();
+
+                    IsGraphReadOnly = isGraphReadOnly;
                     Nodes = nodes;
+                    ClipChoices = clipChoices;
+
+                    ApplyPreviewChoices(previewEntities, previewNames, previewIndex);
 
                     if (!Parameters.Select(p => (p.Name, p.Type)).SequenceEqual(parameters))
                     {
@@ -761,9 +1071,16 @@ namespace Hyperion.Editor.ViewModels
 
                         foreach ((string name, uint type) in parameters)
                         {
-                            Parameters.Add(new AnimationGraphParameterViewModel(this, name, type));
+                            Parameters.Add(new AnimationGraphParameterViewModel(this, name, type) { IsSelected = name == _selectedParameter });
                         }
                     }
+
+                    if (_selectedParameter.Length > 0 && !Parameters.Any(p => p.Name == _selectedParameter))
+                    {
+                        _selectedParameter = string.Empty;
+                    }
+
+                    _selectedNodes.RemoveWhere(index => index >= nodes.Count);
 
                     if (stateMachineSnapshot != null)
                     {
@@ -776,16 +1093,47 @@ namespace Hyperion.Editor.ViewModels
 
                     SelectNodeObject(selectedNode, selectedObject);
 
+                    if (_selectedParameter.Length > 0)
+                    {
+                        RefreshParameterDetails();
+                    }
+
                     GraphChanged?.Invoke();
+
+                    if (_frameOnNextRefresh && nodes.Count > 0)
+                    {
+                        _frameOnNextRefresh = false;
+                        FrameRequested?.Invoke();
+                    }
 
                     PollPreview();
                 });
             });
         }
 
+        private void ApplyPreviewChoices(List<Entity> entities, List<string> names, int selectedIndex)
+        {
+            _isApplyingPreview = true;
+
+            _previewEntities = entities;
+
+            if (!PreviewChoices.SequenceEqual(names))
+            {
+                PreviewChoices.Clear();
+
+                foreach (string name in names)
+                {
+                    PreviewChoices.Add(name);
+                }
+            }
+
+            SelectedPreviewIndex = selectedIndex;
+
+            _isApplyingPreview = false;
+        }
+
         private sealed class StateMachineSnapshot
         {
-            public string Title = string.Empty;
             public List<AnimationStateView> States = new List<AnimationStateView>();
             public List<AnimationTransitionView> Transitions = new List<AnimationTransitionView>();
             public List<(int From, int To, float Duration, int Curve, int Priority, bool Interruptible, bool Inertialize, List<(string Parameter, int Op, float Value)> Conditions)> TransitionDetails = new();
@@ -806,7 +1154,7 @@ namespace Hyperion.Editor.ViewModels
                         Index = (int)stateIndex,
                         Name = stateMachine.GetStateName(stateIndex).ToString(),
                         InputIndex = input < nodes.Count ? (int)input : AnimationGraphNodeView.NoInput,
-                        InputTitle = input < nodes.Count ? nodes[(int)input].Title : "(no input)",
+                        InputTitle = input < nodes.Count ? nodes[(int)input].Title : "(no pose)",
                         Position = new Point(position.x, position.y),
                         IsEntry = stateIndex == entryState
                     });
@@ -818,8 +1166,6 @@ namespace Hyperion.Editor.ViewModels
                     int from = fromAnyState ? AnimationStateView.AnyState : (int)stateMachine.GetTransitionFrom(transitionIndex);
                     int to = (int)stateMachine.GetTransitionTo(transitionIndex);
 
-                    snapshot.Transitions.Add(new AnimationTransitionView { Index = (int)transitionIndex, From = from, To = to });
-
                     List<(string, int, float)> conditions = new List<(string, int, float)>();
 
                     for (uint conditionIndex = 0; conditionIndex < stateMachine.NumConditions(transitionIndex); ++conditionIndex)
@@ -829,6 +1175,14 @@ namespace Hyperion.Editor.ViewModels
                             (int)stateMachine.GetConditionOp(transitionIndex, conditionIndex),
                             stateMachine.GetConditionValue(transitionIndex, conditionIndex)));
                     }
+
+                    snapshot.Transitions.Add(new AnimationTransitionView
+                    {
+                        Index = (int)transitionIndex,
+                        From = from,
+                        To = to,
+                        Parameters = conditions.Select(c => c.Item1).Where(p => p.Length > 0).Distinct().ToList()
+                    });
 
                     snapshot.TransitionDetails.Add((
                         from,
@@ -881,18 +1235,9 @@ namespace Hyperion.Editor.ViewModels
             if (_selectedState >= 0 && _selectedState < States.Count)
             {
                 AnimationStateView stateView = States[_selectedState];
-                int input = stateView.InputIndex;
-
-                StateInputChoices.Clear();
-                StateInputChoices.Add("(none)");
-
-                foreach (AnimationGraphNodeView node in Nodes)
-                {
-                    StateInputChoices.Add($"{node.Index}: {node.Title}");
-                }
 
                 StateName = stateView.Name;
-                StateInputIndex = input + 1;
+                StateSourceTitle = stateView.InputTitle;
                 IsSelectedStateEntry = stateView.IsEntry;
             }
 
@@ -923,6 +1268,8 @@ namespace Hyperion.Editor.ViewModels
             OnPropertyChanged(nameof(SelectedTransition));
             OnPropertyChanged(nameof(IsStateSelected));
             OnPropertyChanged(nameof(IsTransitionSelected));
+
+            PushInspector();
         }
 
         private void SetStateMachine(int nodeIndex, string title)
@@ -945,6 +1292,8 @@ namespace Hyperion.Editor.ViewModels
             OnPropertyChanged(nameof(HasSelection));
             OnPropertyChanged(nameof(IsStateSelected));
             OnPropertyChanged(nameof(IsTransitionSelected));
+
+            PushInspector();
         }
 
         public void OpenStateMachineNode(int nodeIndex)
@@ -992,6 +1341,7 @@ namespace Hyperion.Editor.ViewModels
             _selectedState = stateIndex;
             _selectedTransition = AnimationGraphNodeView.NoInput;
 
+            ClearParameterSelection();
             ApplySelectionDetails();
             GraphChanged?.Invoke();
         }
@@ -1001,16 +1351,41 @@ namespace Hyperion.Editor.ViewModels
             _selectedTransition = transitionIndex;
             _selectedState = AnimationStateView.AnyState;
 
+            ClearParameterSelection();
             ApplySelectionDetails();
             GraphChanged?.Invoke();
         }
 
         public void Select(int nodeIndex)
         {
+            SetNodeSelection(nodeIndex >= 0 ? new[] { nodeIndex } : Array.Empty<int>(), nodeIndex);
+        }
+
+        public void SetNodeSelection(IEnumerable<int> nodeIndices, int primary)
+        {
             if (!IsOpen)
             {
                 return;
             }
+
+            _selectedNodes = new HashSet<int>(nodeIndices);
+
+            if (primary >= 0)
+            {
+                _selectedNodes.Add(primary);
+            }
+            else if (_selectedNodes.Count > 0)
+            {
+                primary = _selectedNodes.Min();
+            }
+
+            if (primary >= 0)
+            {
+                ClearParameterSelection();
+                ClearSceneSelection();
+            }
+
+            int nodeIndex = primary;
 
             _ = EngineManager.PostToSimThread(() =>
             {
@@ -1025,9 +1400,22 @@ namespace Hyperion.Editor.ViewModels
             });
         }
 
+        private static void ClearSceneSelection()
+        {
+            _ = EngineManager.PostToSimThread(() =>
+            {
+                EngineManager.EditorGame?.EditorSubsystem?.ClearSelection();
+            });
+        }
+
         private void SelectNodeObject(int nodeIndex, AnimationGraphNode? node)
         {
             SelectedNode = nodeIndex;
+
+            if (nodeIndex < 0)
+            {
+                _selectedNodes.Clear();
+            }
 
             SelectedNodeProperties?.Dispose();
             SelectedNodeProperties = null;
@@ -1045,6 +1433,148 @@ namespace Hyperion.Editor.ViewModels
             OnPropertyChanged(nameof(HasSelection));
 
             RefreshBlendSpace();
+            PushInspector();
+        }
+
+        public void SelectParameter(string name)
+        {
+            _selectedParameter = name;
+
+            foreach (AnimationGraphParameterViewModel parameter in Parameters)
+            {
+                parameter.IsSelected = parameter.Name == name;
+            }
+
+            if (name.Length > 0)
+            {
+                _selectedState = AnimationStateView.AnyState;
+                _selectedTransition = AnimationGraphNodeView.NoInput;
+
+                SelectNodeObject(AnimationGraphNodeView.NoInput, null);
+                ClearSceneSelection();
+                RefreshParameterDetails();
+            }
+
+            OnPropertyChanged(nameof(IsParameterSelected));
+
+            PushInspector();
+            GraphChanged?.Invoke();
+        }
+
+        private void ClearParameterSelection()
+        {
+            if (_selectedParameter.Length == 0)
+            {
+                return;
+            }
+
+            _selectedParameter = string.Empty;
+
+            foreach (AnimationGraphParameterViewModel parameter in Parameters)
+            {
+                parameter.IsSelected = false;
+            }
+
+            OnPropertyChanged(nameof(IsParameterSelected));
+        }
+
+        private void RefreshParameterDetails()
+        {
+            string name = _selectedParameter;
+
+            _ = EngineManager.PostToSimThread(() =>
+            {
+                (AnimationGraph? graph, AnimationGraphInstance? _) = ResolveSource();
+
+                if (graph == null)
+                {
+                    return;
+                }
+
+                uint type = graph.GetParameterType(new Name(name));
+                Vec2f defaultValue = graph.GetParameterDefault(new Name(name));
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    if (name != _selectedParameter || type == uint.MaxValue)
+                    {
+                        return;
+                    }
+
+                    _isApplyingSelection = true;
+
+                    ParameterName = name;
+                    ParameterType = (int)type;
+                    _parameterDefaultX = Math.Round((decimal)defaultValue.x, 3);
+                    _parameterDefaultY = Math.Round((decimal)defaultValue.y, 3);
+
+                    _isApplyingSelection = false;
+
+                    OnPropertyChanged(nameof(ParameterDefaultX));
+                    OnPropertyChanged(nameof(ParameterDefaultY));
+                    OnPropertyChanged(nameof(ParameterDefaultBool));
+                    OnPropertyChanged(nameof(IsParameterVector2));
+                    OnPropertyChanged(nameof(IsParameterBool));
+                });
+            });
+        }
+
+        private void PushParameterDefault()
+        {
+            if (_isApplyingSelection || _selectedParameter.Length == 0)
+            {
+                return;
+            }
+
+            string name = _selectedParameter;
+            Vec2f value = new Vec2f((float)_parameterDefaultX, (float)_parameterDefaultY);
+
+            OnPropertyChanged(nameof(ParameterDefaultBool));
+
+            PostEdit(state => state.SetGraphParameterDefault(new Name(name), value));
+        }
+
+        public bool UsesSelectedParameter(IReadOnlyList<string> parameters)
+        {
+            return _selectedParameter.Length > 0 && parameters.Contains(_selectedParameter);
+        }
+
+        private void PushInspector()
+        {
+            InspectorViewModel? inspector = MainWindowViewModel.Instance?.Inspector;
+
+            if (inspector == null)
+            {
+                return;
+            }
+
+            string heading = string.Empty;
+            bool hasContent = IsOpen;
+
+            if (hasContent && IsTransitionSelected)
+            {
+                heading = TransitionTitle;
+            }
+            else if (hasContent && IsStateSelected)
+            {
+                heading = $"State: {StateName}";
+            }
+            else if (hasContent && _selectedParameter.Length > 0)
+            {
+                heading = $"Parameter: {_selectedParameter}";
+            }
+            else if (hasContent && HasSelection && Nodes.FirstOrDefault(n => n.Index == _selectedNode) is { } node)
+            {
+                heading = node.Title == node.Kind ? node.Kind : $"{node.Title}  ({node.Kind})";
+            }
+            else
+            {
+                hasContent = false;
+            }
+
+            Inspector.NotifyChanged();
+
+            inspector.SetEditModeContent(heading, hasContent ? Inspector : null);
         }
 
         private void RefreshBlendSpace()
@@ -1064,8 +1594,8 @@ namespace Hyperion.Editor.ViewModels
             _ = EngineManager.PostToSimThread(() =>
             {
                 string parameter = state.GetBlendParameter((uint)nodeIndex).ToString();
-                bool is2D = view?.Kind == NodeKindLabels["AnimationBlend2DNode"];
-                bool isBlend = view?.Kind == NodeKindLabels["AnimationBlend1DNode"] || is2D;
+                bool is2D = view?.Kind == NodeKinds["AnimationBlend2DNode"].Label;
+                bool isBlend = view?.Kind == NodeKinds["AnimationBlend1DNode"].Label || is2D;
 
                 List<(Vector, string)> samples = new List<(Vector, string)>();
 
@@ -1107,13 +1637,18 @@ namespace Hyperion.Editor.ViewModels
             string blendParameter = _blendParameter;
             int openStateMachine = _openStateMachine;
             int numNodes = Nodes.Count;
+            bool isDebugging = _isDebugging;
 
             _ = EngineManager.PostToSimThread(() =>
             {
                 (AnimationGraph? graph, AnimationGraphInstance? instance) = ResolveSource();
 
+                bool isPlaying = !isDebugging && (GetState()?.IsPlaying() ?? false);
+
                 if (graph == null || instance == null || !instance.IsValid)
                 {
+                    Dispatcher.UIThread.Post(() => IsPreviewPlaying = isPlaying);
+
                     return;
                 }
 
@@ -1161,6 +1696,8 @@ namespace Hyperion.Editor.ViewModels
                         _capturedInstance = instance;
                     }
 
+                    IsPreviewPlaying = isPlaying;
+
                     for (int nodeIndex = 0; nodeIndex < Nodes.Count && nodeIndex < weights.Count; ++nodeIndex)
                     {
                         Nodes[nodeIndex].Weight = weights[nodeIndex];
@@ -1191,44 +1728,151 @@ namespace Hyperion.Editor.ViewModels
             });
         }
 
-        private void PostEdit(Action<EditorAnimationEditState> action)
+        private void PostEdit(Action<EditorAnimationEditState> action, bool allowReadOnly = false)
         {
             EditorAnimationEditState? state = GetState();
 
-            if (state != null && !_isDebugging)
+            if (state != null && !_isDebugging && (allowReadOnly || !_isGraphReadOnly))
             {
                 _ = EngineManager.PostToSimThread(() => action(state));
             }
         }
 
-        public void AddNode(string className, Point position) => PostEdit(state => state.AddGraphNode(new Name(className), new Vec2f((float)position.X, (float)position.Y)));
+        private void CopyToProject()
+        {
+            PostEdit(state => state.CopyGraphToProject(), allowReadOnly: true);
+        }
 
-        public void AddClipNode(string clipName, Point position)
+        private void TogglePlay()
+        {
+            bool play = !_isPreviewPlaying;
+
+            IsPreviewPlaying = play;
+
+            PostEdit(state => state.SetPlaying(play), allowReadOnly: true);
+        }
+
+        private void Restart()
+        {
+            IsPreviewPlaying = true;
+
+            PostEdit(state =>
+            {
+                state.SetTime(0.0f);
+                state.SetPlaying(true);
+            }, allowReadOnly: true);
+        }
+
+        public void AddNode(string className, Point position, int connectFrom = AnimationGraphNodeView.NoInput)
         {
             PostEdit(state =>
             {
-                Animation? clip = AssetManager.Instance.AssetRegistry.GetAsset(AssetBucket.Animations.Value, new Name(clipName)) as Animation;
+                uint nodeIndex = state.AddGraphNode(new Name(className), new Vec2f((float)position.X, (float)position.Y));
 
-                if (clip != null)
-                {
-                    state.AddGraphClipNode(clip, new Vec2f((float)position.X, (float)position.Y));
-                }
+                ConnectNew(state, nodeIndex, connectFrom);
             });
         }
 
-        public void RemoveNode(int nodeIndex)
+        public void AddClipNode(string clipName, Point position, int connectFrom = AnimationGraphNodeView.NoInput)
         {
-            if (_isDebugging)
+            PostEdit(state =>
+            {
+                uint nodeIndex = state.AddGraphClipNodeByName(new Name(clipName), new Vec2f((float)position.X, (float)position.Y));
+
+                ConnectNew(state, nodeIndex, connectFrom);
+            });
+        }
+
+        private void ConnectNew(EditorAnimationEditState state, uint nodeIndex, int connectFrom)
+        {
+            if (nodeIndex == uint.MaxValue)
             {
                 return;
             }
 
-            if (nodeIndex == _selectedNode)
+            if (connectFrom >= 0)
             {
-                SelectNodeObject(AnimationGraphNodeView.NoInput, null);
+                state.ConnectGraphNodes((uint)connectFrom, nodeIndex, 0);
             }
 
-            PostEdit(state => state.RemoveGraphNode((uint)nodeIndex));
+            int selected = (int)nodeIndex;
+
+            Dispatcher.UIThread.Post(() => Select(selected));
+        }
+
+        public void RemoveNodes(IEnumerable<int> nodeIndices)
+        {
+            if (!IsEditable)
+            {
+                return;
+            }
+
+            List<int> indices = nodeIndices.Distinct().OrderByDescending(i => i).ToList();
+
+            if (indices.Count == 0)
+            {
+                return;
+            }
+
+            SelectNodeObject(AnimationGraphNodeView.NoInput, null);
+
+            PostEdit(state =>
+            {
+                foreach (int nodeIndex in indices)
+                {
+                    state.RemoveGraphNode((uint)nodeIndex);
+                }
+            });
+        }
+
+        public void RemoveNode(int nodeIndex) => RemoveNodes(new[] { nodeIndex });
+
+        public void RenameNode(int nodeIndex, string name) => PostEdit(state => state.RenameGraphNode((uint)nodeIndex, new Name(name.Trim())));
+
+        public void DuplicateNodes(IEnumerable<int> nodeIndices, Vector offset)
+        {
+            List<int> indices = nodeIndices.Distinct().OrderBy(i => i).ToList();
+
+            if (indices.Count == 0)
+            {
+                return;
+            }
+
+            PostEdit(state =>
+            {
+                List<int> created = new List<int>();
+
+                foreach (int nodeIndex in indices)
+                {
+                    uint duplicate = state.DuplicateGraphNode((uint)nodeIndex, new Vec2f((float)offset.X, (float)offset.Y));
+
+                    if (duplicate != uint.MaxValue)
+                    {
+                        created.Add((int)duplicate);
+                    }
+                }
+
+                Dispatcher.UIThread.Post(() => SetNodeSelection(created, created.Count > 0 ? created[0] : AnimationGraphNodeView.NoInput));
+            });
+        }
+
+        public void CopyNodes(IEnumerable<int> nodeIndices)
+        {
+            _copiedNodes = nodeIndices.Distinct().ToList();
+        }
+
+        public void PasteNodes(Point at)
+        {
+            List<AnimationGraphNodeView> copied = Nodes.Where(n => _copiedNodes.Contains(n.Index)).ToList();
+
+            if (copied.Count == 0)
+            {
+                return;
+            }
+
+            Point origin = new Point(copied.Min(n => n.Position.X), copied.Min(n => n.Position.Y));
+
+            DuplicateNodes(copied.Select(n => n.Index), at - origin);
         }
 
         public void Connect(int fromNode, int toNode, int slot) => PostEdit(state => state.ConnectGraphNodes((uint)fromNode, (uint)toNode, (uint)slot));
@@ -1240,6 +1884,51 @@ namespace Hyperion.Editor.ViewModels
         public void SetOutput(int nodeIndex) => PostEdit(state => state.SetGraphRootNode((uint)nodeIndex));
 
         public void MoveNode(int nodeIndex, Point position) => PostEdit(state => state.MoveGraphNode((uint)nodeIndex, new Vec2f((float)position.X, (float)position.Y)));
+
+        public void MoveNodes(IReadOnlyList<(int Index, Point Position)> moves)
+        {
+            PostEdit(state =>
+            {
+                foreach ((int index, Point position) in moves)
+                {
+                    state.MoveGraphNode((uint)index, new Vec2f((float)position.X, (float)position.Y));
+                }
+            });
+        }
+
+        public bool WouldCycle(int fromNode, int toNode)
+        {
+            Dictionary<int, AnimationGraphNodeView> byIndex = Nodes.ToDictionary(n => n.Index);
+            Stack<int> pending = new Stack<int>();
+            HashSet<int> visited = new HashSet<int>();
+
+            pending.Push(fromNode);
+
+            while (pending.Count > 0)
+            {
+                int current = pending.Pop();
+
+                if (current == toNode)
+                {
+                    return true;
+                }
+
+                if (!visited.Add(current) || !byIndex.TryGetValue(current, out AnimationGraphNodeView? view))
+                {
+                    continue;
+                }
+
+                foreach ((string _, int source) in view.Inputs)
+                {
+                    if (source >= 0)
+                    {
+                        pending.Push(source);
+                    }
+                }
+            }
+
+            return false;
+        }
 
         public void MoveBlendSample(int sample, Vector position)
         {
@@ -1263,16 +1952,29 @@ namespace Hyperion.Editor.ViewModels
             }
         }
 
-        public void SetParameterValue(string name, Vec2f value) => PostEdit(state => state.SetPreviewParameter(new Name(name), value));
+        public void SetParameterValue(string name, Vec2f value) => PostEdit(state => state.SetPreviewParameter(new Name(name), value), allowReadOnly: true);
 
-        public void TriggerParameter(string name) => PostEdit(state => state.TriggerPreviewParameter(new Name(name)));
+        public void TriggerParameter(string name) => PostEdit(state => state.TriggerPreviewParameter(new Name(name)), allowReadOnly: true);
 
-        public void RemoveParameter(string name) => PostEdit(state => state.RemoveGraphParameter(new Name(name)));
+        public void RemoveParameter(string name)
+        {
+            if (name.Length == 0)
+            {
+                return;
+            }
+
+            if (name == _selectedParameter)
+            {
+                SelectParameter(string.Empty);
+            }
+
+            PostEdit(state => state.RemoveGraphParameter(new Name(name)));
+        }
 
         private void AddParameter()
         {
             string name = _newParameterName.Trim();
-            uint type = (uint)Math.Clamp(_newParameterType, 0, ParameterTypes.Count - 1);
+            uint type = (uint)Math.Clamp(_newParameterType, 0, ParameterTypeLabels.Count - 1);
 
             if (name.Length == 0)
             {

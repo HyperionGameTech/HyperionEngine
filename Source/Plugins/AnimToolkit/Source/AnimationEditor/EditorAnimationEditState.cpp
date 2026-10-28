@@ -20,6 +20,7 @@
 
 #include <Scene/Components/MeshComponent.hpp>
 #include <Animation/AnimationComponent.hpp>
+#include <Animation/CharacterModelComponent.hpp>
 
 #include <Scene/Animation/Skeleton.hpp>
 #include <Animation/HumanoidMapping.hpp>
@@ -32,6 +33,7 @@
 #include <Rendering/DebugDrawer.hpp>
 
 #include <Asset/AssetRegistry.hpp>
+#include <Asset/SerializationUtils.hpp>
 
 #include <Core/Math/MathUtil.hpp>
 #include <Core/Math/Ray.hpp>
@@ -438,6 +440,8 @@ void EditorAnimationEditState::ClearTarget()
     m_sourceGraph.Reset();
     m_graph.Reset();
     m_graphSnapshot = String::empty;
+    m_graphOwner.Reset();
+    m_isGraphReadOnly = false;
 
     m_rootTrail.Clear();
     m_rootTrailClip = nullptr;
@@ -573,7 +577,7 @@ bool EditorAnimationEditState::Apply()
     String previousGraphText;
     String newGraphText;
 
-    if (sourceGraph.IsValid())
+    if (sourceGraph.IsValid() && !m_isGraphReadOnly)
     {
         Assert(m_graph.IsValid());
 
@@ -1355,8 +1359,85 @@ void EditorAnimationEditState::DebugDraw(DebugDrawCommandList& debugDrawCommandL
     }
 }
 
-static Entity* FindEntityPlayingGraph(EditorSubsystem& subsystem, const AnimationGraph* graph)
+static bool ReferencesGraph(const Entity& entity, const AnimationGraph* graph)
 {
+    if (!entity.GetEntityManager())
+    {
+        return false;
+    }
+
+    if (const AnimationComponent* animationComponent = entity.TryGetComponent<AnimationComponent>(); animationComponent && animationComponent->graph.Get() == graph)
+    {
+        return true;
+    }
+
+    if (const CharacterModelComponent* characterModel = entity.TryGetComponent<CharacterModelComponent>())
+    {
+        if (characterModel->graph.IsValid())
+        {
+            return characterModel->graph.Get() == graph;
+        }
+
+        return GetDefaultCharacterGraph().Get() == graph;
+    }
+
+    return false;
+}
+
+static Entity* FindSkinnedSelfOrDescendant(Node& node)
+{
+    if (Entity* entity = TryCast<Entity>(&node); entity && GetEntitySkeleton(*entity).IsValid())
+    {
+        return entity;
+    }
+
+    for (Node* descendant : node.GetDescendants())
+    {
+        if (Entity* entity = TryCast<Entity>(descendant); entity && GetEntitySkeleton(*entity).IsValid())
+        {
+            return entity;
+        }
+    }
+
+    return nullptr;
+}
+
+static Entity* FindGraphOwnerInSubtree(Node& node, const AnimationGraph* graph)
+{
+    if (Entity* entity = TryCast<Entity>(&node); entity && ReferencesGraph(*entity, graph))
+    {
+        return entity;
+    }
+
+    for (Node* descendant : node.GetDescendants())
+    {
+        if (Entity* entity = TryCast<Entity>(descendant); entity && ReferencesGraph(*entity, graph))
+        {
+            return entity;
+        }
+    }
+
+    return nullptr;
+}
+
+static Entity* FindGraphOwner(EditorSubsystem& subsystem, const AnimationGraph* graph, Node* start)
+{
+    if (start)
+    {
+        for (Node* node = start; node; node = node->GetParent())
+        {
+            if (Entity* entity = TryCast<Entity>(node); entity && ReferencesGraph(*entity, graph))
+            {
+                return entity;
+            }
+        }
+
+        if (Entity* owner = FindGraphOwnerInSubtree(*start, graph))
+        {
+            return owner;
+        }
+    }
+
     const Handle<World>& world = subsystem.GetProjectWorld();
 
     if (!world.IsValid())
@@ -1371,15 +1452,9 @@ static Entity* FindEntityPlayingGraph(EditorSubsystem& subsystem, const Animatio
             continue;
         }
 
-        for (Node* descendant : scene->GetRoot()->GetDescendants())
+        if (Entity* owner = FindGraphOwnerInSubtree(*scene->GetRoot(), graph); owner && FindSkinnedSelfOrDescendant(*owner))
         {
-            Entity* entity = TryCast<Entity>(descendant);
-            const AnimationComponent* animationComponent = entity && entity->GetEntityManager() ? entity->TryGetComponent<AnimationComponent>() : nullptr;
-
-            if (animationComponent && animationComponent->graph.Get() == graph && GetEntitySkeleton(*entity).IsValid())
-            {
-                return entity;
-            }
+            return owner;
         }
     }
 
@@ -1409,16 +1484,135 @@ static bool FeedsInto(const AnimationGraph& graph, uint32 target, uint32 nodeInd
     return false;
 }
 
+static Handle<AnimationGraph> GetReferencedGraph(const Entity& entity)
+{
+    if (!entity.GetEntityManager())
+    {
+        return Handle<AnimationGraph>::empty;
+    }
+
+    if (const AnimationComponent* animationComponent = entity.TryGetComponent<AnimationComponent>(); animationComponent && animationComponent->graph.IsValid())
+    {
+        return animationComponent->graph;
+    }
+
+    if (const CharacterModelComponent* characterModel = entity.TryGetComponent<CharacterModelComponent>())
+    {
+        if (characterModel->graph.IsValid())
+        {
+            return characterModel->graph;
+        }
+
+        return GetDefaultCharacterGraph();
+    }
+
+    return Handle<AnimationGraph>::empty;
+}
+
+Handle<AnimationGraph> EditorAnimationEditState::FindEntityGraph(const Handle<Entity>& entity) const
+{
+    if (!entity.IsValid())
+    {
+        return Handle<AnimationGraph>::empty;
+    }
+
+    for (Node* node = entity.Get(); node; node = node->GetParent())
+    {
+        if (const Entity* ancestor = TryCast<Entity>(node))
+        {
+            if (Handle<AnimationGraph> graph = GetReferencedGraph(*ancestor); graph.IsValid())
+            {
+                return graph;
+            }
+        }
+    }
+
+    for (Node* descendant : entity->GetDescendants())
+    {
+        if (const Entity* child = TryCast<Entity>(descendant))
+        {
+            if (Handle<AnimationGraph> graph = GetReferencedGraph(*child); graph.IsValid())
+            {
+                return graph;
+            }
+        }
+    }
+
+    return Handle<AnimationGraph>::empty;
+}
+
+Handle<Entity> EditorAnimationEditState::FindRunningGraphEntity(const Handle<Entity>& entity) const
+{
+    if (!entity.IsValid())
+    {
+        return Handle<Entity>::empty;
+    }
+
+    auto runsGraph = [](Node* node) -> Entity*
+    {
+        Entity* candidate = TryCast<Entity>(node);
+        const AnimationComponent* animationComponent = candidate && candidate->GetEntityManager() ? candidate->TryGetComponent<AnimationComponent>() : nullptr;
+
+        if (animationComponent && animationComponent->graphInstance.IsValid())
+        {
+            return candidate;
+        }
+
+        return nullptr;
+    };
+
+    if (Entity* running = runsGraph(entity.Get()))
+    {
+        return MakeStrongRef(running);
+    }
+
+    for (Node* descendant : entity->GetDescendants())
+    {
+        if (Entity* running = runsGraph(descendant))
+        {
+            return MakeStrongRef(running);
+        }
+    }
+
+    for (Node* node = entity->GetParent(); node; node = node->GetParent())
+    {
+        if (Entity* running = runsGraph(node))
+        {
+            return MakeStrongRef(running);
+        }
+    }
+
+    return Handle<Entity>::empty;
+}
+
+bool EditorAnimationEditState::EnterEntityGraph(const Handle<Entity>& entity)
+{
+    AssertOnThread(g_simThread);
+
+    return EnterGraphFrom(FindEntityGraph(entity), entity.Get());
+}
+
 bool EditorAnimationEditState::EnterGraph(const Handle<AnimationGraph>& graph)
 {
     AssertOnThread(g_simThread);
 
+    return EnterGraphFrom(graph, m_subsystem->GetFocusedNode().Get());
+}
+
+bool EditorAnimationEditState::EnterGraphFrom(const Handle<AnimationGraph>& graph, Node* start)
+{
     if (!graph.IsValid())
     {
         return false;
     }
 
-    Handle<Entity> source = MakeStrongRef(FindEntityPlayingGraph(*m_subsystem, graph.Get()));
+    Handle<Entity> owner = MakeStrongRef(FindGraphOwner(*m_subsystem, graph.Get(), start));
+    Handle<Entity> source;
+
+    if (owner.IsValid())
+    {
+        source = MakeStrongRef(FindSkinnedSelfOrDescendant(*owner));
+    }
 
     for (const Handle<Animation>& clip : graph->CollectClips())
     {
@@ -1452,7 +1646,292 @@ bool EditorAnimationEditState::EnterGraph(const Handle<AnimationGraph>& graph)
         return false;
     }
 
-    return EnterWith(GetEntitySkeleton(*source), Handle<Animation>::empty, source, graph);
+    if (!EnterWith(GetEntitySkeleton(*source), Handle<Animation>::empty, source, graph))
+    {
+        return false;
+    }
+
+    m_graphOwner = owner;
+    m_isGraphReadOnly = graph->GetAssetRegistry() != GetCurrentAssetRegistry();
+
+    OnGraphChanged();
+
+    return true;
+}
+
+bool EditorAnimationEditState::IsGraphReadOnly() const
+{
+    return IsEditingGraph() && m_isGraphReadOnly;
+}
+
+bool EditorAnimationEditState::CopyGraphToProject()
+{
+    AssertOnThread(g_simThread);
+
+    if (!IsEditingGraph() || !m_isGraphReadOnly)
+    {
+        return false;
+    }
+
+    const Handle<AssetRegistry> registry = GetCurrentAssetRegistry();
+
+    if (!registry.IsValid())
+    {
+        return false;
+    }
+
+    Handle<AnimationGraph> copy = MakeHandle<AnimationGraph>(m_sourceGraph->GetName());
+    InitObject(copy);
+    LoadGraphText(*copy, SaveGraphText(*m_graph));
+
+    registry->PutAssetUnique(AssetBuckets::Animations, copy);
+    copy->MarkDirty();
+
+    if (m_graphOwner.IsValid() && m_graphOwner->GetEntityManager())
+    {
+        const Handle<Entity> owner = m_graphOwner;
+        const Handle<EditorProject>& project = m_subsystem->GetCurrentProject();
+
+        auto setOwnerGraph = [owner](const Handle<AnimationGraph>& graph)
+        {
+            if (!owner.IsValid() || !owner->GetEntityManager())
+            {
+                return;
+            }
+
+            if (CharacterModelComponent* characterModel = owner->TryGetComponent<CharacterModelComponent>())
+            {
+                characterModel->graph = graph;
+            }
+            else if (AnimationComponent* animationComponent = owner->TryGetComponent<AnimationComponent>())
+            {
+                animationComponent->graph = graph;
+            }
+        };
+
+        Handle<AnimationGraph> previousGraph;
+
+        if (const CharacterModelComponent* characterModel = owner->TryGetComponent<CharacterModelComponent>())
+        {
+            previousGraph = characterModel->graph;
+        }
+        else if (const AnimationComponent* animationComponent = owner->TryGetComponent<AnimationComponent>())
+        {
+            previousGraph = animationComponent->graph;
+        }
+
+        Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
+            HYP_FORMAT("Use Graph {}", copy->GetName()),
+            Proc<EditorActionFunctions()>(
+                [setOwnerGraph, copy, previousGraph]() -> EditorActionFunctions
+                {
+                    return EditorActionFunctions {
+                        .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [setOwnerGraph, copy](EditorSubsystem*, EditorProject*)
+                            {
+                                setOwnerGraph(copy);
+                            }),
+                        .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [setOwnerGraph, previousGraph](EditorSubsystem*, EditorProject*)
+                            {
+                                setOwnerGraph(previousGraph);
+                            })
+                    };
+                }));
+
+        InitObject(action);
+
+        if (project.IsValid())
+        {
+            project->GetActionStack()->PushAction(action);
+        }
+    }
+
+    m_sourceGraph = copy;
+    m_isGraphReadOnly = false;
+
+    HYP_LOG(Editor, Info, "Copied animation graph '{}' into the project", copy->GetName());
+
+    OnGraphChanged();
+
+    return true;
+}
+
+Array<Handle<Entity>> EditorAnimationEditState::GetGraphPreviewCandidates() const
+{
+    Array<Handle<Entity>> candidates;
+
+    const Handle<World>& world = m_subsystem->GetProjectWorld();
+
+    if (!IsEditingGraph() || !world.IsValid())
+    {
+        return candidates;
+    }
+
+    for (const Handle<Scene>& scene : world->GetScenes())
+    {
+        if (!scene.IsValid() || !scene->GetRoot().IsValid() || (scene->GetSceneFlags() & SceneFlags::EDITOR))
+        {
+            continue;
+        }
+
+        for (Node* descendant : scene->GetRoot()->GetDescendants())
+        {
+            if (Entity* entity = TryCast<Entity>(descendant); entity && GetEntitySkeleton(*entity).IsValid())
+            {
+                candidates.PushBack(MakeStrongRef(entity));
+            }
+        }
+    }
+
+    return candidates;
+}
+
+const Handle<Entity>& EditorAnimationEditState::GetPreviewSource() const
+{
+    return m_sourceEntity;
+}
+
+bool EditorAnimationEditState::SetGraphPreviewSource(const Handle<Entity>& entity)
+{
+    AssertOnThread(g_simThread);
+
+    if (!IsEditingGraph() || !entity.IsValid() || entity == m_sourceEntity)
+    {
+        return false;
+    }
+
+    const Handle<Skeleton>& skeleton = GetEntitySkeleton(*entity);
+
+    if (!skeleton.IsValid() || !skeleton->GetRootBone().IsValid())
+    {
+        return false;
+    }
+
+    m_subsystem->SetFocusedNode(Handle<Node>::Null());
+    m_subsystem->ClearSelection();
+
+    m_skeleton = skeleton;
+    m_sourceEntity = entity;
+
+    BuildWorkingRoot();
+
+    OnTimelineChanged();
+    OnGraphChanged();
+
+    return true;
+}
+
+static bool HasOverlappingNodes(const AnimationGraph& graph)
+{
+    for (uint32 first = 0; first < graph.NumNodes(); ++first)
+    {
+        for (uint32 second = first + 1; second < graph.NumNodes(); ++second)
+        {
+            const AnimationGraphNode* a = graph.GetNode(first);
+            const AnimationGraphNode* b = graph.GetNode(second);
+
+            if (a && b && MathUtil::Abs(a->editorPosition.x - b->editorPosition.x) < 1.0f && MathUtil::Abs(a->editorPosition.y - b->editorPosition.y) < 1.0f)
+            {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+static void ArrangeNodes(AnimationGraph& graph)
+{
+    static constexpr float ColumnSpacing = 240.0f;
+    static constexpr float RowSpacing = 120.0f;
+
+    const uint32 numNodes = graph.NumNodes();
+
+    Array<uint32> depths;
+    depths.Resize(numNodes);
+
+    for (uint32& depth : depths)
+    {
+        depth = ~0u;
+    }
+
+    Array<uint32> pending;
+
+    if (graph.GetNode(graph.GetRootNode()))
+    {
+        depths[graph.GetRootNode()] = 0;
+        pending.PushBack(graph.GetRootNode());
+    }
+
+    for (size_t cursor = 0; cursor < pending.Size(); ++cursor)
+    {
+        const uint32 nodeIndex = pending[cursor];
+        const AnimationGraphNode* node = graph.GetNode(nodeIndex);
+        const uint32 inputDepth = depths[nodeIndex] + 1;
+
+        if (!node || inputDepth > numNodes)
+        {
+            continue;
+        }
+
+        for (uint32 slot = 0; slot < node->NumInputs(); ++slot)
+        {
+            const uint32 input = node->GetInput(slot);
+
+            if (input < numNodes && (depths[input] == ~0u || depths[input] < inputDepth))
+            {
+                depths[input] = inputDepth;
+                pending.PushBack(input);
+            }
+        }
+    }
+
+    uint32 maxDepth = 0;
+
+    for (uint32 depth : depths)
+    {
+        if (depth != ~0u)
+        {
+            maxDepth = MathUtil::Max(maxDepth, depth);
+        }
+    }
+
+    Array<uint32> rows;
+    rows.Resize(maxDepth + 2);
+
+    for (uint32 nodeIndex = 0; nodeIndex < numNodes; ++nodeIndex)
+    {
+        Handle<AnimationGraphNode> node = graph.GetNodeObject(nodeIndex);
+
+        if (!node.IsValid())
+        {
+            continue;
+        }
+
+        uint32 depth = depths[nodeIndex];
+
+        if (depth == ~0u)
+        {
+            depth = maxDepth + 1;
+        }
+
+        node->editorPosition = Vec2f(-float(depth) * ColumnSpacing, float(rows[depth]++) * RowSpacing);
+    }
+
+    graph.MarkChanged();
+}
+
+void EditorAnimationEditState::ArrangeGraphNodes()
+{
+    if (!m_graph.IsValid())
+    {
+        return;
+    }
+
+    ArrangeNodes(*m_graph);
+
+    CommitGraphEdit("Arrange Graph");
 }
 
 void EditorAnimationEditState::SetUpGraph(const Handle<AnimationGraph>& sourceGraph)
@@ -1466,6 +1945,13 @@ void EditorAnimationEditState::SetUpGraph(const Handle<AnimationGraph>& sourceGr
     LoadGraphText(*m_graph, text);
 
     m_graphSnapshot = text;
+
+    if (HasOverlappingNodes(*m_graph))
+    {
+        ArrangeNodes(*m_graph);
+
+        m_graphSnapshot = SaveGraphText(*m_graph);
+    }
 
     m_animation.Reset();
     m_time = 0.0f;
@@ -1981,6 +2467,105 @@ void EditorAnimationEditState::RemoveGraphParameter(Name parameter)
     m_graph->RemoveParameter(parameter);
 
     CommitGraphEdit("Remove Graph Parameter");
+}
+
+uint32 EditorAnimationEditState::AddGraphClipNodeByName(Name clipName, Vec2f position)
+{
+    for (const Handle<AssetRegistry>& registry : { GetCurrentAssetRegistry(), GetEngineAssetRegistry() })
+    {
+        if (!registry.IsValid())
+        {
+            continue;
+        }
+
+        if (Handle<Animation> clip = registry->GetAsset<Animation>(AssetBuckets::Animations, clipName); clip.IsValid())
+        {
+            return AddGraphClipNode(clip, position);
+        }
+    }
+
+    return InvalidAnimationGraphNode;
+}
+
+bool EditorAnimationEditState::RenameGraphParameter(Name from, Name to)
+{
+    if (!m_graph.IsValid() || !to.IsValid() || from == to)
+    {
+        return false;
+    }
+
+    const Array<Name> names = m_graph->GetParameterNames();
+
+    if (!names.Contains(from) || names.Contains(to))
+    {
+        return false;
+    }
+
+    m_graph->RenameParameter(from, to);
+
+    CommitGraphEdit("Rename Graph Parameter");
+
+    return true;
+}
+
+void EditorAnimationEditState::SetGraphParameterDefault(Name parameter, Vec2f value)
+{
+    if (!m_graph.IsValid())
+    {
+        return;
+    }
+
+    m_graph->SetParameterDefault(parameter, value);
+
+    CommitGraphEdit("Set Graph Parameter Default");
+
+    SetPreviewParameter(parameter, value);
+}
+
+void EditorAnimationEditState::SetGraphParameterType(Name parameter, uint32 type)
+{
+    if (!m_graph.IsValid())
+    {
+        return;
+    }
+
+    m_graph->SetParameterType(parameter, AnimationGraphParameterType(MathUtil::Min(type, uint32(AnimationGraphParameterType::Vector2))));
+
+    CommitGraphEdit("Set Graph Parameter Type");
+}
+
+void EditorAnimationEditState::RenameGraphNode(uint32 nodeIndex, Name name)
+{
+    if (AnimationGraphNode* node = GetGraphNode(nodeIndex))
+    {
+        node->name = name;
+
+        CommitGraphEdit("Rename Graph Node");
+    }
+}
+
+uint32 EditorAnimationEditState::DuplicateGraphNode(uint32 nodeIndex, Vec2f offset)
+{
+    if (!m_graph.IsValid() || !GetGraphNode(nodeIndex))
+    {
+        return InvalidAnimationGraphNode;
+    }
+
+    BoxedValue copy;
+
+    if (!CloneWithoutTransientMembers(BoxedValue(m_graph->GetNodeObject(nodeIndex)), copy) || !copy.Is<Handle<AnimationGraphNode>>())
+    {
+        return InvalidAnimationGraphNode;
+    }
+
+    Handle<AnimationGraphNode> node = copy.Get<Handle<AnimationGraphNode>>();
+    node->editorPosition += offset;
+
+    const uint32 duplicateIndex = m_graph->AddNode(node);
+
+    CommitGraphEdit("Duplicate Graph Node");
+
+    return duplicateIndex;
 }
 
 AnimationGraphInstance* EditorAnimationEditState::GetPreviewGraphInstance() const

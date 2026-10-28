@@ -222,12 +222,36 @@ public:
     HYP_METHOD()
     bool EnterGraph(const Handle<AnimationGraph>& graph);
 
+    HYP_METHOD()
+    bool EnterEntityGraph(const Handle<Entity>& entity);
+
+    HYP_METHOD()
+    Handle<AnimationGraph> FindEntityGraph(const Handle<Entity>& entity) const;
+
+    HYP_METHOD()
+    Handle<Entity> FindRunningGraphEntity(const Handle<Entity>& entity) const;
+
     // the working copy the document edits; Apply writes it back to the asset
     HYP_METHOD()
     const Handle<AnimationGraph>& GetGraph() const;
 
     HYP_METHOD()
     bool IsEditingGraph() const;
+
+    HYP_METHOD()
+    bool IsGraphReadOnly() const;
+
+    HYP_METHOD()
+    bool CopyGraphToProject();
+
+    HYP_METHOD()
+    Array<Handle<Entity>> GetGraphPreviewCandidates() const;
+
+    HYP_METHOD()
+    const Handle<Entity>& GetPreviewSource() const;
+
+    HYP_METHOD()
+    bool SetGraphPreviewSource(const Handle<Entity>& entity);
 
     HYP_METHOD()
     Array<Name> GetGraphNodeClasses() const;
@@ -307,6 +331,27 @@ public:
     HYP_METHOD()
     void RemoveGraphParameter(Name parameter);
 
+    HYP_METHOD()
+    uint32 AddGraphClipNodeByName(Name clipName, Vec2f position);
+
+    HYP_METHOD()
+    bool RenameGraphParameter(Name from, Name to);
+
+    HYP_METHOD()
+    void SetGraphParameterDefault(Name parameter, Vec2f value);
+
+    HYP_METHOD()
+    void SetGraphParameterType(Name parameter, uint32 type);
+
+    HYP_METHOD()
+    void RenameGraphNode(uint32 nodeIndex, Name name);
+
+    HYP_METHOD()
+    uint32 DuplicateGraphNode(uint32 nodeIndex, Vec2f offset);
+
+    HYP_METHOD()
+    void ArrangeGraphNodes();
+
     // records whatever was written straight to the working graph (e.g. by the property panel) as one undoable edit
     HYP_METHOD()
     void CommitGraphEdit(const String& actionName);
@@ -334,6 +379,8 @@ private:
         const Handle<Animation>& animation,
         const Handle<Entity>& sourceEntity,
         const Handle<AnimationGraph>& graph = Handle<AnimationGraph>::empty);
+
+    bool EnterGraphFrom(const Handle<AnimationGraph>& graph, Node* start);
 
     void SetUpGraph(const Handle<AnimationGraph>& sourceGraph);
     void RestoreGraph(const String& text);
@@ -368,6 +415,8 @@ private:
     Handle<AnimationGraph> m_sourceGraph;
     Handle<AnimationGraph> m_graph;
     String m_graphSnapshot;
+    Handle<Entity> m_graphOwner;
+    bool m_isGraphReadOnly = false;
 
     float m_time = 0.0f;
     float m_speed = 1.0f;

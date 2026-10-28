@@ -179,4 +179,6 @@ struct CharacterModelComponent
     float rightFootOffset = 0.0f;
 };
 
+ANIMATION_API Handle<AnimationGraph> GetDefaultCharacterGraph();
+
 } // namespace Hyperion

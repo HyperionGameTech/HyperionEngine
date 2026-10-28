@@ -32,9 +32,13 @@ namespace Hyperion.Editor.Services
 
     public delegate InspectorPropertyViewModelBase? PropertyEditorFactory(IntPtr classAddress, Func<IntPtr> targetAddressResolver, Property property, bool isReadOnly, Entity ownerEntity, bool isNameType);
 
+    public delegate InspectorPropertyViewModelBase? ObjectPropertyEditorFactory(ObjectBase target, Property property, bool isReadOnly, bool isNameType);
+
     public abstract class EditorDocumentViewModel : ViewModelBase
     {
         public abstract string Id { get; }
+
+        public virtual bool DocksAtBottom => false;
 
         private string _title = string.Empty;
         public string Title
@@ -74,6 +78,7 @@ namespace Hyperion.Editor.Services
         internal readonly List<Action<IReadOnlyList<Node>>> SelectionListeners = new();
         internal readonly List<Action<bool>> SimulationListeners = new();
         internal readonly Dictionary<string, PropertyEditorFactory> PropertyEditors = new();
+        internal readonly Dictionary<string, ObjectPropertyEditorFactory> ObjectPropertyEditors = new();
         internal readonly List<(string ComponentClassName, Func<Entity, InspectorPropertyViewModelBase> Create)> ComponentInspectorItems = new();
         internal readonly List<Func<Entity, string?>> InspectorWarnings = new();
         internal readonly Dictionary<string, string> AssetIcons = new();
@@ -135,6 +140,11 @@ namespace Hyperion.Editor.Services
         public void RegisterPropertyEditor(string editorType, PropertyEditorFactory factory)
         {
             PropertyEditors[editorType] = factory;
+        }
+
+        public void RegisterObjectPropertyEditor(string editorType, ObjectPropertyEditorFactory factory)
+        {
+            ObjectPropertyEditors[editorType] = factory;
         }
 
         /// An item shown above the properties of a component of this class
@@ -316,6 +326,19 @@ namespace Hyperion.Editor.Services
             foreach (EditorPluginRegistry registry in _registries.Values)
             {
                 if (registry.PropertyEditors.TryGetValue(editorType, out PropertyEditorFactory? factory))
+                {
+                    return factory;
+                }
+            }
+
+            return null;
+        }
+
+        public ObjectPropertyEditorFactory? FindObjectPropertyEditor(string editorType)
+        {
+            foreach (EditorPluginRegistry registry in _registries.Values)
+            {
+                if (registry.ObjectPropertyEditors.TryGetValue(editorType, out ObjectPropertyEditorFactory? factory))
                 {
                     return factory;
                 }
