@@ -249,12 +249,12 @@ void PluginManager::Initialize(PluginHostMode hostMode)
 
 void PluginManager::Shutdown()
 {
-    if (!m_initialized)
+    // preloaded libraries have CVars too, with or without an initialized manager
+    // so we need to clear them anyway on shutdown.
+    if (m_initialized)
     {
-        return;
+        SetEnabledPlugins({});
     }
-
-    SetEnabledPlugins({});
 
     // the libraries stay loaded (the DynamicLibraryCache owns them), as task threads and static destructors can still run their code
 
