@@ -46,6 +46,8 @@
 
 #include <Framework/Game.hpp>
 
+#include <Plugins/PluginManager.hpp>
+
 #include <HyperionEngine.hpp>
 
 #include <ScriptSystem.generated.inl>
@@ -158,6 +160,25 @@ public:
             "SetReferenceAssembly",
             scopeDirectory,
             assemblyPath);
+    }
+
+    void SetPluginModules(Span<const Name> moduleNames)
+    {
+        if (!object || !object->IsValid())
+        {
+            return;
+        }
+
+        Array<String> moduleNameStrings;
+
+        for (Name moduleName : moduleNames)
+        {
+            moduleNameStrings.PushBack(moduleName.LookupString());
+        }
+
+        object->InvokeMethodByName<void>(
+            "SetPluginModules",
+            moduleNameStrings);
     }
 
     void RebuildModulesIn(const FilePath& directory)
@@ -660,6 +681,7 @@ void ScriptSystem::OnAddedToWorld(World* world)
                 }));
 
         m_scriptTracker = MakeUnique<ScriptTracker>();
+        m_scriptTracker->SetPluginModules(PluginManager::GetInstance().GetRuntimeModules(PluginManager::GetInstance().GetEnabledPlugins()));
 
         ApplyGameAssembly(/* rebuildOnReload */ false);
 
@@ -697,7 +719,7 @@ Array<FilePath> ScriptSystem::CollectScriptSourceDirectories() const
 
 Delegate<void> ScriptSystem::OnScriptReloaded;
 
-SharedPtr<dotnet::Assembly> ScriptSystem::LoadProjectScriptAssembly(const FilePath& contentDirectory)
+SharedPtr<dotnet::Assembly> ScriptSystem::LoadProjectScriptAssembly(const FilePath& contentDirectory, Span<const Name> pluginModules)
 {
 #ifdef HYP_DOTNET
     if (!EnableScriptReloading())
@@ -739,6 +761,7 @@ SharedPtr<dotnet::Assembly> ScriptSystem::LoadProjectScriptAssembly(const FilePa
 
     const GameAssemblyReference gameAssembly = GetGameAssemblyReference();
     scriptTracker.SetReferenceAssembly(gameAssembly.projectDirectory, gameAssembly.assemblyPath);
+    scriptTracker.SetPluginModules(pluginModules);
 
     ScriptDesc scriptDesc {};
     scriptDesc.language = ScriptLanguage::CSharp;

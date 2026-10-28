@@ -46,6 +46,8 @@ struct GameModuleBase
     FilePath modulePath;
     TResult<Time, GameModuleError> loadedTimestampOrError = Time();
 
+    Time attemptedTimestamp = Time(0);
+
     // a rebuilt module is only picked up once its timestamp has held for a poll since the build may still be writing it
     Time lastPollTime;
     Time pendingTimestamp;
@@ -72,7 +74,7 @@ struct GameModuleBase
             return *loadedTimestampOrError;
         }
 
-        return Time();
+        return Time(0);
     }
 };
 

@@ -104,9 +104,12 @@ TResult<LoadedManagedModule*> LoadLatestManagedModule(const FilePath& projectFil
 
     LoadedManagedModule* currentModule = FindGameModule(GetLoadedManagedModules(), modulePath);
 
-    if (currentModule != nullptr && timestamp <= currentModule->GetLoadedTimestamp())
+    if (currentModule != nullptr && timestamp <= currentModule->attemptedTimestamp)
     {
-        ScriptSystem::SetGameAssembly(projectFilepath.BasePath(), modulePath, /* isNewBuild */ false);
+        if (currentModule->IsLoaded())
+        {
+            ScriptSystem::SetGameAssembly(projectFilepath.BasePath(), modulePath, /* isNewBuild */ false);
+        }
 
         return currentModule;
     }
@@ -138,6 +141,7 @@ TResult<LoadedManagedModule*> LoadLatestManagedModule(const FilePath& projectFil
     loadedModule = LoadedManagedModule {};
     loadedModule.modulePath = modulePath;
     loadedModule.loadedTimestampOrError = timestamp;
+    loadedModule.attemptedTimestamp = timestamp;
 
     const String gameClassName = GetNativeProjectName(projectFilepath) + "Game";
 
@@ -358,17 +362,30 @@ EDITOR_API FilePath GetManagedModulePath(const FilePath& projectFilepath)
     return projectFilepath.BasePath() / "Binaries" / String(GetModulePlatformDirectory()) / (GetNativeProjectName(projectFilepath) + ".dll");
 }
 
-EDITOR_API Result WriteManagedProjectProps(const FilePath& projectFilepath)
+EDITOR_API Result WriteManagedProjectProps(const FilePath& projectFilepath, Span<const Name> pluginModules)
 {
     const FilePath propsPath = projectFilepath.BasePath() / "Source" / "Hyperion.Local.props";
 
     const String binDir = String(CoreApi::GetExecutablePath()).ReplaceAll("\\", "/");
     const String baseDir = String(CoreApi::GetBaseDirectory()).ReplaceAll("\\", "/");
 
+    String pluginModulesValue;
+
+    for (Name moduleName : pluginModules)
+    {
+        if (pluginModulesValue.Any())
+        {
+            pluginModulesValue += "+";
+        }
+
+        pluginModulesValue += moduleName.LookupString();
+    }
+
     const String text = String("<Project>\n  <PropertyGroup>\n")
         + "    <HyperionBinDir>" + binDir + "/</HyperionBinDir>\n"
         + "    <HyperionBaseDir>" + baseDir + "/</HyperionBaseDir>\n"
         + "    <HyperionSdkDir>" + baseDir + "/Source/Engine/DotNET/Sdk/</HyperionSdkDir>\n"
+        + "    <HyperionPluginModules>" + pluginModulesValue + "</HyperionPluginModules>\n"
         + "  </PropertyGroup>\n</Project>\n";
 
     if (propsPath.Exists())

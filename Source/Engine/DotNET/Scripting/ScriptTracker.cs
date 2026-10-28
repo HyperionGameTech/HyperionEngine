@@ -43,6 +43,8 @@ namespace Hyperion
 
         private List<ScriptReferenceAssembly> referenceAssemblies = [];
 
+        private List<string> pluginModules = [];
+
         public void Initialize(Array sourceDirectoriesArray, string intermediateDirectory, string binaryOutputDirectory, IntPtr callbackPtr, IntPtr callbackSelfPtr)
         {
             Logger.Log(logChannel, LogLevel.Info, "Initializing script tracker...");
@@ -60,6 +62,7 @@ namespace Hyperion
 
                 csharpCompiler = new CSharpScriptCompiler(sourceDirectories[0], intermediateDirectory, binaryOutputDirectory);
                 csharpCompiler.SetReferenceAssemblies(referenceAssemblies);
+                csharpCompiler.SetPluginModules(pluginModules);
                 csharpCompiler.BuildAllProjects();
 
 
@@ -81,6 +84,14 @@ namespace Hyperion
 
             csharpCompiler = new CSharpScriptCompiler(sourceDirectory, intermediateDirectory, binaryOutputDirectory);
             csharpCompiler.SetReferenceAssemblies(referenceAssemblies);
+            csharpCompiler.SetPluginModules(pluginModules);
+        }
+
+        public void SetPluginModules(Array moduleNamesArray)
+        {
+            pluginModules = moduleNamesArray.Cast<string>().ToList();
+
+            csharpCompiler?.SetPluginModules(pluginModules);
         }
 
         public void SetReferenceAssembly(string scopeDirectory, string assemblyPath)

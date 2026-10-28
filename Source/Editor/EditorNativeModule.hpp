@@ -10,6 +10,10 @@
 
 #include <Core/FileSystem/FilePath.hpp>
 
+#include <Core/Name/Name.hpp>
+
+#include <Core/Utilities/Span.hpp>
+
 #include <Core/Reflection/Handle.hpp>
 
 #include <Core/Utilities/Result.hpp>
@@ -24,8 +28,21 @@ enum class GameProjectLanguage : uint32
 {
     None = 0,
     Native,
-    Managed
+    Managed,
+
+    Max
 };
+
+inline constexpr const char* GetGameProjectLanguageName(GameProjectLanguage language)
+{
+    constexpr const char* Names[uint32(GameProjectLanguage::Max)] = {
+        "",
+        "C++",
+        "C#"
+    };
+
+    return Names[uint32(language)];
+}
 
 EDITOR_API String GetNativeProjectName(const FilePath& projectFilepath);
 
@@ -54,7 +71,7 @@ EDITOR_API bool IsManagedProject(const FilePath& projectFilepath);
 
 EDITOR_API FilePath GetManagedModulePath(const FilePath& projectFilepath);
 
-EDITOR_API Result WriteManagedProjectProps(const FilePath& projectFilepath);
+EDITOR_API Result WriteManagedProjectProps(const FilePath& projectFilepath, Span<const Name> pluginModules);
 
 EDITOR_API TResult<Handle<Game>> CreateGameFromManagedModule(const FilePath& projectFilepath);
 
@@ -62,7 +79,7 @@ EDITOR_API GameProjectLanguage GetGameProjectLanguage(const FilePath& projectFil
 
 EDITOR_API bool IsGameProjectUnmodified(const FilePath& projectFilepath);
 
-EDITOR_API Result GenerateGameProjectFiles(const FilePath& projectFilepath, GameProjectLanguage language);
+EDITOR_API Result GenerateGameProjectFiles(const FilePath& projectFilepath, GameProjectLanguage language, Span<const Name> pluginModules);
 
 EDITOR_API Result RemoveGameProjectFiles(const FilePath& projectFilepath);
 

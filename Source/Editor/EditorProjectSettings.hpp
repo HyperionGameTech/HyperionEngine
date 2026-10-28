@@ -104,13 +104,8 @@ public:
     HYP_FIELD(Property = "PlatformSettings", Serialize)
     EditorPlatformSettings platformSettings;
 
-    HYP_FIELD(Property = "EnabledPlugins", Serialize)
-    Array<Name> enabledPlugins;
-
-    HYP_FIELD(Property = "DisabledPlugins", Serialize)
-    Array<Name> disabledPlugins;
-
-    Array<Name> ResolveEnabledPlugins() const;
+    HYP_FIELD(Property = "Plugins", Serialize)
+    Array<Name> plugins;
 };
 
 EDITOR_API String ResolveModuleName(const String& moduleName, const String& gameTitle, const FilePath& projectFilepath);

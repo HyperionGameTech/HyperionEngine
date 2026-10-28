@@ -812,7 +812,7 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
 
     if (IsManagedProject(projectFilepath))
     {
-        if (Result propsResult = WriteManagedProjectProps(projectFilepath); propsResult.HasError())
+        if (Result propsResult = WriteManagedProjectProps(projectFilepath, project->GetEnabledPluginRuntimeModules()); propsResult.HasError())
         {
             HYP_LOG(Editor, Warning,
                 "Could not point {} at this editor: {}",
@@ -882,7 +882,7 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
     g_editorState->ReportProjectLoadStage(ProjectLoadStage::LoadScripts);
 
     // C# classes the scenes may contain (e.g Entity subclasses) must exist before any world is read
-    project->m_scriptAssembly = ScriptSystem::LoadProjectScriptAssembly(registryDir);
+    project->m_scriptAssembly = ScriptSystem::LoadProjectScriptAssembly(registryDir, project->GetEnabledPluginRuntimeModules());
 
     g_editorState->ReportProjectLoadStage(ProjectLoadStage::LoadAssetFolders);
 
@@ -925,7 +925,7 @@ Array<Name> EditorProject::GetEnabledPlugins() const
         return PluginManager::GetInstance().GetDefaultEnabledPlugins();
     }
 
-    return m_projectSettings->ResolveEnabledPlugins();
+    return m_projectSettings->plugins;
 }
 
 Array<Name> EditorProject::GetEnabledPluginRuntimeModules() const
@@ -995,18 +995,11 @@ void EditorProject::SetPluginEnabled(Name pluginName, bool enabled)
         return;
     }
 
-    const bool enabledByDefault = PluginManager::GetInstance().GetDefaultEnabledPlugins().Contains(pluginName);
+    m_projectSettings->plugins.Erase(pluginName);
 
-    m_projectSettings->enabledPlugins.Erase(pluginName);
-    m_projectSettings->disabledPlugins.Erase(pluginName);
-
-    if (enabled && !enabledByDefault)
+    if (enabled)
     {
-        m_projectSettings->enabledPlugins.PushBack(pluginName);
-    }
-    else if (!enabled && enabledByDefault)
-    {
-        m_projectSettings->disabledPlugins.PushBack(pluginName);
+        m_projectSettings->plugins.PushBack(pluginName);
     }
 }
 
@@ -1050,6 +1043,7 @@ Handle<EditorProject> EditorProject::CreateNew()
     Handle<EditorProject> project = MakeHandle<EditorProject>(projectName, gameInstance);
     project->m_tempDirectory = tempDirOpt.GetOr(FilePath());
     project->m_contentSubfolder = g_defaultProjectContentSubfolder;
+    project->m_projectSettings->plugins = PluginManager::GetInstance().GetDefaultEnabledPlugins();
     project->m_assetFolders->BindRegistry(registry);
     project->SetEditWorld(world);
 

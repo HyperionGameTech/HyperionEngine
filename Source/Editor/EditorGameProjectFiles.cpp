@@ -280,7 +280,10 @@ EDITOR_API bool IsGameProjectUnmodified(const FilePath& projectFilepath)
     return true;
 }
 
-EDITOR_API Result GenerateGameProjectFiles(const FilePath& projectFilepath, GameProjectLanguage language)
+EDITOR_API Result GenerateGameProjectFiles(
+    const FilePath& projectFilepath,
+    GameProjectLanguage language,
+    Span<const Name> pluginModules)
 {
     if (language == GameProjectLanguage::None)
     {
@@ -313,7 +316,7 @@ EDITOR_API Result GenerateGameProjectFiles(const FilePath& projectFilepath, Game
 
     if (language == GameProjectLanguage::Managed)
     {
-        return WriteManagedProjectProps(projectFilepath);
+        return WriteManagedProjectProps(projectFilepath, pluginModules);
     }
 
     return {};

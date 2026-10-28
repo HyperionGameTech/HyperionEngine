@@ -297,7 +297,15 @@ HYP_EXPORT int EditorTestHost_CreateProject(const char* projectFilepath, int isM
         return 0;
     }
 
-    if (Result generateResult = GenerateGameProjectFiles(project->GetFilePath(), isManaged ? GameProjectLanguage::Managed : GameProjectLanguage::Native); generateResult.HasError())
+    const GameProjectLanguage projectLanguage = isManaged
+        ? GameProjectLanguage::Managed  // C#
+        : GameProjectLanguage::Native;  // C++
+
+    if (Result generateResult = GenerateGameProjectFiles(
+            project->GetFilePath(),
+            projectLanguage,
+            project->GetEnabledPluginRuntimeModules());
+        generateResult.HasError())
     {
         HYP_LOG(Editor, Error, "Failed to generate the game project for {}: {}", projectFilepath, generateResult.GetError().GetMessage());
 

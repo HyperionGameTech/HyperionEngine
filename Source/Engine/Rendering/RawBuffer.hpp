@@ -156,6 +156,19 @@ public:
         return reinterpret_cast<T*>(GetWriteDataPtr() + offset);
     }
 
+    template <typename T>
+    HYP_FORCE_INLINE T* GetWritePtr(size_t elementIndex, size_t count)
+    {
+        const size_t offset = elementIndex * elementSize;
+        const size_t size = count * elementSize;
+
+        Assert(offset + size <= TotalSizeBytes());
+
+        MarkDirty(offset, size);
+
+        return reinterpret_cast<T*>(GetWriteDataPtr() + offset);
+    }
+
     void Initialize();
     void Shutdown();
 

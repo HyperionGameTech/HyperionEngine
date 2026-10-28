@@ -77,6 +77,8 @@ public:
 
     void Create();
 
+    void ReserveInstances(size_t count);
+
     void PushDrawCall(size_t drawCallIndex, const DrawCallStorage& drawCalls, DrawCommandData& out);
     void PushInstancedDrawCall(size_t drawCallIndex, const InstancedDrawCallStorage& drawCalls, DrawCommandData& out);
 
@@ -89,8 +91,12 @@ private:
 
     FixedArray<GpuBufferRef, NumFramesInFlight> m_indirectBuffers;
 
+    ObjectInstance& NextInstance();
+
     StructuredBuffer m_instances;
+    ObjectInstance* m_instanceData;
     size_t m_instanceOffset;
+    size_t m_numReservedInstances;
 
     uint32 m_numDrawCommands;
     uint8 m_dirtyBits;

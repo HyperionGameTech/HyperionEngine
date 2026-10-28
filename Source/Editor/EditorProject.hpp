@@ -132,11 +132,9 @@ public:
     HYP_METHOD()
     Array<Name> GetPluginDependencies(Name pluginName) const;
 
-    // whether the plugin's libraries are loaded in this editor session; unloading them takes a restart
     HYP_METHOD()
     bool ArePluginLibrariesLoaded(Name pluginName) const;
 
-    // records the choice in the project settings, relative to the plugins enabled by default; takes effect when the project opens again
     HYP_METHOD()
     void SetPluginEnabled(Name pluginName, bool enabled);
 

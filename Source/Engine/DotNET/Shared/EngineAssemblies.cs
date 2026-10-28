@@ -18,14 +18,5 @@ namespace Hyperion
         {
             return assemblyName + ".dll";
         }
-
-        public static string[] FindPluginAssemblies(string directory)
-        {
-            return Directory.Exists(directory)
-                ? Array.FindAll(
-                    Directory.GetFiles(directory, FileName(PluginPrefix + "*")),
-                    path => !path.EndsWith(FileName("Editor"), StringComparison.Ordinal))
-                : Array.Empty<string>();
-        }
     }
 }

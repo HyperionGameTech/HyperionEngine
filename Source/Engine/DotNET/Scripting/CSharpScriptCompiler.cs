@@ -18,6 +18,8 @@ namespace Hyperion
 
         private List<ScriptReferenceAssembly> referenceAssemblies = [];
 
+        private List<string> pluginModules = [];
+
         public CSharpScriptCompiler(string sourceDirectory, string intermediateDirectory, string binaryOutputDirectory)
             : base(sourceDirectory, intermediateDirectory, binaryOutputDirectory)
         {
@@ -26,6 +28,18 @@ namespace Hyperion
         public void SetReferenceAssemblies(IEnumerable<ScriptReferenceAssembly> references)
         {
             referenceAssemblies = references.ToList();
+        }
+
+        public void SetPluginModules(IEnumerable<string> moduleNames)
+        {
+            pluginModules = moduleNames.ToList();
+        }
+
+        private IEnumerable<string> GetPluginAssemblyPaths(string dependenciesDirectory)
+        {
+            return pluginModules
+                .Select(moduleName => Path.Combine(dependenciesDirectory, EngineAssemblies.FileName(EngineAssemblies.PluginPrefix + moduleName)))
+                .Where(File.Exists);
         }
 
         private IEnumerable<string> GetReferenceAssemblyPaths(string scriptDirectory)
@@ -89,6 +103,14 @@ namespace Hyperion
 
         private bool DetectNeedsRebuild(string scriptDirectory, string moduleName)
         {
+            // e.g the plugins changed, and with them the references
+            string projectFilePath = GetProjectFilePath(moduleName, GetProjectOutputDirectory(moduleName));
+
+            if (File.Exists(projectFilePath) && File.ReadAllText(projectFilePath) != BuildCSharpProjectContent(scriptDirectory, moduleName))
+            {
+                return true;
+            }
+
             // Get the max updated timestamp of all the files in the directory
 
             string[] files = Directory.GetFiles(scriptDirectory, "*.cs", SearchOption.AllDirectories);
@@ -120,7 +142,7 @@ namespace Hyperion
                     }
                 }
 
-                foreach (string pluginAssemblyPath in EngineAssemblies.FindPluginAssemblies(dependenciesDirectory))
+                foreach (string pluginAssemblyPath in GetPluginAssemblyPaths(dependenciesDirectory))
                 {
                     maxTimestamp = Math.Max(maxTimestamp, File.GetLastWriteTime(pluginAssemblyPath).ToFileTime());
                 }
@@ -338,12 +360,35 @@ namespace Hyperion
 
         private bool GenerateCSharpProjectFile(string projectFilePath, string scriptDirectory, string moduleName)
         {
+            string? projectContent = BuildCSharpProjectContent(scriptDirectory, moduleName);
+
+            if (projectContent == null)
+            {
+                return false;
+            }
+
+            try
+            {
+                File.WriteAllText(projectFilePath, projectContent);
+            }
+            catch (Exception e)
+            {
+                Logger.Log(logChannel, LogLevel.Error, "Failed to write project file: {0}", e.Message);
+
+                return false;
+            }
+
+            return true;
+        }
+
+        private string? BuildCSharpProjectContent(string scriptDirectory, string moduleName)
+        {
             string? dependenciesDirectory = GetDependenciesDirectory();
             if (dependenciesDirectory == null)
             {
                 Logger.Log(logChannel, LogLevel.Error, "Failed to get dependencies directory!");
 
-                return false;
+                return null;
             }
 
             string generatorPath = Path.Combine(dependenciesDirectory, EngineAssemblies.FileName(EngineAssemblies.Generators));
@@ -351,8 +396,7 @@ namespace Hyperion
                 ? $"<Analyzer Include=\"{EscapePath(generatorPath)}\" />\n"
                 : string.Empty;
 
-            // scripts run in the editor or a development build, which link every built-in plugin
-            string referenceItems = string.Join("", EngineAssemblies.FindPluginAssemblies(dependenciesDirectory).Concat(GetReferenceAssemblyPaths(scriptDirectory)).Select(referenceAssemblyPath =>
+            string referenceItems = string.Join("", GetPluginAssemblyPaths(dependenciesDirectory).Concat(GetReferenceAssemblyPaths(scriptDirectory)).Select(referenceAssemblyPath =>
                 $"<Reference Include=\"{Path.GetFileNameWithoutExtension(referenceAssemblyPath)}\">\n"
                     + $"<HintPath>{EscapePath(Path.GetFullPath(referenceAssemblyPath))}</HintPath>\n"
                     + "<Private>false</Private>\n"
@@ -393,18 +437,7 @@ namespace Hyperion
                     + "</ItemGroup>\n"
                 + "</Project>\n";
 
-            try
-            {
-                File.WriteAllText(projectFilePath, projectContent);
-            }
-            catch (Exception e)
-            {
-                Logger.Log(logChannel, LogLevel.Error, "Failed to write project file: {0}", e.Message);
-
-                return false;
-            }
-
-            return true;
+            return projectContent;
         }
 
         private bool RunDotNetCLI(string projectOutputDirectory, out int hotReloadVersion)
@@ -442,10 +475,20 @@ namespace Hyperion
 #if !HYP_MACOS
             process.OutputDataReceived += (object sendingProcess, DataReceivedEventArgs eventArgs) =>
             {
+                if (eventArgs.Data == null)
+                {
+                    return;
+                }
+
                 Logger.Log(logChannel, LogLevel.Info, "{0}", eventArgs.Data);
             };
             process.ErrorDataReceived += (object sendingProcess, DataReceivedEventArgs eventArgs) =>
             {
+                if (eventArgs.Data == null)
+                {
+                    return;
+                }
+
                 Logger.Log(logChannel, LogLevel.Error, "{0}", eventArgs.Data);
             };
 #endif

@@ -43,20 +43,16 @@
   </ItemGroup>
 
   <Target Name="HyperionAddPluginReferences" BeforeTargets="ResolveAssemblyReferences" Condition="'$(HyperionReferencePlugins)' == 'true'">
-    <ItemGroup Condition="'$(HyperionStaticEngine)' != 'true' And '$(HyperionWebBuild)' != 'true'">
-      <_HyperionPluginAssembly Include="$(HyperionManagedDir)Hyperion.Plugin.*.dll" Exclude="$(HyperionManagedDir)Hyperion.Plugin.*Editor.dll" />
-    </ItemGroup>
-
-    <ItemGroup Condition="'$(HyperionStaticEngine)' == 'true' Or '$(HyperionWebBuild)' == 'true'">
-      <_HyperionPluginModule Include="$(HyperionPluginModules.Replace('+', ';').Replace(',', ';'))" />
+    <ItemGroup>
+      <_HyperionPluginModule Include="$([MSBuild]::Unescape($(HyperionPluginModules.Replace('+', ';').Replace(',', ';'))))" />
       <_HyperionPluginAssembly Include="@(_HyperionPluginModule->'$(HyperionManagedDir)Hyperion.Plugin.%(Identity).dll')" />
       <_HyperionPluginAssembly Remove="@(_HyperionPluginAssembly)" Condition="!Exists('%(FullPath)')" />
 
-      <DirectPInvoke Include="@(_HyperionPluginModule->'hyperion-plugin-%(Identity)')" />
+      <Reference Include="@(_HyperionPluginAssembly)" />
     </ItemGroup>
 
-    <ItemGroup>
-      <Reference Include="@(_HyperionPluginAssembly)" />
+    <ItemGroup Condition="'$(HyperionStaticEngine)' == 'true' Or '$(HyperionWebBuild)' == 'true'">
+      <DirectPInvoke Include="@(_HyperionPluginModule->'hyperion-plugin-%(Identity)')" />
     </ItemGroup>
   </Target>
 

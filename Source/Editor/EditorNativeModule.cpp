@@ -655,10 +655,11 @@ TResult<LoadedNativeModule*> LoadLatestModule(const FilePath& modulePath, const 
 
     // reloaded in place, so pointers to it stay valid
     LoadedNativeModule& loadedModule = *currentModule;
-    loadedModule = LoadedNativeModule {};
+    loadedModule = {};
     loadedModule.modulePath = modulePath;
     loadedModule.image.copyPath = copyResult.GetValue();
     loadedModule.loadedTimestampOrError = timestamp;
+    loadedModule.attemptedTimestamp = timestamp;
 
     LoadModuleCopy(loadedModule);
 

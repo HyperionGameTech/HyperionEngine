@@ -119,9 +119,13 @@ bool PollModuleRebuilt(GameModuleBase& module)
 
     module.lastPollTime = now;
 
-    const Time timestamp = module.modulePath.Exists() ? module.modulePath.LastModifiedTimestamp() : Time();
+    Time timestamp = Time(0);
+    if (module.modulePath.Exists())
+    {
+        module.modulePath.LastModifiedTimestamp();
+    }
 
-    if (timestamp <= module.GetLoadedTimestamp())
+    if (timestamp <= module.attemptedTimestamp)
     {
         return false;
     }

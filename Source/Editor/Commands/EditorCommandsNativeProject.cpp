@@ -38,9 +38,12 @@ ENGINE_API extern bool OpenInFileBrowser(const FilePath& path);
 
 namespace /* Helpers */ {
 
-void GenerateGameProject(EditorSubsystem* subsystem, GameProjectLanguage language, bool openFolder)
+void GenerateGameProject(
+    EditorSubsystem* subsystem,
+    GameProjectLanguage projectLanguage,
+    bool openFolder)
 {
-    const char* languageName = language == GameProjectLanguage::Managed ? "C#" : "C++";
+    const char* languageNameStr = GetGameProjectLanguageName(projectLanguage);
 
     const Handle<EditorProject>& currentProject = subsystem->GetCurrentProject();
 
@@ -55,7 +58,7 @@ void GenerateGameProject(EditorSubsystem* subsystem, GameProjectLanguage languag
 
         SystemMessageBox(MessageBoxType::INFO)
             .Title("Save project?")
-            .Text(HYP_FORMAT("The project must be saved before generating the {} project, do you want to save?", languageName))
+            .Text(HYP_FORMAT("The project must be saved before generating the {} project, do you want to save?", languageNameStr))
             .Button("Save", [&shouldSave]
                     {
                         shouldSave = true;
@@ -74,7 +77,8 @@ void GenerateGameProject(EditorSubsystem* subsystem, GameProjectLanguage languag
 
     const GameProjectLanguage currentLanguage = GetGameProjectLanguage(projectFilepath);
 
-    if (currentLanguage != GameProjectLanguage::None && (currentLanguage == language || !IsGameProjectUnmodified(projectFilepath)))
+    if (currentLanguage != GameProjectLanguage::None
+        && (currentLanguage == projectLanguage || !IsGameProjectUnmodified(projectFilepath)))
     {
         PlatformUtils::OpenInFileBrowser(sourceDir);
 
@@ -103,15 +107,18 @@ void GenerateGameProject(EditorSubsystem* subsystem, GameProjectLanguage languag
 
     if (!result.HasError())
     {
-        result = GenerateGameProjectFiles(projectFilepath, language);
+        result = GenerateGameProjectFiles(
+            projectFilepath,
+            projectLanguage,
+            currentProject->GetEnabledPluginRuntimeModules());
     }
 
     if (result.HasError())
     {
-        HYP_LOG(Editor, Error, "Failed to generate {} project! {}", languageName, result.GetError().GetMessage());
+        HYP_LOG(Editor, Error, "Failed to generate {} project! {}", languageNameStr, result.GetError().GetMessage());
 
         SystemMessageBox(MessageBoxType::CRITICAL)
-            .Title(HYP_FORMAT("Failed to generate {} project!", languageName))
+            .Title(HYP_FORMAT("Failed to generate {} project!", languageNameStr))
             .Text(result.GetError().GetMessage())
             .Button("OK", NoOpFunction<void> {})
             .Show();
@@ -119,7 +126,7 @@ void GenerateGameProject(EditorSubsystem* subsystem, GameProjectLanguage languag
         return;
     }
 
-    HYP_LOG(Editor, Info, "Generated {} project for '{}' at {}", languageName, moduleName, sourceDir);
+    HYP_LOG(Editor, Info, "Generated {} project for '{}' at {}", languageNameStr, moduleName, sourceDir);
 
     if (openFolder)
     {
@@ -143,7 +150,10 @@ public:
 
     virtual void Execute(EditorSubsystem* subsystem) override
     {
-        GenerateGameProject(subsystem, GameProjectLanguage::Native, !(GetArguments().Any() && GetArgument(0) == "--no-open"));
+        GenerateGameProject(
+            subsystem,
+            GameProjectLanguage::Native,
+            !(GetArguments().Any() && GetArgument(0) == "--no-open"));
     }
 };
 
@@ -195,7 +205,7 @@ public:
 
         if (currentProject.IsValid() && currentProject->IsSaved() && IsManagedProject(currentProject->GetFilePath()))
         {
-            if (Result result = WriteManagedProjectProps(currentProject->GetFilePath()); result.HasError())
+            if (Result result = WriteManagedProjectProps(currentProject->GetFilePath(), currentProject->GetEnabledPluginRuntimeModules()); result.HasError())
             {
                 HYP_LOG(Editor, Error, "{}", result.GetError().GetMessage());
             }

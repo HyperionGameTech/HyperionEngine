@@ -29,6 +29,7 @@ file(APPEND ${SAMPLE_CSPROJ_PATH} "    <AssemblyName>CSharpGame</AssemblyName>\n
 file(APPEND ${SAMPLE_CSPROJ_PATH} "    <RootNamespace>Hyperion.Samples</RootNamespace>\n")
 file(APPEND ${SAMPLE_CSPROJ_PATH} "    <HyperionBinDir>${CMAKE_RUNTIME_OUTPUT_DIRECTORY}</HyperionBinDir>\n")
 file(APPEND ${SAMPLE_CSPROJ_PATH} "    <HyperionOutputToBinDir>true</HyperionOutputToBinDir>\n")
+file(APPEND ${SAMPLE_CSPROJ_PATH} "    <HyperionPluginModules>Animation</HyperionPluginModules>\n")
 if(CSHARP_CONSTANTS)
   file(APPEND ${SAMPLE_CSPROJ_PATH} "    <DefineConstants>${CSHARP_CONSTANTS}</DefineConstants>\n")
 endif()
