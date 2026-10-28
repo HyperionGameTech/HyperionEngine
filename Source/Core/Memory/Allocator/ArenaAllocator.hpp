@@ -180,7 +180,8 @@ void* TArena<AllocatorType>::Allocate(size_t size, size_t alignment)
         size_t padding = alignedAddress - currentAddress;
         size_t totalSize = size + padding;
 
-        if (block->offset + totalSize <= m_blockSize)
+        // blocks created for oversized requests are larger than m_blockSize, so use the block's own capacity
+        if (block->offset + totalSize <= block->allocation.capacity)
         {
             block->offset += totalSize;
 
@@ -202,7 +203,10 @@ void* TArena<AllocatorType>::Allocate(size_t size, size_t alignment)
             newBlock->offset = 0;
             newBlock->next = nullptr;
             newBlock->allocation.SetToInitialState();
-            newBlock->allocation.Allocate(m_pAllocator, m_blockSize, chunkAllocationAlignment);
+
+            // a request larger than the block size gets a dedicated block that is big enough (worst case padding = alignment - 1)
+            const size_t newBlockSize = (size + alignment > m_blockSize) ? (size + alignment) : m_blockSize;
+            newBlock->allocation.Allocate(m_pAllocator, newBlockSize, chunkAllocationAlignment);
 
             block->next = newBlock;
 
