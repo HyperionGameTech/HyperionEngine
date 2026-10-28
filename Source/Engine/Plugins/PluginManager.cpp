@@ -14,6 +14,8 @@
 
 #include <Core/DLL/DynamicLibrary.hpp>
 
+#include <Framework/CVarManager.hpp>
+
 #include <Core/Reflection/ClassRegistry.hpp>
 
 #include <Scene/ComponentInterface.hpp>
@@ -256,6 +258,37 @@ void PluginManager::Shutdown()
 
     // the libraries stay loaded (the DynamicLibraryCache owns them), as task threads and static destructors can still run their code
 
+    // but the cache closes them during static destruction, before the CVarManager is destroyed, so their
+    // static CVars must be dropped now or ~CVarManager reads CVars in unmapped images
+    for (const Name pluginName : m_pluginsWithLibrariesLoaded)
+    {
+        const PluginDescriptor* descriptor = FindPlugin(pluginName);
+
+        if (descriptor == nullptr)
+        {
+            continue;
+        }
+
+        for (const FilePath& moduleLibrary : descriptor->moduleLibraries)
+        {
+            // skipped on load, so not loaded now
+            if (m_hostMode != PluginHostMode::Editor && GetPluginModuleNameOfLibrary(moduleLibrary).EndsWith("Editor"))
+            {
+                continue;
+            }
+
+            DynamicLibrary* library =DynamicLibraryCache::GetInstance().LoadLibrary(PlatformString(String(moduleLibrary)));
+
+            UIntPtr imageBegin = 0;
+            UIntPtr imageEnd = 0;
+
+            if (library != nullptr && library->GetImageRange(imageBegin, imageEnd))
+            {
+                CVarManager::GetInstance().UnregisterVarsInRange(imageBegin, imageEnd);
+            }
+        }
+    }
+
     m_initialized = false;
 }
 
@@ -467,9 +500,10 @@ void PluginManager::LoadAllPluginLibraries()
 
 void PluginManager::PreloadPlugins(Span<const Name> pluginNames)
 {
-    if (!m_initialized)
+    // a process that never initializes the manager (the cook) still needs the plugins' classes
+    if (m_plugins.Empty())
     {
-        return;
+        DiscoverPlugins();
     }
 
     Array<Name> orderedPlugins;

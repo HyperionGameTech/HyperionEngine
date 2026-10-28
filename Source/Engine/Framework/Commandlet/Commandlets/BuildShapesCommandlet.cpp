@@ -123,7 +123,8 @@ static void BuildThirdPersonCharacter(Handle<AssetRegistry>& outputRegistry, con
             continue;
         }
 
-        if (const MeshComponent* meshComponent = static_cast<Entity*>(descendant)->TryGetComponent<MeshComponent>(); meshComponent && meshComponent->mesh)
+        if (const MeshComponent* meshComponent = Cast<Entity>(descendant)->TryGetComponent<MeshComponent>();
+                meshComponent && meshComponent->mesh)
         {
             modelBounds = modelBounds.Union(meshComponent->mesh->GetAABB());
         }

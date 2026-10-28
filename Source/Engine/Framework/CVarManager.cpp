@@ -20,10 +20,12 @@ namespace Hyperion {
 
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(Engine);
 
-static AtomicVar<int> s_nextCVarId = 0;
-static CVarManager* s_pInstance = nullptr;
-
 extern uint32 GetFrameCounter();
+
+namespace {
+AtomicVar<int> g_nextCVarId = 0;
+CVarManager* g_pInstance = nullptr;
+} // namespace
 
 #pragma region CVar
 
@@ -291,7 +293,7 @@ static void InitCVar(CVarManager* manager, CVarBase* cvar, const ANSIStringView&
     cvar->name = Name(path);
     cvar->id = -1;
 
-    const int numVars = s_nextCVarId.Get(MemoryOrder::ACQUIRE);
+    const int numVars = g_nextCVarId.Get(MemoryOrder::ACQUIRE);
 
     for (int i = 0; i < numVars && i < int(MaxCVars); i++)
     {
@@ -306,7 +308,7 @@ static void InitCVar(CVarManager* manager, CVarBase* cvar, const ANSIStringView&
 
     if (cvar->id < 0)
     {
-        cvar->id = s_nextCVarId.Increment(1, MemoryOrder::ACQUIRE_RELEASE);
+        cvar->id = g_nextCVarId.Increment(1, MemoryOrder::ACQUIRE_RELEASE);
     }
 
     Assert(cvar->id < MaxCVars);
@@ -331,7 +333,7 @@ CVarBase::CVarBase(const ANSIStringView& path, const ANSIStringView& configPath)
     : id(-1),
       isHeapAllocated(false)
 {
-    InitCVar(s_pInstance, this, path, configPath);
+    InitCVar(g_pInstance, this, path, configPath);
 }
 
 #pragma endregion CVarBase
@@ -346,7 +348,7 @@ CVarManager& CVarManager::GetInstance()
 
 CVarManager::CVarManager()
 {
-    s_pInstance = this;
+    g_pInstance = this;
 
     cvars.Resize(MaxCVars);
     cvarToConfigPath.Resize(MaxCVars);
@@ -385,12 +387,12 @@ CVarManager::~CVarManager()
         }
     }
 
-    s_pInstance = nullptr;
+    g_pInstance = nullptr;
 }
 
 void CVarManager::InitFromConfig(const ConfigBase& config)
 {
-    const int numVars = s_nextCVarId.Get(MemoryOrder::ACQUIRE);
+    const int numVars = g_nextCVarId.Get(MemoryOrder::ACQUIRE);
 
     for (int i = 0; i < numVars; i++)
     {
@@ -476,7 +478,7 @@ void CVarManager::Publish(uint8 ringIndex)
 
     CVarSnapshot& next = m_snapshots[nextIdx];
 
-    const int numVars = s_nextCVarId.Get(MemoryOrder::ACQUIRE);
+    const int numVars = g_nextCVarId.Get(MemoryOrder::ACQUIRE);
 
     for (int i = 0; i < numVars; i++)
     {
@@ -492,7 +494,7 @@ void CVarManager::Publish(uint8 ringIndex)
 
 void CVarManager::UnregisterVarsInRange(UIntPtr begin, UIntPtr end)
 {
-    const int numVars = s_nextCVarId.Get(MemoryOrder::ACQUIRE);
+    const int numVars = g_nextCVarId.Get(MemoryOrder::ACQUIRE);
 
     for (int i = 0; i < numVars && i < int(MaxCVars); i++)
     {

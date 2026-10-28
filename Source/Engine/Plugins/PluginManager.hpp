@@ -76,7 +76,8 @@ public:
 
     void SetEnabledPlugins(Span<const Name> pluginNames);
 
-    /// loads the libraries and C# of these plugins and their dependencies without starting their modules
+    /// loads the libraries and C# of these plugins and their dependencies without starting their modules,
+    /// discovering the plugins first when the manager hasn't been initialized
     void PreloadPlugins(Span<const Name> pluginNames);
 
     bool ArePluginLibrariesLoaded(Name pluginName) const;

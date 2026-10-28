@@ -110,17 +110,29 @@ protected:
         for (const String& platform : platforms)
         {
             if (platform == "windows")
+            {
                 platformFlags |= ShaderCompileTargetPlatform::Windows;
+            }
             else if (platform == "mac")
+            {
                 platformFlags |= ShaderCompileTargetPlatform::Mac;
+            }
             else if (platform == "linux")
+            {
                 platformFlags |= ShaderCompileTargetPlatform::Linux;
+            }
             else if (platform == "android")
+            {
                 platformFlags |= ShaderCompileTargetPlatform::Android;
+            }
             else if (platform == "ios")
+            {
                 platformFlags |= ShaderCompileTargetPlatform::IOS;
+            }
             else if (platform == "web")
+            {
                 platformFlags |= ShaderCompileTargetPlatform::Web;
+            }
         }
 
         if (platformFlags != ShaderCompileTargetPlatform::None)
@@ -139,11 +151,17 @@ protected:
         for (const String& backend : backends)
         {
             if (backend == "vulkan")
+            {
                 backendFlags |= ShaderCompileTargetBackend::Vulkan;
+            }
             else if (backend == "dx12")
+            {
                 backendFlags |= ShaderCompileTargetBackend::DX12;
+            }
             else if (backend == "webgpu")
+            {
                 backendFlags |= ShaderCompileTargetBackend::WebGPU;
+            }
         }
 
         if (backendFlags != ShaderCompileTargetBackend::None)

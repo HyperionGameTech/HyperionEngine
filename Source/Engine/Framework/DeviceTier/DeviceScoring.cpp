@@ -12,18 +12,81 @@
 
 namespace Hyperion {
 
-static constexpr uint64 BytesPerGiB = 1024ull * 1024ull * 1024ull;
+namespace {
 
-/// Apple silicon Pro/Max/Whatever gets a bump
-static bool IsAppleProGpu(const GpuInfo& gpu)
+constexpr uint64 BytesPerGiB = 1024ull * 1024ull * 1024ull;
+
+bool ParseAppleSiliconModel(
+    const String& gpuModel,
+    uint32& outGeneration,
+    uint32& outVariantOffset)
 {
-    if (!gpu.gpuModel.StartsWith("Apple M"))
+    constexpr char Prefix[] = "Apple M";
+    constexpr size_t PrefixLength = sizeof(Prefix) - 1;
+
+    if (!gpuModel.StartsWith(Prefix))
     {
         return false;
     }
 
-    return gpu.gpuModel.Contains(" Pro") || gpu.gpuModel.Contains(" Max") || gpu.gpuModel.Contains(" Ultra");
+    const char* data = gpuModel.Data();
+    const size_t size = gpuModel.Size();
+
+    size_t index = PrefixLength;
+    uint32 generation = 0;
+
+    while (index < size && data[index] >= '0' && data[index] <= '9')
+    {
+        generation = generation * 10 + uint32(data[index] - '0');
+        index++;
+    }
+
+    if (generation == 0)
+    {
+        return false;
+    }
+
+    outGeneration = generation;
+
+    // Pro / Max / Ultra roughly double the GPU cores each step over the base chip
+    if (gpuModel.Contains(" Ultra"))
+    {
+        outVariantOffset = 36;
+    }
+    else if (gpuModel.Contains(" Max"))
+    {
+        outVariantOffset = 20;
+    }
+    else if (gpuModel.Contains(" Pro"))
+    {
+        outVariantOffset = 12;
+    }
+    else
+    {
+        outVariantOffset = 0;
+    }
+
+    return true;
 }
+
+float ComputeAppleBaseScore(const GpuInfo& gpu)
+{
+    uint32 generation = 0;
+    uint32 variantOffset = 0;
+
+    if (!ParseAppleSiliconModel(gpu.gpuModel, generation, variantOffset))
+    {
+        // A-series ?
+        return 25.0f;
+    }
+
+    // Bump all past M1
+    const uint32 generationOffset = generation <= 1 ? 0 : MathUtil::Min(6 + 2 * (generation - 2), 20u);
+
+    return 34.0f + float(generationOffset) + float(variantOffset);
+}
+
+} // namespace
 
 int ComputeDeviceGradeScore(const DeviceFacts& facts)
 {
@@ -39,7 +102,7 @@ int ComputeDeviceGradeScore(const DeviceFacts& facts)
     if (facts.gpu.gpuVendor == GpuVendor::Apple)
     {
         // unified memory, so the VRAM term is capped like an integrated GPU
-        score = (IsAppleProGpu(facts.gpu) ? 45.0f : 25.0f) + MathUtil::Min(vramGiB, 4.0f);
+        score = ComputeAppleBaseScore(facts.gpu) + MathUtil::Min(vramGiB, 4.0f);
     }
     else if (facts.gpu.isDiscrete)
     {

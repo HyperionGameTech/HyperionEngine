@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Runtime.Versioning;
 
 namespace Hyperion.Editor.Services
@@ -15,6 +17,15 @@ namespace Hyperion.Editor.Services
         private static readonly string[] s_dotNetInstallDirectories = { "/usr/local/share/dotnet", "/opt/homebrew/share/dotnet" };
 
         protected override IReadOnlyList<string> DotNetInstallDirectories => s_dotNetInstallDirectories;
+
+        private static readonly string[] s_extraToolDirectories =
+        {
+            "/opt/homebrew/bin",
+            "/usr/local/bin",
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local", "bin")
+        };
+
+        protected override IReadOnlyList<string> ExtraToolDirectories => s_extraToolDirectories;
 
         protected override IReadOnlyList<string> GetCompilerNames(string sdkCompiler)
         {

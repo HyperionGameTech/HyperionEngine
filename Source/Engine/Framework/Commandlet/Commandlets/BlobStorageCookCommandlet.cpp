@@ -379,16 +379,20 @@ protected:
         if (const String pluginsArgument = args["plugins"].ToString(); pluginsArgument.Any())
         {
             Array<StringHash> pluginNames;
+            Array<Name> pluginNameHandles;
 
             for (const String& pluginName : pluginsArgument.Split(','))
             {
                 if (pluginName.Any())
                 {
                     pluginNames.PushBack(StringHash(pluginName.ToAnsi()));
+                    pluginNameHandles.PushBack(CreateNameFromDynamicString(pluginName.ToAnsi()));
                 }
             }
 
             s_pluginContentDirectories = PluginManager::GetInstance().GetPluginContentDirectories(pluginNames);
+
+            PluginManager::GetInstance().PreloadPlugins(pluginNameHandles);
 
             for (const FilePath& contentDirectory : s_pluginContentDirectories)
             {

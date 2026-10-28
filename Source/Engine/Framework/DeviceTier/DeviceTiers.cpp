@@ -40,11 +40,11 @@ class PlatformTier final : public DeviceTier<Platform>
 public:
     bool Decide(const DeviceFacts& facts) const override
     {
+        // baseline implementation:
         // are we current built for `Platform`?
         return CurrentPlatform == Platform;
     }
 };
-
 
 using MacOSTier = PlatformTier<DevicePlatform::MacOS>;
 using LinuxTier = PlatformTier<DevicePlatform::Linux>;

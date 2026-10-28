@@ -123,6 +123,47 @@ HYP_ENGINE_TEST(DeviceTier, TierResolution)
     }
 }
 
+HYP_ENGINE_TEST(DeviceTier, AppleSiliconScoring)
+{
+    const struct
+    {
+        const char* model;
+        uint32 ramGiB;
+        DeviceGrade expected;
+    } appleCases[] = {
+        { "Apple M1", 8, DeviceGrade::Medium },
+        { "Apple M1", 16, DeviceGrade::Medium },
+        { "Apple M2", 8, DeviceGrade::High },
+        { "Apple M2", 16, DeviceGrade::High },
+        { "Apple M3", 8, DeviceGrade::High },
+        { "Apple M4", 16, DeviceGrade::High },
+        { "Apple M1 Pro", 16, DeviceGrade::High },
+        { "Apple M1 Max", 32, DeviceGrade::High },
+        { "Apple M2 Max", 32, DeviceGrade::High },
+        { "Apple M4 Max", 64, DeviceGrade::Ultra },
+        { "Apple M1 Ultra", 64, DeviceGrade::Ultra },
+        { "Apple M3 Ultra", 128, DeviceGrade::Ultra }
+    };
+
+    const DeviceTierRegistry& registry = DeviceTierRegistry::GetInstance();
+
+    for (const auto& appleCase : appleCases)
+    {
+        DeviceFacts facts;
+        facts.logicalCores = 8;
+        facts.systemMemoryBytes = uint64(appleCase.ramGiB) * 1024ull * 1024ull * 1024ull;
+        facts.hasGpu = true;
+        facts.gpu.gpuVendor = GpuVendor::Apple;
+        facts.gpu.gpuModel = appleCase.model;
+        facts.gpu.vramBytes = facts.systemMemoryBytes * 2 / 3;
+        facts.score = ComputeDeviceGradeScore(facts);
+
+        registry.Resolve(DeviceTierPhase::PostGpu, facts);
+
+        Check("Apple silicon grade", facts.Get<DeviceGrade>() == appleCase.expected, HYP_FORMAT("{} {}GiB score={}", appleCase.model, appleCase.ramGiB, facts.score));
+    }
+}
+
 HYP_ENGINE_TEST(DeviceTier, OverlayRules)
 {
     TierProfile profile;

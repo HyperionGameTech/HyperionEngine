@@ -19,6 +19,8 @@ namespace Hyperion.Editor.Services
 
         protected abstract IReadOnlyList<string> DotNetInstallDirectories { get; }
 
+        protected virtual IReadOnlyList<string> ExtraToolDirectories => Array.Empty<string>();
+
         // in order of preference, for the SDK's CMake compiler id
         protected abstract IReadOnlyList<string> GetCompilerNames(string sdkCompiler);
 
@@ -28,11 +30,11 @@ namespace Hyperion.Editor.Services
         {
             NativeToolchain toolchain = new NativeToolchain
             {
-                CMakePath = FindOnPath("cmake"),
+                CMakePath = FindTool("cmake"),
                 CompilerPath = GetCompilerNames(sdkCompiler).Select(FindOnPath).FirstOrDefault(path => path != null)
             };
 
-            string? ninjaPath = FindOnPath("ninja") ?? FindOnPath("ninja-build");
+            string? ninjaPath = FindTool("ninja") ?? FindTool("ninja-build");
 
             if (ninjaPath != null)
             {
@@ -42,7 +44,7 @@ namespace Hyperion.Editor.Services
             else
             {
                 toolchain.Generator = "Unix Makefiles";
-                toolchain.MakeProgramPath = FindOnPath("make");
+                toolchain.MakeProgramPath = FindTool("make");
             }
 
             if (toolchain.CompilerPath == null)
@@ -61,6 +63,76 @@ namespace Hyperion.Editor.Services
             }
 
             return toolchain;
+        }
+
+        private string? FindTool(string fileName)
+        {
+            IEnumerable<string> pathDirectories = (Environment.GetEnvironmentVariable("PATH") ?? string.Empty)
+                .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
+                .Select(directory => directory.Trim());
+
+            foreach (string directory in pathDirectories.Concat(ExtraToolDirectories).Distinct())
+            {
+                string candidate;
+
+                try
+                {
+                    candidate = Path.Combine(directory, fileName);
+                }
+                catch (ArgumentException)
+                {
+                    continue;
+                }
+
+                if (File.Exists(candidate) && RunsSuccessfully(candidate))
+                {
+                    return candidate;
+                }
+            }
+
+            return null;
+        }
+
+        private static bool RunsSuccessfully(string toolPath)
+        {
+            try
+            {
+                ProcessStartInfo startInfo = new ProcessStartInfo(toolPath)
+                {
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false
+                };
+
+                startInfo.ArgumentList.Add("--version");
+
+                using Process? process = Process.Start(startInfo);
+
+                if (process == null)
+                {
+                    return false;
+                }
+
+                // drain so a chatty tool can't block on a full pipe
+                process.OutputDataReceived += (_, _) => { };
+                process.ErrorDataReceived += (_, _) => { };
+                
+                process.BeginOutputReadLine();
+                process.BeginErrorReadLine();
+
+                if (!process.WaitForExit(5000))
+                {
+                    process.Kill();
+
+                    return false;
+                }
+
+                return process.ExitCode == 0;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
         }
 
         public override string FindDotNet()
