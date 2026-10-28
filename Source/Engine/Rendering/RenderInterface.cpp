@@ -769,7 +769,7 @@ RendererResult RenderInterface::Initialize()
 
         StructuredBuffer& sbuffer = namedBuffers[namedBufferIndex];
 
-        if (!sbuffer.cpuBuffer.Empty())
+        if (sbuffer.TotalSizeBytes() > 0)
         {
             sbuffer.Initialize();
 

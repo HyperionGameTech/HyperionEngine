@@ -405,7 +405,7 @@ void PathTracer::ReadHitsBuffer(
 
     RWStructuredBuffer& hitsBuffer = jd.hitsBufferGpu;
 
-    if (!hitsBuffer.cpuBuffer.Size())
+    if (!hitsBuffer.TotalSizeBytes())
     {
         callback({});
         return;

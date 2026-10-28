@@ -134,47 +134,33 @@ static bool ResizeIndirectDrawCommandsBuffer(
     return true;
 }
 
-static bool ResizeInstancesBuffer(
-    CommandRecorder& cr,
-    uint32 numObjectInstances,
-    GpuBufferRef& instanceBuffer)
+static ObjectInstance& AcquireInstance(StructuredBuffer& instances, size_t& instanceOffset)
 {
-    const bool wasCreatedOrResized = CreateOrResizeBuffer(
-        cr,
-        instanceBuffer,
-        numObjectInstances * sizeof(ObjectInstance));
+    const size_t instanceIndex = instanceOffset++;
 
-    if (wasCreatedOrResized)
+    if (instances.TotalSizeBytes() / sizeof(ObjectInstance) < instanceOffset)
     {
-        ZeroizeBuffer(cr, instanceBuffer);
+        instances.Resize(MathUtil::NextPowerOf2(instanceOffset) * sizeof(ObjectInstance));
     }
 
-    return wasCreatedOrResized;
+    return *instances.GetWritePtr<ObjectInstance>(instanceIndex);
 }
 
 static bool ResizeIfNeeded(
     CommandRecorder& cr,
     FixedArray<GpuBufferRef, NumFramesInFlight>& indirectBuffers,
-    FixedArray<GpuBufferRef, NumFramesInFlight>& instanceBuffers,
-    uint32 numObjectInstances,
     const Span<IndirectDrawCommand>& drawCommandsBuffer,
     uint8 dirtyBits)
 {
     bool resizeHappened = false;
 
-    const uint32 frameIndex = GetFrameCounter() % NumFramesInFlight;
+    const uint32 frameIndex = RI.GetCurrentFrameIndex();
 
     GpuBufferRef& indirectBuffer = indirectBuffers[frameIndex];
-    GpuBufferRef& instanceBuffer = instanceBuffers[frameIndex];
 
     if ((dirtyBits & (1u << frameIndex)) || !indirectBuffer)
     {
         resizeHappened |= ResizeIndirectDrawCommandsBuffer(cr, drawCommandsBuffer, indirectBuffer);
-    }
-
-    if ((dirtyBits & (1u << frameIndex)) || !instanceBuffer)
-    {
-        resizeHappened |= ResizeInstancesBuffer(cr, numObjectInstances, instanceBuffer);
     }
 
     return resizeHappened;
@@ -185,7 +171,8 @@ static bool ResizeIfNeeded(
 static constexpr uint8 AllBitsDirty = (1u << NumFramesInFlight) - 1;
 
 IndirectDrawState::IndirectDrawState()
-    : m_numDrawCommands(0),
+    : m_instanceOffset(0),
+      m_numDrawCommands(0),
       m_dirtyBits(AllBitsDirty)
 {
 }
@@ -193,7 +180,8 @@ IndirectDrawState::IndirectDrawState()
 IndirectDrawState::~IndirectDrawState()
 {
     EnqueueDeletion(std::move(m_indirectBuffers));
-    EnqueueDeletion(std::move(m_instanceBuffers));
+
+    m_instances.Shutdown();
 }
 
 void IndirectDrawState::Create()
@@ -204,15 +192,11 @@ void IndirectDrawState::Create()
     Array<IndirectDrawCommand, RHIAllocator> drawCommandsBuffer;
     RI.PopulateIndirectDrawCommandsBuffer(GpuBufferRef::Null(), GpuBufferRef::Null(), 0, 0, drawCommandsBuffer);
 
+    m_instances = StructuredBuffer(1, sizeof(ObjectInstance));
+    m_instances.Initialize();
+
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        m_instanceBuffers[frameIndex] = RI.MakeGpuBuffer(GpuBufferType::StructuredBuffer, sizeof(ObjectInstance));
-        m_instanceBuffers[frameIndex]->SetIsCpuAccessible(true);
-#if HYP_DEBUG_MODE
-        m_instanceBuffers[frameIndex]->SetDebugName(NAME_FMT("IndirectDraw_InstancesBuffer_Frame{}", frameIndex));
-#endif
-        Check(m_instanceBuffers[frameIndex]->Create());
-
         m_indirectBuffers[frameIndex] = RI.MakeGpuBuffer(GpuBufferType::IndirectArgsBuffer, drawCommandsBuffer.ByteSize());
 #if HYP_DEBUG_MODE
         m_indirectBuffers[frameIndex]->SetDebugName(NAME_FMT("IndirectDraw_IndirectBuffer_Frame{}", frameIndex));
@@ -230,12 +214,14 @@ void IndirectDrawState::PushDrawCall(size_t drawCallIndex, const DrawCallStorage
 
     const uint32 drawCommandIndex = m_numDrawCommands++;
 
-    ObjectInstance& instance = m_objectInstances.EmplaceBack();
+    ObjectInstance& instance = AcquireInstance(m_instances, m_instanceOffset);
     instance.entityBindingIndex = drawCalls.entityBindingIndices[drawCallIndex];
     instance.drawCommandIndex = drawCommandIndex;
     instance.batchIndex = ~0u;
     instance.instanceIndex = 0;
     instance.instanceSlot = IdentityInstanceSlot;
+
+    m_dirtyBits |= (1u << RI.GetCurrentFrameIndex());
 
     out.drawCommandIndex = drawCommandIndex;
 
@@ -266,7 +252,7 @@ void IndirectDrawState::PushInstancedDrawCall(size_t drawCallIndex, const Instan
 
     for (uint32 index = 0; index < count; index++)
     {
-        ObjectInstance& instance = m_objectInstances.EmplaceBack();
+        ObjectInstance& instance = AcquireInstance(m_instances, m_instanceOffset);
         instance.entityBindingIndex = (batch->indices[index] & 0xFFFFFFu);
         instance.drawCommandIndex = drawCommandIndex;
         instance.batchIndex = batch->batchIndex;
@@ -294,9 +280,10 @@ void IndirectDrawState::PushInstancedDrawCall(size_t drawCallIndex, const Instan
 void IndirectDrawState::ResetDrawState()
 {
     m_numDrawCommands = 0;
+
+    m_instanceOffset = 0;
     
     // use Resize() to keep the memory allocated
-    m_objectInstances.Resize(0);
     m_drawCommandsBuffer.Resize(0);
 
     m_dirtyBits = AllBitsDirty;
@@ -304,13 +291,11 @@ void IndirectDrawState::ResetDrawState()
 
 void IndirectDrawState::UpdateBufferData(CommandRecorder& cr, bool* outWasResized)
 {
-    const uint32 frameIndex = GetFrameCounter() % NumFramesInFlight;
+    const uint32 frameIndex = RI.GetCurrentFrameIndex();
 
     if ((*outWasResized = ResizeIfNeeded(
              cr,
              m_indirectBuffers,
-             m_instanceBuffers,
-             m_objectInstances.Size(),
              m_drawCommandsBuffer,
              m_dirtyBits)))
     {
@@ -322,7 +307,6 @@ void IndirectDrawState::UpdateBufferData(CommandRecorder& cr, bool* outWasResize
         return;
     }
 
-    GpuBuffer* instanceBuffer = m_instanceBuffers[frameIndex];
     GpuBuffer* indirectBuffer = m_indirectBuffers[frameIndex];
 
     // indirect buffer
@@ -347,12 +331,8 @@ void IndirectDrawState::UpdateBufferData(CommandRecorder& cr, bool* outWasResize
         cr << InsertBarrier(indirectBuffer, ResourceState::IndirectArg);
     }
 
-    // instance buffer
-    // ===============
-
-    Assert(instanceBuffer->Size() >= m_objectInstances.Size() * sizeof(ObjectInstance));
-    instanceBuffer->Copy(m_objectInstances.Size() * sizeof(ObjectInstance), m_objectInstances.Data());
-    instanceBuffer->Flush(0, m_objectInstances.Size() * sizeof(ObjectInstance));
+    // Defer flush of the instances buffer.
+    m_instances.FlushBatched();
 
     m_dirtyBits &= ~(1u << frameIndex);
 }
@@ -410,12 +390,12 @@ void IndirectRenderer::ExecuteCullShaderInBatches(CommandRecorder& cr, const Ren
 
     AssertDebug(m_batchAllocator != nullptr);
 
-    const uint32 frameIndex = GetFrameCounter() % NumFramesInFlight;
+    const uint32 frameIndex = RI.GetCurrentFrameIndex();
 
     AssertDebug(m_indirectDrawState.GetIndirectBuffer(frameIndex).IsValid());
     AssertDebug(m_indirectDrawState.GetIndirectBuffer(frameIndex)->Size() != 0);
 
-    const size_t numInstances = m_indirectDrawState.GetInstances().Size();
+    const size_t numInstances = m_indirectDrawState.GetNumInstances();
     const uint32 numBatches = (uint32(numInstances) + IndirectDrawState::BatchSize - 1) / IndirectDrawState::BatchSize;
 
     if (numInstances == 0)
@@ -441,7 +421,7 @@ void IndirectRenderer::ExecuteCullShaderInBatches(CommandRecorder& cr, const Ren
     cr << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
     cr << SetShaderUniform(numShaderUniforms++, "DepthPyramidResult"_sh, RI.textureViewCache->GetOrCreate(pd->depthPyramidRenderer->GetHZBTexture()));
 
-    cr << SetShaderUniform(numShaderUniforms++, "ObjectInstancesBuffer"_sh, m_indirectDrawState.GetInstanceBuffer(frameIndex), ShaderDataOffset(0, sizeof(ObjectInstance)));
+    cr << SetShaderUniform(numShaderUniforms++, "ObjectInstancesBuffer"_sh, m_indirectDrawState.GetInstanceBuffer());
     cr << SetShaderUniform(numShaderUniforms++, "IndirectDrawCommandsBuffer"_sh, m_indirectDrawState.GetIndirectBuffer(frameIndex), ShaderDataOffset(0, sizeof(IndirectDrawCommand)));
 
     GpuBuffer* entityInstanceBatchesBuffer = m_batchAllocator->GetStructuredBuffer().gpuBuffer;

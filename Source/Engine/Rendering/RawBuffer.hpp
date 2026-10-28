@@ -12,6 +12,7 @@
 #include <Core/Memory/ByteBuffer.hpp>
 
 #include <Core/Utilities/ByteUtil.hpp>
+#include <Core/Utilities/EnumFlags.hpp>
 
 #include <Rendering/GpuBuffer.hpp>
 #include <Rendering/RenderMemory.hpp>
@@ -21,16 +22,45 @@ namespace Hyperion {
 template <class AllocatorType>
 class TCommandRecorder;
 
+enum class RawBufferFlags : uint8
+{
+    None = 0x0,             //!< Writes go to a shadow buffer, copied to the GPU via a staging buffer, not coherent.
+
+    CpuWriteCoherent = 0x1, //!< Buffer remains mapped for writing directly on the cpu. Cannot be dynamically resized.
+    CpuReadCoherent = 0x2,  //!< Buffer is mapped for reading on the cpu.
+    GpuOnly = 0x4,
+
+    Default = None
+};
+
+HYP_MAKE_ENUM_FLAGS(RawBufferFlags);
+
+/// A wrapper interface for a GPU-accessible buffer.
 class RawBuffer
 {
 protected:
-    RawBuffer(GpuBufferType bufferType, size_t numElements, size_t elementSize, size_t alignment = 16)
+    RawBuffer(
+        GpuBufferType bufferType,
+        size_t numElements,
+        size_t elementSize,
+        size_t alignment = 16,
+        EnumFlags<RawBufferFlags> flags = RawBufferFlags::Default)
         : gpuBuffer(new GpuBuffer(bufferType, GetAlignedBufferSize(numElements, elementSize, alignment), alignment)),
           elementSize(elementSize),
           dirtyRangeStart(SIZE_MAX),
-          dirtyRangeEnd(0)
+          dirtyRangeEnd(0),
+          flags(flags)
     {
-        cpuBuffer.SetSize(gpuBuffer->Size());
+        if (!(flags & (RawBufferFlags::GpuOnly | RawBufferFlags::CpuWriteCoherent)))
+        {
+            // CPU shadow buffer
+            cpuBuffer.SetSize(gpuBuffer->Size());
+        }
+
+        if (flags & (RawBufferFlags::CpuReadCoherent | RawBufferFlags::CpuWriteCoherent))
+        {
+            gpuBuffer->SetIsCpuAccessible(true);
+        }
     }
 
 public:
@@ -40,7 +70,8 @@ public:
         : gpuBuffer(nullptr),
           elementSize(0),
           dirtyRangeStart(SIZE_MAX),
-          dirtyRangeEnd(0)
+          dirtyRangeEnd(0),
+          flags(RawBufferFlags::Default)
     {
     }
 
@@ -52,7 +83,8 @@ public:
           cpuBuffer(std::move(other.cpuBuffer)),
           elementSize(other.elementSize),
           dirtyRangeStart(other.dirtyRangeStart),
-          dirtyRangeEnd(other.dirtyRangeEnd)
+          dirtyRangeEnd(other.dirtyRangeEnd),
+          flags(other.flags)
     {
         other.gpuBuffer = nullptr;
     }
@@ -74,6 +106,7 @@ public:
             elementSize = other.elementSize;
             dirtyRangeStart = other.dirtyRangeStart;
             dirtyRangeEnd = other.dirtyRangeEnd;
+            flags = other.flags;
         }
 
         return *this;
@@ -96,24 +129,60 @@ public:
         dirtyRangeEnd = (offset + count) > dirtyRangeEnd ? (offset + count) : dirtyRangeEnd;
     }
 
+    HYP_FORCE_INLINE size_t TotalSizeBytes() const
+    {
+        return gpuBuffer->Size();
+    }
+
+    template <typename T>
+    HYP_FORCE_INLINE const T* GetReadPtr(size_t elementIndex) const
+    {
+        const size_t offset = elementIndex * elementSize;
+
+        Assert(offset + sizeof(T) <= TotalSizeBytes());
+
+        return reinterpret_cast<const T*>(GetReadDataPtr() + offset);
+    }
+
+    template <typename T>
+    HYP_FORCE_INLINE T* GetWritePtr(size_t elementIndex)
+    {
+        const size_t offset = elementIndex * elementSize;
+
+        Assert(offset + sizeof(T) <= TotalSizeBytes());
+
+        MarkDirty(offset, sizeof(T));
+
+        return reinterpret_cast<T*>(GetWriteDataPtr() + offset);
+    }
+
     void Initialize();
     void Shutdown();
 
     void Write(size_t offset, size_t count, const void* data);
 
+    /// Write \p value at \p offset, \p count times (buffer not flushed immediately)
+    void Fill(size_t offset, size_t count, ubyte value);
+
     void FlushInto(CommandBuffer& cmdBuffer);
     void Flush();
 
-    /*! Sets the buffer to be flushed at the top of the frame, preceding other recorded rendering commands. */
+    /// Sets the buffer to be flushed at the top of the frame, preceding other recorded rendering commands.
     void FlushBatched();
 
+    /// \p newSize Raw buffer size in bytes.
+    /// The existing buffer will be enqueued for deletion if size differs, and a new buffer will be created.
+    /// \return true if resize happened.  Otherwise, no changes were applied.
+    bool Resize(size_t newSize);
+
     GpuBuffer* gpuBuffer;
-    CpuBuffer cpuBuffer;
 
     size_t elementSize;
 
     size_t dirtyRangeStart;
     size_t dirtyRangeEnd;
+
+    EnumFlags<RawBufferFlags> flags;
 
 protected:
     static inline constexpr size_t GetAlignedBufferSize(size_t numElements, size_t elementSize, size_t alignment)
@@ -121,8 +190,35 @@ protected:
         size_t totalSize = elementSize != 0 ? numElements * elementSize : numElements;
         return alignment != 0 ? ByteUtil::AlignAs(totalSize, alignment) : totalSize;
     }
+
+    HYP_FORCE_INLINE const ubyte* GetReadDataPtr() const
+    {
+        AssertDebug(!(flags & RawBufferFlags::GpuOnly));
+
+        if (flags & (RawBufferFlags::CpuWriteCoherent | RawBufferFlags::CpuReadCoherent))
+        {
+            return static_cast<const ubyte*>(gpuBuffer->Map());
+        }
+
+        return cpuBuffer.Data();
+    }
+
+    HYP_FORCE_INLINE ubyte* GetWriteDataPtr()
+    {
+        AssertDebug(!(flags & RawBufferFlags::GpuOnly));
+
+        if (flags & RawBufferFlags::CpuWriteCoherent)
+        {
+            return static_cast<ubyte*>(gpuBuffer->Map());
+        }
+
+        return cpuBuffer.Data();
+    }
+    
+    CpuBuffer cpuBuffer;
 };
 
+/// A wrapper for a HLSL StructuredBuffer. Shaders can read, CPU writes.
 class StructuredBuffer : public RawBuffer
 {
 protected:
@@ -155,6 +251,7 @@ public:
     }
 };
 
+/// A wrapper for a HLSL RWStructuredBuffer. Shaders can write to it.
 class RWStructuredBuffer : public StructuredBuffer
 {
 public:
@@ -181,6 +278,7 @@ public:
     }
 };
 
+/// A wrapper for a HLSL ByteAddressBuffer. Shaders can read, CPU writes.
 class ByteAddressBuffer : public RawBuffer
 {
 public:

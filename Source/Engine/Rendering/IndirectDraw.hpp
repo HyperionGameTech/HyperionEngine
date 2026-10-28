@@ -15,6 +15,7 @@
 #include <Rendering/Shared.hpp>
 #include <Rendering/RenderTypes.hpp>
 #include <Rendering/RenderMemory.hpp>
+#include <Rendering/RawBuffer.hpp>
 
 #include <Core/Math/Mat4f.hpp>
 
@@ -59,19 +60,19 @@ public:
     IndirectDrawState();
     ~IndirectDrawState();
 
-    HYP_FORCE_INLINE const GpuBufferRef& GetInstanceBuffer(uint32 frameIndex) const
+    HYP_FORCE_INLINE const StructuredBuffer& GetInstanceBuffer() const
     {
-        return m_instanceBuffers[frameIndex];
+        return m_instances;
+    }
+
+    HYP_FORCE_INLINE size_t GetNumInstances() const
+    {
+        return m_instanceOffset;
     }
 
     HYP_FORCE_INLINE const GpuBufferRef& GetIndirectBuffer(uint32 frameIndex) const
     {
         return m_indirectBuffers[frameIndex];
-    }
-
-    HYP_FORCE_INLINE const Array<ObjectInstance, RHIAllocator>& GetInstances() const
-    {
-        return m_objectInstances;
     }
 
     void Create();
@@ -84,11 +85,12 @@ public:
     void ResetDrawState();
 
 private:
-    Array<ObjectInstance, RHIAllocator> m_objectInstances;
     Array<IndirectDrawCommand, RHIAllocator> m_drawCommandsBuffer;
 
     FixedArray<GpuBufferRef, NumFramesInFlight> m_indirectBuffers;
-    FixedArray<GpuBufferRef, NumFramesInFlight> m_instanceBuffers;
+
+    StructuredBuffer m_instances;
+    size_t m_instanceOffset;
 
     uint32 m_numDrawCommands;
     uint8 m_dirtyBits;

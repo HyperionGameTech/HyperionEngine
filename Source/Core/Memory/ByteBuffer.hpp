@@ -263,6 +263,23 @@ public:
         Memory::Copy(Data() + offset, data, count);
     }
 
+    /*! \brief Writes the byte value of \p value at offset \p offset, \p count times.
+     *  \warning The ByteBuffer must have enough capacity to hold the data, otherwise an assertion will be thrown.
+     *  \param count The number of bytes to write to the ByteBuffer.
+     *  \param offset The offset in the ByteBuffer to write to.
+     *  \param value  Single byte value to write to the buffer and fill from offset to offset+count */
+    HYP_FORCE_INLINE void Fill(size_t count, size_t offset, ubyte value)
+    {
+        if (count == 0)
+        {
+            return;
+        }
+
+        HYP_CORE_ASSERT(offset + count <= m_size);
+
+        Memory::Fill(Data() + offset, value, count);
+    }
+
     /*! \brief Returns a copy of the ByteBuffer's data as an Array of ubyte.
      *  \return An Array of ubyte containing the ByteBuffer's data, copied from the ByteBuffer. */
     HYP_FORCE_INLINE Array<ubyte, AllocatorType> ToArray() const

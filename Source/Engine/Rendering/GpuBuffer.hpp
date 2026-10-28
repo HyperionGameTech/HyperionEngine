@@ -52,9 +52,14 @@ public:
         return m_type;
     }
 
-    HYP_FORCE_INLINE uint32 Size() const
+    HYP_FORCE_INLINE size_t Size() const
     {
-        return uint32(m_size);
+        return m_size;
+    }
+
+    HYP_FORCE_INLINE size_t Alignment() const
+    {
+        return m_alignment;
     }
 
     HYP_FORCE_INLINE ResourceState GetResourceState() const

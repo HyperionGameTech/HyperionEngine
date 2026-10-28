@@ -207,7 +207,7 @@ EntityInstanceBatch* EntityBatchAllocator::AcquireBatch()
         return nullptr;
     }
 
-    EntityInstanceBatch* batch = reinterpret_cast<EntityInstanceBatch*>(m_sbuffer.cpuBuffer.Data() + batchIndex * sizeof(EntityInstanceBatch));
+    EntityInstanceBatch* batch = m_sbuffer.GetWritePtr<EntityInstanceBatch>(batchIndex);
     batch->batchIndex = batchIndex;
     batch->numEntities = 0;
 
@@ -225,7 +225,9 @@ void EntityBatchAllocator::ReleaseBatch(EntityInstanceBatch* batch)
 
 void EntityBatchAllocator::MarkBatchDirty(EntityInstanceBatch* batch)
 {
-    m_sbuffer.MarkDirty(batch->batchIndex * sizeof(EntityInstanceBatch), sizeof(EntityInstanceBatch));
+    m_sbuffer.MarkDirty(
+        batch->batchIndex * sizeof(EntityInstanceBatch),
+        sizeof(EntityInstanceBatch));
 }
 
 #pragma endregion EntityBatchAllocator
