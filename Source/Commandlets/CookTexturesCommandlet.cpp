@@ -86,7 +86,7 @@ static void DropMipsAbove(uint32 maxExtent, TextureDesc& desc, ByteBuffer& image
 
     const uint32 baseOffset = desc.mipOffsets[numDropped - 1];
 
-    ByteBuffer remaining(imageData.ToByteView().Slice(baseOffset));
+    ByteBuffer remaining(imageData.ToByteView().Slice(baseOffset, imageData.Size() - baseOffset));
     imageData = std::move(remaining);
 
     desc.extent = Vec3u { MathUtil::Max(desc.extent.x >> numDropped, 1u), MathUtil::Max(desc.extent.y >> numDropped, 1u), 1u };
