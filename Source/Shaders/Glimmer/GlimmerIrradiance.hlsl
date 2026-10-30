@@ -89,6 +89,7 @@ struct GlimmerSurface
     float3 P;
     float3 N;
     bool isValid;
+    bool isDynamic;
 };
 
 GlimmerSurface GlimmerLoadSurface(int2 pixel, uint2 dimensions)
@@ -107,13 +108,21 @@ GlimmerSurface GlimmerLoadSurface(int2 pixel, uint2 dimensions)
     surface.P = positionWS.xyz;
     surface.N = normalize(GBufferUnpackNormal(GBufferNormalsTexture.Load(int3(pixel, 0))));
     surface.isValid = depth < 1.0;
+    surface.isDynamic = (GBufferUnpackObjectMask(GBufferMaterialTexture.Load(int3(pixel, 0))) & OBJECT_MASK_DYNAMIC) != 0u;
 
     return surface;
+}
+
+void GlimmerSetSurfaceBehindFade(GlimmerSurface surface)
+{
+    g_glimmerProbeBehindFade = surface.isDynamic ? GLIMMER_PROBE_DYNAMIC_BEHIND_FADE : GLIMMER_PROBE_BEHIND_FADE;
 }
 
 PSOutput GlimmerEvaluateSurface(GlimmerSurface surface)
 {
     PSOutput output;
+
+    GlimmerSetSurfaceBehindFade(surface);
 
     const float3 V = normalize(camera.position.xyz - surface.P);
     const float3 R = reflect(-V, surface.N);
@@ -244,6 +253,8 @@ PSOutput PSMain(PSInput input)
     }
     else if (glimmer.params.x == GLIMMER_DEBUG_VIS_COVERAGE)
     {
+        GlimmerSetSurfaceBehindFade(surface);
+
         output.irradiance = float4(EvaluateGlimmerCoverage(glimmer, surface.P, surface.N), 1.0);
     }
     else
