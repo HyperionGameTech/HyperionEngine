@@ -21,11 +21,11 @@
 
 namespace Hyperion {
 
+namespace /* Helpers */ {
+
 // matches the page size the typed SparseArray storage used to target
 constexpr size_t ComponentSlabTargetSize = 64 * 1024;
 constexpr size_t MaxComponentSize = 1024 * 1024;
-
-namespace /* Helpers */ {
 
 size_t CalculateComponentBlocksPerSlab(
     size_t componentSize,
@@ -60,7 +60,7 @@ ComponentContainer::ComponentContainer(const ComponentInterface& componentInterf
 
 ComponentContainer::~ComponentContainer()
 {
-    // only the Struct (kept alive by m_structReference) is touched here; TypeInfo and the registry may already be gone at shutdown
+    // only the Struct (kept alive by m_structReference) is touched here - TypeInfo and the registry may already be gone at shutdown
     m_components.ForEachElementRaw([this](size_t, ubyte* component)
         {
             m_componentInterface->DestructComponent(component);
