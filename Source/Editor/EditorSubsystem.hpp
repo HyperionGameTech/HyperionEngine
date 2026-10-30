@@ -73,7 +73,6 @@ class EditorTerrainState;
 class EditorDecalPainterState;
 class EditorInstancePainterState;
 class EditorSurfacePainterState;
-class EditorCsgState;
 class EditorPrefabEditState;
 class EditorExtension;
 class EditorImportReview;
@@ -414,11 +413,6 @@ public:
 
     void DisableSurfacePainters(const EditorSurfacePainterState* except = nullptr);
 
-    ///CSG
-
-    HYP_METHOD()
-    Handle<EditorCsgState> GetCsgState();
-
     ///Prefab editing
 
     HYP_METHOD()
@@ -444,6 +438,10 @@ public:
 
     HYP_METHOD()
     Handle<EditorExtension> GetExtensionOfClass(Name className) const;
+
+    bool IsExtensionToolActive() const;
+
+    void ExitExtensionTools();
 
     ///Isolated edit states
 
@@ -1076,8 +1074,6 @@ private:
     Handle<EditorDecalPainterState> m_decalPainter;
 
     Handle<EditorInstancePainterState> m_instancePainter;
-
-    Handle<EditorCsgState> m_csgState;
 
     Handle<EditorPrefabEditState> m_prefabEditState;
 

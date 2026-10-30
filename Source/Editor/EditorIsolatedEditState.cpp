@@ -7,7 +7,6 @@
 #include <EditorPch.hpp>
 
 #include <Editor/EditorIsolatedEditState.hpp>
-#include <Editor/Csg/EditorCsgState.hpp>
 #include <Editor/Terrain/EditorTerrainState.hpp>
 #include <Editor/EditorSubsystem.hpp>
 #include <Editor/EditorViewport.hpp>
@@ -71,7 +70,7 @@ bool EditorIsolatedEditState::BeginEnter()
     }
 
     m_subsystem->ExitMeshEditMode(/* saveEdits */ true);
-    m_subsystem->GetCsgState()->Exit(/* saveEdits */ true);
+    m_subsystem->ExitExtensionTools();
     m_subsystem->GetTerrainState()->SetEnabled(false);
     m_subsystem->DisableSurfacePainters();
 

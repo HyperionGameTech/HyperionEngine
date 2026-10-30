@@ -11,7 +11,6 @@
 #include <Editor/EditorState.hpp>
 #include <Editor/EditorSubsystem.hpp>
 #include <Editor/EditorActionStack.hpp>
-#include <Editor/Csg/EditorCsgState.hpp>
 #include <Editor/Prefab/EditorPrefabEditState.hpp>
 
 #include <Framework/Game.hpp>
@@ -455,7 +454,7 @@ EDITOR_API void RebuildRetiredModuleObjects(EditorProject* project, EditorSubsys
         Assert(exitedEditModes, "The open edit mode could not apply its edits before the module reload");
 
         subsystem->ExitMeshEditMode(/* saveEdits */ true);
-        subsystem->GetCsgState()->Exit(/* saveEdits */ true);
+        subsystem->ExitExtensionTools();
     }
 
     Array<RebuiltObject> rebuiltObjects;

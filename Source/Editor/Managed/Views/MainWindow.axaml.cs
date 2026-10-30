@@ -1411,6 +1411,36 @@ namespace Hyperion.Editor
 
         private static readonly object PluginMenuEntryTag = new object();
 
+        private void OnMeshToolsMenuOpened(object? sender, RoutedEventArgs e)
+        {
+            if (sender is not ContextMenu menu)
+            {
+                return;
+            }
+
+            foreach (Control staleEntry in menu.Items.OfType<Control>().Where(item => ReferenceEquals(item.Tag, PluginMenuEntryTag)).ToList())
+            {
+                menu.Items.Remove(staleEntry);
+            }
+
+            foreach (EditorMeshToolViewModel tool in EditorPluginService.Instance.MeshTools)
+            {
+                MenuItem menuItem = new MenuItem
+                {
+                    Header = tool.Header,
+                    Command = tool.ToggleCommand,
+                    ToggleType = MenuItemToggleType.CheckBox,
+                    IsChecked = tool.IsActive,
+                    IsEnabled = tool.CanEnable,
+                    Tag = PluginMenuEntryTag
+                };
+
+                ToolTip.SetTip(menuItem, tool.Tooltip);
+
+                menu.Items.Add(menuItem);
+            }
+        }
+
         private void OnToolSettingsMenuOpened(object? sender, RoutedEventArgs e)
         {
             if (DataContext is MainWindowViewModel vm)

@@ -12,6 +12,7 @@
 
 #include <Editor/EditorState.hpp>
 #include <Editor/EditorSubsystem.hpp>
+#include <Editor/EditorExtension.hpp>
 #include <Editor/EditorProject.hpp>
 
 #include <Asset/SerializationUtils.hpp>
@@ -404,6 +405,57 @@ TResult<BoxedValue> ResolveTargetOnSimThread(const JSON::Value& targetJson)
         }
 
         return TResult<BoxedValue>(BoxedValue(subsystem));
+    }
+
+    // an editor extension by class name (e.g. "CsgEditorExtension"); "get" names a getter on it to target what it returns instead
+    auto extensionIt = targetObject.Find("extension");
+    if (extensionIt != targetObject.End() && extensionIt->second.IsString())
+    {
+        Handle<EditorSubsystem> subsystem = EditorState::GetInstance()->GetEditorSubsystem();
+        if (!subsystem.IsValid())
+        {
+            return TResult<BoxedValue>(HYP_MAKE_ERROR(Error, "No active editor subsystem"));
+        }
+
+        const String& extensionClassName = extensionIt->second.AsString();
+        Handle<ObjectBase> extension;
+
+        for (const Handle<EditorExtension>& candidate : subsystem->GetExtensions())
+        {
+            if (String(candidate->InstanceClass()->GetName().LookupString()) == extensionClassName)
+            {
+                extension = candidate;
+
+                break;
+            }
+        }
+
+        if (!extension.IsValid())
+        {
+            return TResult<BoxedValue>(HYP_MAKE_ERROR(Error, "No editor extension '{}' (is its plugin enabled for the project?)", extensionClassName));
+        }
+
+        auto getIt = targetObject.Find("get");
+        if (getIt == targetObject.End() || !getIt->second.IsString())
+        {
+            return TResult<BoxedValue>(BoxedValue(extension));
+        }
+
+        const Method* getter = extension->InstanceClass()->GetMethod(getIt->second.AsString(), /* deep */ true);
+        if (getter == nullptr || !(getter->GetFlags() & MethodFlags::MEMBER))
+        {
+            return TResult<BoxedValue>(HYP_MAKE_ERROR(Error, "Editor extension '{}' has no member method '{}'", extensionClassName, getIt->second.AsString()));
+        }
+
+        BoxedValue extensionBoxed(extension);
+        BoxedValue result = getter->Invoke(Span<BoxedValue>(&extensionBoxed, 1));
+
+        if (!result.Is<Handle<ObjectBase>>() || !result.Get<Handle<ObjectBase>>().IsValid())
+        {
+            return TResult<BoxedValue>(HYP_MAKE_ERROR(Error, "{}.{} returned no object", extensionClassName, getIt->second.AsString()));
+        }
+
+        return TResult<BoxedValue>(std::move(result));
     }
 
     // world grid layers are matched by layer name first, then by class name (e.g. "TerrainWorldGridLayer")
@@ -1961,7 +2013,7 @@ void RegisterReflectionMCPTools(MCPRouter& router)
 
     router.Register(MCPTool {
         "invoke_method",
-        "Invoke a reflected method on a class. For member methods pass a target, omit it for static methods. Targets: {\"uuid\": \"...\"} for a node in the active scene (from query_scene); {\"uuid\": \"...\", \"component\": \"MeshComponent\"} for one of that entity's components (class = the component class); {\"asset\": \"Materials/Rock\"} for a project asset (from list_assets, edits mark it dirty so SaveProject writes it); {\"world\": true} for the open World (class World: environment settings, layers, swatches); {\"project\": true} for the open EditorProject (e.g. SaveAs(\"C:/path/Folder\") saves without a dialog); {\"subsystem\": true} for the EditorSubsystem (class = EditorSubsystem, e.g. AddToSelection({\"uuid\": \"...\"}) / ClearSelection()); {\"layer\": \"Terrain\"} for a world grid layer by name or class (e.g. TerrainWorldGridLayer.SetLayerInfo). Handle arguments accept the same {\"uuid\"} / {\"asset\"} objects. Args are positional and converted using reflection type info: Vec3f as [x, y, z]; Quat4f as [x, y, z, w]; Transform as {\"Translation\": [x, y, z], \"Scale\": [x, y, z], \"Rotation\": {\"X\": 0, \"Y\": 0, \"Z\": 0, \"W\": 1}} (keys are case sensitive - lowercase keys are silently ignored); Name as a string. Common methods on a Node target: SetWorldTranslation([x, y, z], 0), SetLocalTranslation([x, y, z], 0), Translate([x, y, z]) (offset in local space), SetLocalRotation([x, y, z, w], 0), SetLocalScale([x, y, z], 0) - the trailing 0 is TransformChangeType::Default, there are no default arguments, SetName(\"...\"), AddChild({\"uuid\": \"...\"}) to re-parent a node. World space is left-handed, Y-up (+X right, +Y up, +Z forward; cameras look down +Z) in float world units. Use describe_class to discover methods and exact signatures.",
+        "Invoke a reflected method on a class. For member methods pass a target, omit it for static methods. Targets: {\"uuid\": \"...\"} for a node in the active scene (from query_scene); {\"uuid\": \"...\", \"component\": \"MeshComponent\"} for one of that entity's components (class = the component class); {\"asset\": \"Materials/Rock\"} for a project asset (from list_assets, edits mark it dirty so SaveProject writes it); {\"world\": true} for the open World (class World: environment settings, layers, swatches); {\"project\": true} for the open EditorProject (e.g. SaveAs(\"C:/path/Folder\") saves without a dialog); {\"subsystem\": true} for the EditorSubsystem (class = EditorSubsystem, e.g. AddToSelection({\"uuid\": \"...\"}) / ClearSelection()); {\"layer\": \"Terrain\"} for a world grid layer by name or class (e.g. TerrainWorldGridLayer.SetLayerInfo); {\"extension\": \"CsgEditorExtension\"} for an editor extension a plugin added, with \"get\": \"GetCsgState\" to target the object a getter on it returns (class = that object's class, e.g. EditorCsgState). Handle arguments accept the same {\"uuid\"} / {\"asset\"} objects. Args are positional and converted using reflection type info: Vec3f as [x, y, z]; Quat4f as [x, y, z, w]; Transform as {\"Translation\": [x, y, z], \"Scale\": [x, y, z], \"Rotation\": {\"X\": 0, \"Y\": 0, \"Z\": 0, \"W\": 1}} (keys are case sensitive - lowercase keys are silently ignored); Name as a string. Common methods on a Node target: SetWorldTranslation([x, y, z], 0), SetLocalTranslation([x, y, z], 0), Translate([x, y, z]) (offset in local space), SetLocalRotation([x, y, z, w], 0), SetLocalScale([x, y, z], 0) - the trailing 0 is TransformChangeType::Default, there are no default arguments, SetName(\"...\"), AddChild({\"uuid\": \"...\"}) to re-parent a node. World space is left-handed, Y-up (+X right, +Y up, +Z forward; cameras look down +Z) in float world units. Use describe_class to discover methods and exact signatures.",
         MakeToolInputSchema({ { "class", MakeStringSchemaProperty("Class name") },
                                 { "method", MakeStringSchemaProperty("Method name") },
                                 { "target", MakeSchemaProperty("object", "Target object: {\"uuid\": \"...\"} from query_scene (omit for static methods)") },

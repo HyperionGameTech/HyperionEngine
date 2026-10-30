@@ -22,6 +22,8 @@
 
 #include <Framework/Threads/MainThread.hpp>
 
+#include <Framework/Testing/EngineTest.hpp>
+
 #include <Plugins/PluginManager.hpp>
 
 #include <Asset/AssetRegistry.hpp>
@@ -57,7 +59,7 @@ constexpr int64 LaunchTimeoutMs = 60000;
 constexpr int64 PlayTimeoutMs = 120000;
 
 /// intentionally leaked!
-Handle<EditorGame>& s_playEditorGame = *new Handle<EditorGame>();
+Handle<EditorGame>& s_editorGame = *new Handle<EditorGame>();
 
 template <typename PredicateType>
 bool UpdateUntil(PredicateType&& predicate, int64 timeoutMs)
@@ -387,12 +389,12 @@ HYP_EXPORT int EditorTestHost_Play(const char* projectDirectory, int numFrames, 
 
     const FilePath projectFilePath = project->GetFilePath();
 
-    s_playEditorGame = MakeHandle<EditorGame>();
-    InitObject(s_playEditorGame);
+    s_editorGame = MakeHandle<EditorGame>();
+    InitObject(s_editorGame);
 
-    g_engineDriver->SetGameInstance(s_playEditorGame.Get());
+    g_engineDriver->SetGameInstance(s_editorGame.Get());
 
-    const bool editorLaunched = UpdateUntil([] { return s_playEditorGame->IsLaunched(); }, LaunchTimeoutMs);
+    const bool editorLaunched = UpdateUntil([] { return s_editorGame->IsLaunched(); }, LaunchTimeoutMs);
 
     results.Set("editorLaunched", JSON::Value(editorLaunched));
 
@@ -401,7 +403,7 @@ HYP_EXPORT int EditorTestHost_Play(const char* projectDirectory, int numFrames, 
         return WriteResults(FilePath(resultsPath), std::move(results)) ? 1 : 0;
     }
 
-    EditorSubsystem* editorSubsystem = s_playEditorGame->GetEditorSubsystem();
+    EditorSubsystem* editorSubsystem = s_editorGame->GetEditorSubsystem();
     Assert(editorSubsystem != nullptr);
 
     editorSubsystem->OpenProject(project);
@@ -526,7 +528,7 @@ HYP_EXPORT int EditorTestHost_Play(const char* projectDirectory, int numFrames, 
         stopped = editorSubsystem->StopSimulation() && !editorSubsystem->IsSimulating();
 
         // back to the editor's game once the simulation is gone (EngineManager.InitializeEditor())
-        g_engineDriver->SetGameInstance(s_playEditorGame.Get());
+        g_engineDriver->SetGameInstance(s_editorGame.Get());
     }
 
     results.Set("stopped", JSON::Value(stopped));
@@ -539,6 +541,57 @@ HYP_EXPORT int EditorTestHost_Play(const char* projectDirectory, int numFrames, 
     editorSubsystem->CloseProject();
 
     return WriteResults(FilePath(resultsPath), std::move(results)) ? 1 : 0;
+}
+
+HYP_EXPORT int EditorTestHost_RunEditorTests(const char* filter, int listOnly, const char* resultsPath)
+{
+    AssertOnThread(g_mainThread);
+
+#ifdef HYP_TESTS
+    if (!StartEngine())
+    {
+        return 0;
+    }
+
+    if (!PluginManager::GetInstance().IsInitialized())
+    {
+        PluginManager::GetInstance().Initialize(PluginHostMode::Editor);
+    }
+
+    if (listOnly)
+    {
+        PluginManager::GetInstance().PreloadPlugins(PluginManager::GetInstance().GetDefaultEnabledPlugins());
+
+        return tests::EngineTestRunner::RunTests(tests::EngineTestHost::Editor, String(filter), true, String(resultsPath)).HasError() ? 0 : 1;
+    }
+
+    s_editorGame = MakeHandle<EditorGame>();
+    InitObject(s_editorGame);
+
+    g_engineDriver->SetGameInstance(s_editorGame.Get());
+
+    if (!UpdateUntil([] { return s_editorGame->IsLaunched(); }, LaunchTimeoutMs))
+    {
+        HYP_LOG(Editor, Error, "The editor didn't launch");
+
+        return 0;
+    }
+
+    EditorSubsystem* editorSubsystem = s_editorGame->GetEditorSubsystem();
+    Assert(editorSubsystem != nullptr);
+
+    editorSubsystem->NewProject();
+
+    const Result result = tests::EngineTestRunner::RunTests(tests::EngineTestHost::Editor, String(filter), false, String(resultsPath));
+
+    editorSubsystem->CloseProject();
+
+    return result.HasError() ? 0 : 1;
+#else
+    HYP_LOG(Editor, Error, "Editor tests need a build with HYP_TESTS");
+
+    return 0;
+#endif
 }
 
 } // extern "C"

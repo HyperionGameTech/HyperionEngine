@@ -169,6 +169,36 @@ public static class EditorTestHost
         return new RunningPlay(process, resultsPath);
     }
 
+    public static EngineTestRunResult RunEditorTests(string label, bool listOnly, string? filter = null)
+    {
+        string logsDirectory = Path.Combine(HarnessEnvironment.WorkDir, "EditorTests", "Logs");
+        string resultsPath = Path.Combine(logsDirectory, $"editor-tests-{label}.json");
+
+        Directory.CreateDirectory(logsDirectory);
+
+        if (File.Exists(resultsPath))
+        {
+            File.Delete(resultsPath);
+        }
+
+        ProcessResult process = s_build.Value.Succeeded
+            ? ProcessRunner.Run(
+                $"Editor tests ({label})",
+                ExecutablePath,
+                ["editor-tests", string.IsNullOrEmpty(filter) ? "-" : filter, listOnly ? "list" : "run", resultsPath],
+                HarnessEnvironment.EngineBinDir,
+                Path.Combine(logsDirectory, $"editor-tests-{label}.log"),
+                HarnessEnvironment.RunTimeout,
+                new Dictionary<string, string> { ["DOTNET_ROOT"] = FindDotNetRoot() })
+            : s_build.Value;
+
+        GameTestReport? report = File.Exists(resultsPath)
+            ? JsonSerializer.Deserialize<GameTestReport>(File.ReadAllText(resultsPath), s_reportJsonOptions)
+            : null;
+
+        return new EngineTestRunResult(process, report);
+    }
+
     internal static PlayReport? ReadPlayReport(string resultsPath)
     {
         return File.Exists(resultsPath)

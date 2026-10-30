@@ -1,0 +1,5 @@
+PluginDescriptor "CsgToolkit" {
+    Version = "1.0.0"
+    Description = "Mesh booleans (union, subtract, intersect), with brush tools in Hyperion Editor for reshaping geometry."
+    EnabledByDefault = true
+}

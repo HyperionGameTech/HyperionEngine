@@ -16,13 +16,6 @@
 
 #include <Core/DataProcessing/JSON/JSON.hpp>
 
-#include <Core/FileSystem/FilePath.hpp>
-
-#include <Core/IO/ByteWriter.hpp>
-
-#include <Core/Logging/Logger.hpp>
-#include <Core/Logging/LogChannels.hpp>
-
 #include <Core/Reflection/ClassRegistry.hpp>
 #include <Core/Reflection/Method.hpp>
 
@@ -59,9 +52,6 @@ protected:
         const bool listOnly = args["list"].ToBool();
         const String resultsPathString = args["results"].ToString();
 
-        JSON::JArray resultsArray;
-        uint32 numFailed = 0;
-
         // as a game would: the default plugins load, so plugin tests run with what their modules register
         if (!listOnly && !PluginManager::GetInstance().IsInitialized())
         {
@@ -74,84 +64,7 @@ protected:
             PluginManager::GetInstance().LoadAllPluginLibraries();
         }
 
-        // rewritten after each test, so a test that crashes the process still leaves the results before it
-        const auto writeReport = [&]() -> Result
-        {
-            if (resultsPathString.Empty())
-            {
-                return {};
-            }
-
-            JSON::Object report {
-                { "phase", JSON::Value(String(listOnly ? "list" : "engine")) },
-                { "tests", JSON::Value(resultsArray) }
-            };
-
-            const String reportText = JSON::Value(std::move(report)).ToString(true);
-
-            FileByteWriter writer { FilePath(resultsPathString) };
-
-            if (!writer.IsOpen())
-            {
-                return HYP_MAKE_ERROR(Error, "Failed to open {} for writing", resultsPathString);
-            }
-
-            writer.Write(reportText.Data(), reportText.Size());
-            writer.Close();
-
-            return {};
-        };
-
-        for (const tests::EngineTestDefinition& test : tests::EngineTestRegistry::GetInstance().GetTests())
-        {
-            if (!tests::EngineTestRunner::MatchesFilter(test, filter))
-            {
-                continue;
-            }
-
-            if (listOnly)
-            {
-                resultsArray.PushBack(JSON::Object { { "name", JSON::Value(tests::EngineTestRunner::GetFullName(test)) } });
-
-                continue;
-            }
-
-            const tests::EngineTestResult result = tests::EngineTestRunner::Run(test);
-
-            if (!result.passed)
-            {
-                ++numFailed;
-            }
-
-            resultsArray.PushBack(JSON::Object {
-                { "name", JSON::Value(result.name) },
-                { "passed", JSON::Value(result.passed) },
-                { "message", result.passed ? JSON::Value(JSON::JSNull()) : JSON::Value(result.message) },
-                { "durationMs", JSON::Value(result.durationMs) }
-            });
-
-            if (Result writeResult = writeReport(); writeResult.HasError())
-            {
-                return writeResult;
-            }
-        }
-
-        if (!listOnly)
-        {
-            HYP_LOG(Engine, Info, "Engine tests: {} passed, {} failed", resultsArray.Size() - numFailed, numFailed);
-        }
-
-        if (Result writeResult = writeReport(); writeResult.HasError())
-        {
-            return writeResult;
-        }
-
-        if (numFailed != 0)
-        {
-            return HYP_MAKE_ERROR(Error, "{} engine test(s) failed", numFailed);
-        }
-
-        return {};
+        return tests::EngineTestRunner::RunTests(tests::EngineTestHost::Engine, filter, listOnly, resultsPathString);
     }
 };
 
