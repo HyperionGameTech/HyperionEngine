@@ -37,9 +37,11 @@ namespace Hyperion {
 class CmdBase;
 class View;
 
+class RawBuffer;
 class StructuredBuffer;
 class RWStructuredBuffer;
 class ByteAddressBuffer;
+class IndirectArgsBuffer;
 class EngineStatGpuTimer;
 class GpuTimerBackendBase;
 
@@ -358,6 +360,11 @@ public:
           m_onlyStencil(false)
     {
     }
+
+    InsertBarrier(
+        const RawBuffer& buffer,
+        const ResourceState& state,
+        ShaderModuleType shaderModuleType = ShaderModuleType::None);
 
     InsertBarrier(
         GpuImage* image,
@@ -722,6 +729,8 @@ public:
         Assert(argsBuffer);
     }
 
+    DispatchComputeIndirect(const IndirectArgsBuffer& argsBuffer, uint32 argsOffset);
+
     static constexpr CommandType ThisCommandType = CommandType::DispatchComputeIndirect;
 
 private:
@@ -1064,6 +1073,7 @@ public:
     SetShaderUniform(uint32 uniformIndex, StringHash name, const StructuredBuffer& structuredBuffer, uint32 elementOffset = 0);
     SetShaderUniform(uint32 uniformIndex, StringHash name, const RWStructuredBuffer& rwStructuredBuffer, uint32 elementOffset = 0);
     SetShaderUniform(uint32 uniformIndex, StringHash name, const ByteAddressBuffer& byteAddressBuffer, uint32 byteOffset = 0);
+    SetShaderUniform(uint32 uniformIndex, StringHash name, const IndirectArgsBuffer& indirectArgsBuffer, uint32 elementOffset = 0);
 
     SetShaderUniform(uint32 uniformIndex, StringHash name, GpuImageView* imageView)
         : uniformIndex(uniformIndex),

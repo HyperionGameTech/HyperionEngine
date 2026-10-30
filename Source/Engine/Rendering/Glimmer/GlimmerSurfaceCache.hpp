@@ -7,6 +7,7 @@
 #pragma once
 
 #include <Rendering/RenderTypes.hpp>
+#include <Rendering/RawBuffer.hpp>
 #include <Rendering/Glimmer/GlimmerChannel.hpp>
 #include <Rendering/Glimmer/GlimmerHelpers.hpp>
 
@@ -104,9 +105,9 @@ private:
     Handle<Texture> m_ground;
     Handle<Texture> m_groundAlbedo;
 
-    GpuBufferRef m_terrainPatchesBuffer;
+    StructuredBuffer m_terrainPatchesBuffer;
 
-    GpuBufferRef m_groundCoverAlbedoBuffer;
+    RWStructuredBuffer m_groundCoverAlbedoBuffer;
     bool m_hasClearedGroundCover;
     Vec4f m_groundCoverCoverage;
 

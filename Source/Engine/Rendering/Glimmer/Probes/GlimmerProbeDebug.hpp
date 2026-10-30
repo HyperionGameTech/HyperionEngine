@@ -7,6 +7,7 @@
 #pragma once
 
 #include <Rendering/RenderTypes.hpp>
+#include <Rendering/RawBuffer.hpp>
 
 #include <Core/Containers/FixedArray.hpp>
 
@@ -41,7 +42,7 @@ public:
 private:
     void CreateResources(uint32 numRecords);
 
-    GpuBufferRef m_recordsBuffer;
+    RWStructuredBuffer m_recordsBuffer;
     uint32 m_numRecords;
     FixedArray<GpuBufferRef, NumFramesInFlight> m_readbackBuffers;
     FixedArray<bool, NumFramesInFlight> m_isPending;

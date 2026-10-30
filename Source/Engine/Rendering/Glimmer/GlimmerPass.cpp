@@ -153,7 +153,7 @@ void LogStartupStages(GlimmerScenePassData& scene, uint32 numCompiling)
         HYP_LOG(Rendering, Info, "Glimmer start: every mesh's triangles at {} ms, frame {} ({} builds)", uint32(ms), frames, instancesStats.numBuilds);
     }
 
-    if (checkReached(GlimmerStartupStage::Spans, scene.spanCache && scene.spanCache->GetSpansBuffer().IsValid()))
+    if (checkReached(GlimmerStartupStage::Spans, scene.spanCache && scene.spanCache->GetSpansBuffer().IsInitialized()))
     {
         HYP_LOG(Rendering, Info, "Glimmer start: spans at {} ms, frame {}", uint32(ms), frames);
     }
@@ -502,7 +502,7 @@ void GlimmerPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
         context.channelState = &channelState;
         context.channel = channel.Get();
         context.surfaceCache = scene->surfaceCache.Get();
-        context.spanCache = scene->spanCache->GetSpansBuffer().IsValid() ? scene->spanCache.Get() : nullptr;
+        context.spanCache = scene->spanCache->GetSpansBuffer().IsInitialized() ? scene->spanCache.Get() : nullptr;
         context.updateLighting = g_cvGlimmerEnabled.Get() && channelState.hasViewer;
     }
 
@@ -589,7 +589,7 @@ bool GlimmerPass::RenderDebugView(Frame* frame, const RenderSetup& renderSetup, 
     context.triangleCache = scene->triangleCache.Get();
     context.sceneInstances = scene->sceneInstances.Get();
     context.surfaceCache = scene->surfaceCache.Get();
-    context.spanCache = scene->spanCache->GetSpansBuffer().IsValid() ? scene->spanCache.Get() : nullptr;
+    context.spanCache = scene->spanCache->GetSpansBuffer().IsInitialized() ? scene->spanCache.Get() : nullptr;
     context.outputImageView = RI.textureViewCache->GetOrCreate(viewData->debugTexture);
     context.extent = extent;
     context.techniqueView = debugView - int(GlimmerDebugView::TechniqueFirst) + 1;

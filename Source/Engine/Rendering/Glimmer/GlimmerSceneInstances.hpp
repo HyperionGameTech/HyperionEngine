@@ -7,6 +7,7 @@
 #pragma once
 
 #include <Rendering/RenderTypes.hpp>
+#include <Rendering/RawBuffer.hpp>
 
 #include <Rendering/Glimmer/GlimmerMemory.hpp>
 
@@ -156,27 +157,27 @@ public:
 
     HYP_FORCE_INLINE bool IsReady() const
     {
-        return m_spanInstancesBuffer.IsValid();
+        return m_spanInstancesBuffer.IsInitialized();
     }
 
-    HYP_FORCE_INLINE const GpuBufferRef& GetSpanInstancesBuffer() const
+    HYP_FORCE_INLINE const StructuredBuffer& GetSpanInstancesBuffer() const
     {
         return m_spanInstancesBuffer;
     }
 
-    HYP_FORCE_INLINE const GpuBufferRef& GetTLASNodesBuffer() const
+    HYP_FORCE_INLINE const StructuredBuffer& GetTLASNodesBuffer() const
     {
         return m_tlasNodesBuffer;
     }
 
-    HYP_FORCE_INLINE const GpuBufferRef& GetTracedInstancesBuffer() const
+    HYP_FORCE_INLINE const StructuredBuffer& GetTracedInstancesBuffer() const
     {
         return m_tracedInstancesBuffer;
     }
 
     HYP_FORCE_INLINE bool HasTLAS() const
     {
-        return m_tlasNodesBuffer.IsValid() && m_numTracedInstances != 0;
+        return m_tlasNodesBuffer.IsInitialized() && m_numTracedInstances != 0;
     }
 
     HYP_FORCE_INLINE uint32 GetNumTracedInstances() const
@@ -189,7 +190,7 @@ public:
         return m_tlasDepth;
     }
 
-    HYP_FORCE_INLINE const GpuBufferRef& GetSpanChunksBuffer() const
+    HYP_FORCE_INLINE const StructuredBuffer& GetSpanChunksBuffer() const
     {
         return m_spanChunksBuffer;
     }
@@ -337,12 +338,12 @@ private:
     void Upload(Frame* frame, BuildResult& result);
     void UploadTLAS(Frame* frame, BuildResult& result);
 
-    GpuBufferRef m_spanInstancesBuffer;
-    GpuBufferRef m_spanChunksBuffer;
+    StructuredBuffer m_spanInstancesBuffer;
+    StructuredBuffer m_spanChunksBuffer;
     
-    GpuBufferRef m_tlasNodesBuffer;
+    StructuredBuffer m_tlasNodesBuffer;
     
-    GpuBufferRef m_tracedInstancesBuffer;
+    StructuredBuffer m_tracedInstancesBuffer;
     uint32 m_numTracedInstances = 0;
 
     uint32 m_tlasDepth = 0;

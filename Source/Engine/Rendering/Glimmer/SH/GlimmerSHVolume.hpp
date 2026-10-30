@@ -7,6 +7,7 @@
 #pragma once
 
 #include <Rendering/RenderTypes.hpp>
+#include <Rendering/RawBuffer.hpp>
 
 #include <Rendering/Glimmer/GlimmerHelpers.hpp>
 
@@ -75,7 +76,7 @@ struct GlimmerSHVolumeUpdateInputs
 
     const GlimmerSHOccupancyShaderData* occupancy = nullptr;
     GpuImageViewRef occupancyImageView;
-    GpuBufferRef occupancyMaskBuffer;
+    const RWStructuredBuffer* occupancyMaskBuffer = nullptr;
     bool isOccupancySettled = true;
 
     const GlimmerRelightShaderData* relight = nullptr;
@@ -117,7 +118,7 @@ public:
     const GpuImageViewRef& GetStateImageView() const;
     const GpuImageViewRef& GetRadianceImageView() const;
 
-    HYP_FORCE_INLINE const GpuBufferRef& GetLightBuffer() const
+    HYP_FORCE_INLINE const RWStructuredBuffer& GetLightBuffer() const
     {
         return m_lightBuffer;
     }
@@ -180,7 +181,7 @@ private:
     Handle<Texture> m_dataTexture;      // sky visibility L1
     Handle<Texture> m_stateTexture;
     Handle<Texture> m_radianceTexture;  // L1 of incoming radiance; R, G and B side by side along x
-    GpuBufferRef m_lightBuffer;
+    RWStructuredBuffer m_lightBuffer;
 
     FixedArray<Cascade, GlimmerSHCascades> m_cascades;
 

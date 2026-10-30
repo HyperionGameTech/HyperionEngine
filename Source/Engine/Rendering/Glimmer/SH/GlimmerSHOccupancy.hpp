@@ -7,6 +7,7 @@
 #pragma once
 
 #include <Rendering/RenderTypes.hpp>
+#include <Rendering/RawBuffer.hpp>
 #include <Rendering/Glimmer/SH/GlimmerSHVolume.hpp>
 #include <Rendering/Glimmer/GlimmerHelpers.hpp>
 
@@ -63,7 +64,7 @@ public:
         const GlimmerSceneInstances& sceneInstances,
         const GlimmerTriangleCache& triangleCache,
         const GlimmerLightmapPages& lightmapPages,
-        GpuBuffer& scratchBuffer);
+        RWStructuredBuffer& scratchBuffer);
 
     HYP_FORCE_INLINE const GlimmerSHOccupancyShaderData& GetShaderData() const
     {
@@ -78,7 +79,7 @@ public:
 
     const GpuImageViewRef& GetImageView() const;
 
-    HYP_FORCE_INLINE const GpuBufferRef& GetMaskBuffer() const
+    HYP_FORCE_INLINE const RWStructuredBuffer& GetMaskBuffer() const
     {
         return m_maskBuffer;
     }
@@ -104,8 +105,8 @@ private:
     void SetBuilt(uint32 cascadeIndex, const Vec3i& origin);
 
     Handle<Texture> m_texture;
-    GpuBufferRef m_maskBuffer;
-    GpuBuffer* m_albedoSumsBuffer; // the technique's scratch buffer, for the frame it is splatted in
+    RWStructuredBuffer m_maskBuffer;
+    const RWStructuredBuffer* m_albedoSumsBuffer; // the technique's scratch buffer, for the frame it is splatted in
 
     GlimmerLightmapPages m_lightmapPages;
 

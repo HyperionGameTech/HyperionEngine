@@ -154,10 +154,10 @@ uint32 GlimmerTechnique::BindApplyResources(CommandRecorder& cr, uint32 uniformI
     if (probeVolume)
     {
         // placeholders until the volume has buffers
-        cr << SetShaderUniform(uniformIndex++, "GlimmerProbeBlockTableBuffer"_sh, probeVolume->GetBlockTableBuffer().Get(), ShaderDataOffset(0, sizeof(uint32)));
-        cr << SetShaderUniform(uniformIndex++, "GlimmerProbeSHBuffer"_sh, probeVolume->GetSHBuffer().Get(), ShaderDataOffset(0, sizeof(Vec4f)));
-        cr << SetShaderUniform(uniformIndex++, "GlimmerProbeStatesBuffer"_sh, probeVolume->GetStatesBuffer().Get(), ShaderDataOffset(0, sizeof(Vec4u)));
-        cr << SetShaderUniform(uniformIndex++, "GlimmerProbeVisibilityBuffer"_sh, probeVolume->GetVisibilityBuffer().Get(), ShaderDataOffset(0, sizeof(uint32)));
+        cr << SetShaderUniform(uniformIndex++, "GlimmerProbeBlockTableBuffer"_sh, probeVolume->GetBlockTableBuffer());
+        cr << SetShaderUniform(uniformIndex++, "GlimmerProbeSHBuffer"_sh, probeVolume->GetSHBuffer());
+        cr << SetShaderUniform(uniformIndex++, "GlimmerProbeStatesBuffer"_sh, probeVolume->GetStatesBuffer());
+        cr << SetShaderUniform(uniformIndex++, "GlimmerProbeVisibilityBuffer"_sh, probeVolume->GetVisibilityBuffer());
     }
     else
     {
@@ -191,7 +191,7 @@ GlimmerTechnique::GlimmerTechnique()
 
 GlimmerTechnique::~GlimmerTechnique()
 {
-    EnqueueDeletion(std::move(m_scratchBuffer));
+    m_scratchBuffer.Shutdown();
 }
 
 void GlimmerTechnique::ResetLighting()
@@ -241,12 +241,12 @@ void GlimmerTechnique::Update(const GlimmerTechniqueUpdateContext& context)
 
     if (context.updateLighting && context.surfaceCache && context.spanCache)
     {
-        if (!m_scratchBuffer.IsValid())
+        if (!m_scratchBuffer.IsInitialized())
         {
-            m_scratchBuffer = GlimmerHelpers::CreateGlimmerRWBuffer(16, alignof(Vec4f));
+            m_scratchBuffer = GlimmerHelpers::CreateGlimmerRWBuffer(sizeof(uint32), 4);
 
 #ifdef HYP_RHI_DEBUG_NAMES
-            m_scratchBuffer->SetDebugName(NAME("GlimmerScratch"));
+            m_scratchBuffer.gpuBuffer->SetDebugName(NAME("GlimmerScratch"));
 #endif
         }
 
@@ -321,7 +321,7 @@ void GlimmerTechnique::Update(const GlimmerTechniqueUpdateContext& context)
             sceneInstances,
             *context.triangleCache,
             lightmapPages,
-            *m_scratchBuffer);
+            m_scratchBuffer);
 
         GlimmerSHVolumeUpdateInputs shInputs;
         shInputs.viewerPosition = context.channelState->viewerPosition;
@@ -331,7 +331,7 @@ void GlimmerTechnique::Update(const GlimmerTechniqueUpdateContext& context)
         shInputs.spanCache = context.spanCache;
         shInputs.occupancy = &m_shOccupancy->GetShaderData();
         shInputs.occupancyImageView = m_shOccupancy->GetImageView();
-        shInputs.occupancyMaskBuffer = m_shOccupancy->GetMaskBuffer();
+        shInputs.occupancyMaskBuffer = &m_shOccupancy->GetMaskBuffer();
         shInputs.isOccupancySettled = m_shOccupancy->IsSettled();
         shInputs.relight = &m_relight->GetShaderData();
         shInputs.sceneInstances = context.sceneInstances;
@@ -362,7 +362,7 @@ void GlimmerTechnique::Update(const GlimmerTechniqueUpdateContext& context)
         probeInputs.cloudPass = context.cloudPass;
         probeInputs.light = light;
         probeInputs.localLights = m_localLights.Get();
-        probeInputs.scratchBuffer = m_scratchBuffer.Get();
+        probeInputs.scratchBuffer = &m_scratchBuffer;
 
         if (probesEnabled)
         {
@@ -417,7 +417,7 @@ bool GlimmerTechnique::RenderDebugView(const GlimmerDebugViewContext& context)
         return false;
     }
 
-    if (!m_shOccupancy->GetMaskBuffer().IsValid())
+    if (!m_shOccupancy->GetMaskBuffer().IsInitialized())
     {
         return false;
     }
@@ -460,14 +460,14 @@ bool GlimmerTechnique::RenderDebugView(const GlimmerDebugViewContext& context)
     cr << SetShaderUniform(uniformIndex++, "MaterialsBuffer"_sh, RI.namedBuffers[NamedBuffer::Materials]);
     cr << SetShaderUniform(uniformIndex++, "SamplerLinearMipmap"_sh, RI.placeholderData->GetSamplerLinearMipmap());
     cr << SetShaderUniform(uniformIndex++, "GlimmerGroundTexture"_sh, context.surfaceCache->GetGroundImageView());
-    cr << SetShaderUniform(uniformIndex++, "GlimmerSpansBuffer"_sh, context.spanCache->GetSpansBuffer().Get(), ShaderDataOffset(0, sizeof(uint32)));
-    cr << SetShaderUniform(uniformIndex++, "GlimmerHeightBoundsBuffer"_sh, context.spanCache->GetHeightBoundsBuffer().Get(), ShaderDataOffset(0, sizeof(float)));
+    cr << SetShaderUniform(uniformIndex++, "GlimmerSpansBuffer"_sh, context.spanCache->GetSpansBuffer());
+    cr << SetShaderUniform(uniformIndex++, "GlimmerHeightBoundsBuffer"_sh, context.spanCache->GetHeightBoundsBuffer());
     cr << SetShaderUniform(uniformIndex++, "GlimmerGroundAlbedoTexture"_sh, context.surfaceCache->GetGroundAlbedoImageView());
 
     const GpuImageViewRef& occupancyImageView = m_shOccupancy->GetImageView();
 
     cr << SetShaderUniform(uniformIndex++, "GlimmerSHOccupancyTexture"_sh, occupancyImageView.IsValid() ? occupancyImageView : RI.placeholderData->GetImageView3D1x1x1R8());
-    cr << SetShaderUniform(uniformIndex++, "GlimmerSHOccupancyMaskBuffer"_sh, m_shOccupancy->GetMaskBuffer().Get(), ShaderDataOffset(0, sizeof(uint32)));
+    cr << SetShaderUniform(uniformIndex++, "GlimmerSHOccupancyMaskBuffer"_sh, m_shOccupancy->GetMaskBuffer());
 
     cr << DispatchCompute(Vec3u { (extent.x + 7) / 8, (extent.y + 7) / 8, 1 });
     

@@ -110,11 +110,8 @@ public:
     {
         if (this != &other)
         {
-            if (gpuBuffer)
-            {
-                gpuBuffer->Release();
-                gpuBuffer = nullptr;
-            }
+            // the old buffer may still be in use by frames in flight
+            Shutdown();
 
             gpuBuffer = other.gpuBuffer;
             other.gpuBuffer = nullptr;
@@ -330,8 +327,8 @@ protected:
 class StructuredBuffer : public RawBuffer
 {
 protected:
-    StructuredBuffer(GpuBufferType bufferType, size_t numElements, size_t elementSize)
-        : RawBuffer(bufferType, numElements, elementSize)
+    StructuredBuffer(GpuBufferType bufferType, size_t numElements, size_t elementSize, EnumFlags<RawBufferFlags> flags)
+        : RawBuffer(bufferType, numElements, elementSize, 16, flags)
     {
     }
 
@@ -340,8 +337,8 @@ public:
 
     StructuredBuffer() = default;
 
-    explicit StructuredBuffer(size_t numElements, size_t elementSize)
-        : RawBuffer(GpuBufferType::StructuredBuffer, numElements, elementSize)
+    explicit StructuredBuffer(size_t numElements, size_t elementSize, EnumFlags<RawBufferFlags> flags = RawBufferFlags::Default)
+        : RawBuffer(GpuBufferType::StructuredBuffer, numElements, elementSize, 16, flags)
     {
     }
 
@@ -367,8 +364,8 @@ public:
 
     RWStructuredBuffer() = default;
 
-    RWStructuredBuffer(size_t numElements, size_t elementSize)
-        : StructuredBuffer(GpuBufferType::RWStructuredBuffer, numElements, elementSize)
+    RWStructuredBuffer(size_t numElements, size_t elementSize, EnumFlags<RawBufferFlags> flags = RawBufferFlags::Default)
+        : StructuredBuffer(GpuBufferType::RWStructuredBuffer, numElements, elementSize, flags)
     {
     }
 
@@ -421,8 +418,8 @@ public:
 
     IndirectArgsBuffer() = default;
 
-    IndirectArgsBuffer(size_t numElements, size_t elementSize)
-        : RawBuffer(GpuBufferType::IndirectArgsBuffer, numElements, elementSize)
+    IndirectArgsBuffer(size_t numElements, size_t elementSize, EnumFlags<RawBufferFlags> flags = RawBufferFlags::Default)
+        : RawBuffer(GpuBufferType::IndirectArgsBuffer, numElements, elementSize, 16, flags)
     {
     }
 

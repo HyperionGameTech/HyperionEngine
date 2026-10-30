@@ -7,6 +7,7 @@
 #pragma once
 
 #include <Rendering/RenderTypes.hpp>
+#include <Rendering/RawBuffer.hpp>
 #include <Rendering/Glimmer/GlimmerChannel.hpp>
 #include <Rendering/Glimmer/GlimmerHelpers.hpp>
 
@@ -55,9 +56,12 @@ public:
         return m_shaderData;
     }
 
-    const GpuBufferRef& GetSpansBuffer() const;
+    HYP_FORCE_INLINE const RWStructuredBuffer& GetSpansBuffer() const
+    {
+        return m_spansBuffer;
+    }
 
-    HYP_FORCE_INLINE const GpuBufferRef& GetHeightBoundsBuffer() const
+    HYP_FORCE_INLINE const RWStructuredBuffer& GetHeightBoundsBuffer() const
     {
         return m_heightBoundsBuffer;
     }
@@ -90,9 +94,9 @@ private:
 
     void UpdateHeightBounds(Frame* frame, const GlimmerChannelState& state, const GlimmerSurfaceCache& surfaceCache);
 
-    GpuBufferRef m_spansBuffer;
+    RWStructuredBuffer m_spansBuffer;
 
-    GpuBufferRef m_heightBoundsBuffer;
+    RWStructuredBuffer m_heightBoundsBuffer;
     Rect m_filledRects[GlimmerGroundLevels];
     Rect m_lastFilledRects[GlimmerGroundLevels];
     Vec2i m_boundsWindowOrigins[GlimmerGroundLevels];

@@ -7,6 +7,7 @@
 #pragma once
 
 #include <Rendering/RenderTypes.hpp>
+#include <Rendering/RawBuffer.hpp>
 #include <Rendering/RenderHelpers.hpp>
 #include <Rendering/Glimmer/GlimmerHelpers.hpp>
 
@@ -129,7 +130,7 @@ public:
 
     HYP_FORCE_INLINE bool IsReady() const
     {
-        return m_tableBuffer.IsValid() && m_shaderData.origin.w != 0;
+        return m_tableBuffer.IsInitialized() && m_shaderData.origin.w != 0;
     }
 
     // every chunk of the window built for the scene as it is
@@ -148,17 +149,17 @@ public:
         return m_shaderData;
     }
 
-    HYP_FORCE_INLINE const GpuBufferRef& GetTableBuffer() const
+    HYP_FORCE_INLINE const RWStructuredBuffer& GetTableBuffer() const
     {
         return m_tableBuffer;
     }
 
-    HYP_FORCE_INLINE const GpuBufferRef& GetIndexBuffer() const
+    HYP_FORCE_INLINE const RWStructuredBuffer& GetIndexBuffer() const
     {
         return m_indexBuffer;
     }
 
-    HYP_FORCE_INLINE const GpuBufferRef& GetCrossingsBuffer() const
+    HYP_FORCE_INLINE const RWStructuredBuffer& GetCrossingsBuffer() const
     {
         return m_crossingsBuffer;
     }
@@ -168,7 +169,7 @@ public:
         return m_pools.y * GlimmerBrickPageCrossings;
     }
 
-    HYP_FORCE_INLINE const GpuBufferRef& GetMaterialBuffer() const
+    HYP_FORCE_INLINE const RWStructuredBuffer& GetMaterialBuffer() const
     {
         return m_materialBuffer;
     }
@@ -230,7 +231,7 @@ private:
 
     struct PoolBuffer
     {
-        GpuBufferRef GlimmerBrickWorld::* buffer;
+        RWStructuredBuffer GlimmerBrickWorld::* buffer;
         uint32 pool;
         uint32 wordsPerItem;
         bool isLitOnly;
@@ -267,20 +268,20 @@ private:
 
     static uint32 ChunkSlot(const Vec3i& coord);
 
-    GpuBufferRef m_tableBuffer;
-    GpuBufferRef m_indexBuffer;
-    GpuBufferRef m_crossingsBuffer;
-    GpuBufferRef m_materialBuffer;
-    GpuBufferRef m_countersBuffer;
-    GpuBufferRef m_freeListBuffer;
-    GpuBufferRef m_pageFreeListBuffer;
-    GpuBufferRef m_cardFreeListBuffer;
-    GpuBufferRef m_radianceBuffer;
-    GpuBufferRef m_crossingLightBuffer;
-    GpuBufferRef m_listNodesBuffer;
-    GpuBufferRef m_liveListBuffer;
-    GpuBufferRef m_dispatchArgsBuffer;
-    GpuBufferRef m_placeholderBuffer;
+    RWStructuredBuffer m_tableBuffer;
+    RWStructuredBuffer m_indexBuffer;
+    RWStructuredBuffer m_crossingsBuffer;
+    RWStructuredBuffer m_materialBuffer;
+    RWStructuredBuffer m_countersBuffer;
+    RWStructuredBuffer m_freeListBuffer;
+    RWStructuredBuffer m_pageFreeListBuffer;
+    RWStructuredBuffer m_cardFreeListBuffer;
+    RWStructuredBuffer m_radianceBuffer;
+    RWStructuredBuffer m_crossingLightBuffer;
+    RWStructuredBuffer m_listNodesBuffer;
+    RWStructuredBuffer m_liveListBuffer;
+    IndirectArgsBuffer m_dispatchArgsBuffer;
+    RWStructuredBuffer m_placeholderBuffer;
 
     FixedArray<GpuBufferRef, NumFramesInFlight> m_readbackBuffers;
     FixedArray<FixedArray<ChunkBuild, GlimmerBrickMaxChunkBuildsPerFrame>, NumFramesInFlight> m_pendingBuilds;

@@ -7,6 +7,7 @@
 #pragma once
 
 #include <Rendering/RenderTypes.hpp>
+#include <Rendering/RawBuffer.hpp>
 #include <Rendering/Shared.hpp>
 
 #include <Rendering/Glimmer/GlimmerMemory.hpp>
@@ -137,11 +138,14 @@ Vec3i GetGlimmerProbeWindowOrigin(const Vec3f& viewerPosition, const Vec3f& look
 
 Vec4f MakeGlimmerRandomRotation(uint32 seed);
 
-/// @TODO: Return a `StructuredBuffer`!
-GpuBufferRef CreateGlimmerStructuredBuffer(size_t elementSize, size_t numElements);
-GpuBufferRef CreateGlimmerRWBuffer(size_t byteSize, size_t alignment);
+// GPU only: written by shaders, or by staging copies recorded with the frame. elementSize is the stride the shaders declare.
+StructuredBuffer CreateGlimmerStructuredBuffer(size_t elementSize, size_t numElements);
+RWStructuredBuffer CreateGlimmerRWBuffer(size_t elementSize, size_t numElements);
 
-void ClearGlimmerBuffer(GpuBuffer* buffer);
+void ClearGlimmerBuffer(const RawBuffer& buffer);
+
+// grows \p buffer to at least \p byteSize, without keeping what it held
+void EnsureGlimmerBufferCapacity(RawBuffer& buffer, size_t byteSize);
 
 Handle<Texture> CreateGlimmerStorageTexture(TextureType type, TextureFormat format, const Vec3u& extent, uint16 numLayers, Name name, TextureWrapMode wrapMode = TextureWrapMode::Repeat);
 

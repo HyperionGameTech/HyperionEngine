@@ -7,6 +7,7 @@
 #pragma once
 
 #include <Rendering/RenderTypes.hpp>
+#include <Rendering/RawBuffer.hpp>
 #include <Rendering/Glimmer/GlimmerMemory.hpp>
 
 #include <Core/Containers/Array.hpp>
@@ -215,34 +216,34 @@ public:
         return m_lodErrorScale;
     }
 
-    HYP_FORCE_INLINE const GpuBufferRef& GetNodesBuffer() const
+    HYP_FORCE_INLINE const StructuredBuffer& GetNodesBuffer() const
     {
         return m_nodesBuffer;
     }
 
     HYP_FORCE_INLINE bool HasBLAS() const
     {
-        return m_nodesBuffer.IsValid();
+        return m_nodesBuffer.IsInitialized();
     }
 
-    HYP_FORCE_INLINE const GpuBufferRef& GetTrianglesBuffer() const
+    HYP_FORCE_INLINE const StructuredBuffer& GetTrianglesBuffer() const
     {
         return m_trianglesBuffer;
     }
 
-    HYP_FORCE_INLINE const GpuBufferRef& GetTexcoordsBuffer() const
+    HYP_FORCE_INLINE const StructuredBuffer& GetTexcoordsBuffer() const
     {
         return m_texcoordsBuffer;
     }
 
-    HYP_FORCE_INLINE const GpuBufferRef& GetLightmapUVsBuffer() const
+    HYP_FORCE_INLINE const StructuredBuffer& GetLightmapUVsBuffer() const
     {
         return m_lightmapUVsBuffer;
     }
 
     HYP_FORCE_INLINE bool IsReady() const
     {
-        return m_trianglesBuffer.IsValid();
+        return m_trianglesBuffer.IsInitialized();
     }
 
     GlimmerTriangleCacheStats GetStats() const;
@@ -343,10 +344,10 @@ private:
     uint32 m_numBuildThreads;
     UniquePtr<TaskThreadPool> m_buildPool;
 
-    GpuBufferRef m_nodesBuffer;
-    GpuBufferRef m_trianglesBuffer;
-    GpuBufferRef m_lightmapUVsBuffer;
-    GpuBufferRef m_texcoordsBuffer;
+    StructuredBuffer m_nodesBuffer;
+    StructuredBuffer m_trianglesBuffer;
+    StructuredBuffer m_lightmapUVsBuffer;
+    StructuredBuffer m_texcoordsBuffer;
 
     GlimmerPoolAllocator m_nodeAllocator;
     GlimmerPoolAllocator m_triangleAllocator;
