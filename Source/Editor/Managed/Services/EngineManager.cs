@@ -91,6 +91,8 @@ namespace Hyperion.Editor
                 "-RenderOnMainThread=false"
             ];
 
+            args.AddRange(Environment.GetCommandLineArgs().Skip(1));
+
             int argc = args.Count;
             IntPtr argv = IntPtr.Zero;
             IntPtr[] argsPtrs = new IntPtr[argc];

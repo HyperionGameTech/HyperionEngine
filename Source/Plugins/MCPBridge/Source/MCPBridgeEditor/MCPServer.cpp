@@ -8,6 +8,8 @@
 #include "MCPProtocol.hpp"
 #include "MCPJsonConvert.hpp"
 
+#include <Core/Core.hpp>
+
 #include <Core/Utilities/StringUtil.hpp>
 
 #include <Core/Threading/Threads.hpp>
@@ -56,14 +58,31 @@ constexpr uint32 RequestReadTimeoutMs = 15 * 1000;                      // whole
 constexpr uint64 AcceptPollIntervalMs = 50;
 constexpr uint64 SelectTimeoutUs = 200 * 1000;                          // poll m_running periodically
 
-uint16 ResolvePortFromEnv()
+CommandLineArgumentRegistration g_argMcpPort {
+    "mcpport",
+    {},
+    "Port the MCP bridge listens on (overrides HYPERION_MCP_PORT)",
+    CommandLineArgumentFlags::NONE,
+    CommandLineArgumentType::INTEGER
+};
+
+uint16 ResolvePort()
 {
     uint16 port = DefaultPort;
-
 
     if (const char* value = std::getenv("HYPERION_MCP_PORT"))
     {
         int parsed = atoi(value);
+        if (parsed > 0 && parsed < 65536)
+        {
+            port = uint16(parsed);
+        }
+    }
+
+    if (const CommandLineArgumentValue portArgument = CoreApi::ParseCommandLineArguments()["mcpport"]; portArgument.IsNumber())
+    {
+        const int32 parsed = portArgument.ToInt32();
+
         if (parsed > 0 && parsed < 65536)
         {
             port = uint16(parsed);
@@ -186,7 +205,7 @@ MCPServer& MCPServer::GetInstance()
 
 bool MCPServer::AutoStart()
 {
-    return Start(ResolvePortFromEnv());
+    return Start(ResolvePort());
 }
 
 bool MCPServer::Start(uint16 port)

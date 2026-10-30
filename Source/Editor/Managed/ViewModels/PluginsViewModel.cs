@@ -203,7 +203,10 @@ namespace Hyperion.Editor.ViewModels
                 return;
             }
 
-            List<(string Name, bool IsEnabled)> choices = Plugins.Select(item => (item.Name, item.IsEnabled)).ToList();
+            List<(string Name, bool IsEnabled)> choices = Plugins
+                .Where(item => _openedWith.TryGetValue(item.Name, out bool wasEnabled) && wasEnabled != item.IsEnabled)
+                .Select(item => (item.Name, item.IsEnabled))
+                .ToList();
 
             await EngineManager.PostToSimThread(() =>
             {

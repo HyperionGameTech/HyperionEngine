@@ -13,6 +13,7 @@
 #include <Editor/EditorViewport.hpp>
 
 #include <Framework/Game.hpp>
+#include <Framework/EngineGlobals.hpp>
 
 #include <Framework/Threads/SimThread.hpp>
 
@@ -23,6 +24,8 @@
 #include <Scene/Scene.hpp>
 #include <Scene/EntityManager.hpp>
 #include <Scene/EntityTag.hpp>
+
+#include <Core/Core.hpp>
 
 #include <EditorState.generated.inl>
 
@@ -41,6 +44,14 @@ static constexpr const char* RecentProjectsOpenedConfigKey = "Projects.RecentOpe
 static constexpr const char* RecentProjectsPinnedConfigKey = "Projects.RecentPinned";
 static constexpr const char* AlwaysOpenLastProjectConfigKey = "Projects.AlwaysOpenLastProject";
 static constexpr uint32 MaxRecentProjects = 10;
+
+CommandLineArgumentRegistration g_argProject {
+    "project",
+    {},
+    "The project (directory or .hypproject file) the editor opens at startup",
+    CommandLineArgumentFlags::NONE,
+    CommandLineArgumentType::STRING
+};
 
 struct ProjectLoadStageInfo
 {
@@ -476,6 +487,14 @@ void EditorState::SetAlwaysOpenLastProject(bool alwaysOpenLastProject)
 
 String EditorState::GetStartupProjectPath() const
 {
+    if (!EngineGlobals::IsHeadless())
+    {
+        if (const CommandLineArgumentValue& projectArgument = CoreApi::GetCommandLineArguments()["project"]; projectArgument.IsString())
+        {
+            return NormalizeProjectFilepath(projectArgument.ToString());
+        }
+    }
+
     Mutex::Guard guard(m_recentProjectsMutex);
 
     if (!m_alwaysOpenLastProject || m_recentProjects.Empty())

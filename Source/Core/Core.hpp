@@ -23,6 +23,8 @@ CORE_API bool Initialize(int argc, char** argv);
 CORE_API const CommandLineArguments& GetCommandLineArguments();
 CORE_API const CommandLineArgumentDefinitions& DefaultCommandLineArgumentDefinitions();
 
+CORE_API CommandLineArguments ParseCommandLineArguments();
+
 CORE_API const GlobalConfig& GetGlobalConfig();
 CORE_API void UpdateGlobalConfig(const ConfigBase& mergeValues);
 
