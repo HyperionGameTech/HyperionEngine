@@ -870,9 +870,21 @@ namespace Hyperion.Editor
 
             // Any open dynamic panel tabs belong to the layout tree being torn down here -
             // close them so their view models don't linger with stale Tool references.
+            // No sync while closing, or it would find and cache the old layout's DynamicPanelsPane
             _dynamicPanelsDock = null;
             _dynamicPanelTools.Clear();
-            PanelService.Instance.ClosePanel();
+
+            _suppressPanelSync = true;
+
+            try
+            {
+                PanelService.Instance.ClosePanel();
+            }
+            finally
+            {
+                _suppressPanelSync = false;
+            }
+
             _pluginDocuments.Clear();
             _savedBottomProportions = null;
 
