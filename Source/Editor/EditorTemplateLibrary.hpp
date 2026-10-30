@@ -24,7 +24,14 @@ class AssetObject;
 class EDITOR_API EditorTemplateLibrary final
 {
 public:
+    // where SaveTemplate writes the user's templates
     static const FilePath& GetDirectory();
+
+    // GetDirectory, then the Templates folder of each enabled plugin; the first with a template of a name provides it
+    static Array<FilePath> GetSearchDirectories();
+
+    // empty when no search directory has the template
+    static FilePath FindTemplateDirectory(Name templateName);
 
     static Array<Name> GetTemplateNames();
 

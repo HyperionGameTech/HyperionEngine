@@ -1452,6 +1452,20 @@ endif()
 
 target_link_libraries(${BUILD_NAME} PRIVATE Jolt::Jolt)
 
+# plugin libraries share the engine's physics system, so the engine exports the Jolt it links
+if(HYP_DYNAMIC_PLUGINS)
+  target_compile_definitions(Jolt PUBLIC JPH_SHARED_LIBRARY PRIVATE JPH_BUILD_SHARED_LIBRARY)
+  target_compile_definitions(${ENGINE_OBJECTS_NAME} PRIVATE JPH_BUILD_SHARED_LIBRARY)
+
+  if(HYP_MSVC OR HYP_CLANG_WINDOWS)
+    target_link_options(${BUILD_NAME} PRIVATE "/WHOLEARCHIVE:$<TARGET_FILE:Jolt>")
+  elseif(APPLE)
+    target_link_options(${BUILD_NAME} PRIVATE "LINKER:-force_load,$<TARGET_FILE:Jolt>")
+  else()
+    target_link_options(${BUILD_NAME} PRIVATE "LINKER:--whole-archive,$<TARGET_FILE:Jolt>,--no-whole-archive")
+  endif()
+endif()
+
 if(HYP_MONOLITHIC AND NOT HYP_BUILD_STATIC)
   # whole archive so reflection registration and exports in unreferenced objects are kept
   add_dependencies(${BUILD_NAME} hyperion-core hyperion-net)
@@ -1590,6 +1604,9 @@ if(HYP_EDITOR)
   else()
     target_link_libraries(${BUILD_NAME} PRIVATE -Wl,--whole-archive $<TARGET_FILE:hyperion-editor> -Wl,--no-whole-archive)
   endif()
+
+  # a whole-archive link option isn't a file dependency, so without this an editor-only change never relinks the engine
+  set_property(TARGET ${BUILD_NAME} APPEND PROPERTY LINK_DEPENDS $<TARGET_FILE:hyperion-editor>)
 endif()
 
 foreach(plugin_module ${HYP_PLUGIN_MODULES})

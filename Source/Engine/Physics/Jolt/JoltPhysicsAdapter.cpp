@@ -37,6 +37,7 @@
 #include <Jolt/Physics/Body/MotionType.h>
 #include <Jolt/Physics/Collision/BroadPhase/BroadPhaseLayer.h>
 #include <Jolt/Physics/Collision/ObjectLayer.h>
+#include <Jolt/Physics/Collision/ContactListener.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
 #include <Jolt/Physics/Collision/Shape/PlaneShape.h>
@@ -60,16 +61,10 @@
 
 namespace Hyperion {
 
+static_assert(sizeof(JPH::ObjectLayer) == sizeof(uint16), "JoltLayers are declared as uint16 in JoltPhysicsAdapter.hpp");
+
 namespace /* Constants */ {
 
-
-namespace JoltLayers {
-
-static constexpr JPH::ObjectLayer NON_MOVING = 0;
-static constexpr JPH::ObjectLayer MOVING = 1;
-static constexpr JPH::ObjectLayer NUM_LAYERS = 2;
-
-} // namespace JoltLayers
 
 static constexpr float CharacterSteerMinSpeed = 0.5f;
 static constexpr float CharacterWalkTurnRate = MathUtil::DegToRad(1080.0f);
@@ -401,7 +396,7 @@ public:
     {
         JPH_ASSERT(layer < JoltLayers::NUM_LAYERS);
 
-        return layer == JoltLayers::MOVING ? JoltBroadPhaseMOVING : JoltBroadPhaseNON_MOVING;
+        return layer == JoltLayers::NON_MOVING ? JoltBroadPhaseNON_MOVING : JoltBroadPhaseMOVING;
     }
 
 #if defined(JPH_EXTERNAL_PROFILE) || defined(JPH_PROFILE_ENABLED)
@@ -425,8 +420,9 @@ public:
         switch (object1)
         {
         case JoltLayers::NON_MOVING:
-            return object2 == JoltLayers::MOVING;
+            return object2 != JoltLayers::NON_MOVING;
         case JoltLayers::MOVING:
+        case JoltLayers::RAGDOLL:
             return true;
         default:
             JPH_ASSERT(false);
@@ -445,10 +441,68 @@ public:
         case JoltLayers::NON_MOVING:
             return broadPhaseLayer == JoltBroadPhaseMOVING;
         case JoltLayers::MOVING:
+        case JoltLayers::RAGDOLL:
             return true;
         default:
             JPH_ASSERT(false);
             return false;
+        }
+    }
+};
+
+// characters pass through ragdolls, so one can't be blocked by its own hitboxes
+class JoltCharacterObjectLayerFilter final : public JPH::ObjectLayerFilter
+{
+public:
+    virtual bool ShouldCollide(JPH::ObjectLayer layer) const override
+    {
+        return layer != JoltLayers::RAGDOLL;
+    }
+};
+
+static JoltCharacterObjectLayerFilter s_characterObjectLayerFilter;
+
+class JoltContactListenerList final : public JPH::ContactListener
+{
+public:
+    Array<JPH::ContactListener*, PhysicsAllocator> listeners;
+
+    virtual JPH::ValidateResult OnContactValidate(const JPH::Body& inBody1, const JPH::Body& inBody2, JPH::RVec3Arg inBaseOffset, const JPH::CollideShapeResult& inCollisionResult) override
+    {
+        for (JPH::ContactListener* listener : listeners)
+        {
+            const JPH::ValidateResult result = listener->OnContactValidate(inBody1, inBody2, inBaseOffset, inCollisionResult);
+
+            if (result != JPH::ValidateResult::AcceptAllContactsForThisBodyPair)
+            {
+                return result;
+            }
+        }
+
+        return JPH::ValidateResult::AcceptAllContactsForThisBodyPair;
+    }
+
+    virtual void OnContactAdded(const JPH::Body& inBody1, const JPH::Body& inBody2, const JPH::ContactManifold& inManifold, JPH::ContactSettings& ioSettings) override
+    {
+        for (JPH::ContactListener* listener : listeners)
+        {
+            listener->OnContactAdded(inBody1, inBody2, inManifold, ioSettings);
+        }
+    }
+
+    virtual void OnContactPersisted(const JPH::Body& inBody1, const JPH::Body& inBody2, const JPH::ContactManifold& inManifold, JPH::ContactSettings& ioSettings) override
+    {
+        for (JPH::ContactListener* listener : listeners)
+        {
+            listener->OnContactPersisted(inBody1, inBody2, inManifold, ioSettings);
+        }
+    }
+
+    virtual void OnContactRemoved(const JPH::SubShapeIDPair& inSubShapePair) override
+    {
+        for (JPH::ContactListener* listener : listeners)
+        {
+            listener->OnContactRemoved(inSubShapePair);
         }
     }
 };
@@ -530,6 +584,8 @@ JoltPhysicsAdapter::JoltPhysicsAdapter()
       m_objectVsBroadPhaseLayerFilter(nullptr),
       m_characterBodyFilter(nullptr),
       m_characterVsCharacterCollision(nullptr),
+      m_contactListeners(nullptr),
+      m_numCollisionSteps(1),
       m_needsBroadphaseOptimize(false)
 {
 }
@@ -613,6 +669,31 @@ void JoltPhysicsAdapter::Init(PhysicsWorldBase* world)
         *static_cast<JoltObjectLayerPairFilter*>(m_objectLayerPairFilter));
 
     m_physicsSystem->SetGravity(ToJPHVec(world->GetGravity()));
+
+    m_contactListeners = new JoltContactListenerList();
+    m_physicsSystem->SetContactListener(m_contactListeners);
+}
+
+void JoltPhysicsAdapter::AddContactListener(JPH::ContactListener* listener)
+{
+    Assert(m_contactListeners != nullptr);
+
+    JoltContactListenerList* contactListeners = static_cast<JoltContactListenerList*>(m_contactListeners);
+
+    if (!contactListeners->listeners.Contains(listener))
+    {
+        contactListeners->listeners.PushBack(listener);
+    }
+}
+
+void JoltPhysicsAdapter::RemoveContactListener(JPH::ContactListener* listener)
+{
+    if (m_contactListeners == nullptr)
+    {
+        return;
+    }
+
+    static_cast<JoltContactListenerList*>(m_contactListeners)->listeners.Erase(listener);
 }
 
 void JoltPhysicsAdapter::Teardown(PhysicsWorldBase* world)
@@ -621,6 +702,9 @@ void JoltPhysicsAdapter::Teardown(PhysicsWorldBase* world)
 
     delete m_physicsSystem;
     m_physicsSystem = nullptr;
+
+    delete static_cast<JoltContactListenerList*>(m_contactListeners);
+    m_contactListeners = nullptr;
 
     delete m_characterVsCharacterCollision;
     m_characterVsCharacterCollision = nullptr;
@@ -670,6 +754,7 @@ void JoltPhysicsAdapter::Tick(PhysicsWorldBase* world, double delta)
     }
 
     const int numCollisionSteps = MathUtil::Clamp(int(MathUtil::Ceil(clampedDelta / fixedTimeStep)), 1, maxSubSteps);
+    m_numCollisionSteps = uint32(numCollisionSteps);
 
     m_physicsSystem->Update(float(clampedDelta), numCollisionSteps, m_tempAllocator, m_jobSystem);
 
@@ -1625,7 +1710,7 @@ void JoltPhysicsAdapter::StepCharacterController(const SharedPtr<void>& physicsH
             gravity,
             updateSettings,
             m_physicsSystem->GetDefaultBroadPhaseLayerFilter(JoltLayers::MOVING),
-            m_physicsSystem->GetDefaultLayerFilter(JoltLayers::MOVING),
+            s_characterObjectLayerFilter,
             *m_characterBodyFilter,
             JPH::ShapeFilter(),
             *m_tempAllocator);
@@ -1674,7 +1759,7 @@ void JoltPhysicsAdapter::SetCharacterTranslation(const SharedPtr<void>& physicsH
 
     character->RefreshContacts(
         m_physicsSystem->GetDefaultBroadPhaseLayerFilter(JoltLayers::MOVING),
-        m_physicsSystem->GetDefaultLayerFilter(JoltLayers::MOVING),
+        s_characterObjectLayerFilter,
         *m_characterBodyFilter,
         JPH::ShapeFilter(),
         *m_tempAllocator);

@@ -1,0 +1,6 @@
+PluginDescriptor "ActiveRagdoll" {
+    Version = "1.0.0"
+    Description = "Powered ragdolls for humanoid characters: balance with stepping, hit and fall reactions, and dying. Ported from Ethan MacDonald's Raptor Engine."
+    EnabledByDefault = false
+    Dependencies = [ AnimToolkit ]
+}

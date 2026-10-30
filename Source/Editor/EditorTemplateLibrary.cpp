@@ -15,6 +15,8 @@
 #include <Asset/AssetObject.hpp>
 #include <Asset/AssetBucket.hpp>
 
+#include <Plugins/PluginManager.hpp>
+
 #include <Core/Containers/Set.hpp>
 #include <Core/Containers/StaticString.hpp>
 
@@ -83,20 +85,70 @@ const FilePath& EditorTemplateLibrary::GetDirectory()
     return s_templatesDirectory;
 }
 
+Array<FilePath> EditorTemplateLibrary::GetSearchDirectories()
+{
+    Array<FilePath> searchDirectories;
+    searchDirectories.PushBack(GetDirectory());
+
+    const PluginManager& pluginManager = PluginManager::GetInstance();
+
+    for (Name pluginName : pluginManager.GetEnabledPlugins())
+    {
+        const PluginDescriptor* descriptor = pluginManager.FindPlugin(pluginName);
+
+        if (descriptor != nullptr && (descriptor->directory / "Templates").IsDirectory())
+        {
+            searchDirectories.PushBack(descriptor->directory / "Templates");
+        }
+    }
+
+    return searchDirectories;
+}
+
+FilePath EditorTemplateLibrary::FindTemplateDirectory(Name templateName)
+{
+    if (!templateName.IsValid())
+    {
+        return FilePath();
+    }
+
+    const String templateNameString = *templateName;
+
+    for (const FilePath& searchDirectory : GetSearchDirectories())
+    {
+        const FilePath templateDirectory = searchDirectory / templateNameString;
+
+        if (GetTemplatePrefabPath(templateDirectory, templateNameString).Exists())
+        {
+            return templateDirectory;
+        }
+    }
+
+    return FilePath();
+}
+
 Array<Name> EditorTemplateLibrary::GetTemplateNames()
 {
     Array<Name> templateNames;
 
-    for (const FilePath& templateDirectory : GetDirectory().GetSubdirectories())
+    for (const FilePath& searchDirectory : GetSearchDirectories())
     {
-        const String templateName = templateDirectory.Basename();
-
-        if (!IsValidTemplateName(templateName) || !GetTemplatePrefabPath(templateDirectory, templateName).Exists())
+        for (const FilePath& templateDirectory : searchDirectory.GetSubdirectories())
         {
-            continue;
-        }
+            const String templateName = templateDirectory.Basename();
 
-        templateNames.PushBack(CreateNameFromDynamicString(ANSIString(templateName)));
+            if (!IsValidTemplateName(templateName) || !GetTemplatePrefabPath(templateDirectory, templateName).Exists())
+            {
+                continue;
+            }
+
+            const Name name = CreateNameFromDynamicString(ANSIString(templateName));
+
+            if (!templateNames.Contains(name))
+            {
+                templateNames.PushBack(name);
+            }
+        }
     }
 
     return templateNames;
@@ -104,14 +156,7 @@ Array<Name> EditorTemplateLibrary::GetTemplateNames()
 
 bool EditorTemplateLibrary::HasTemplate(Name templateName)
 {
-    if (!templateName.IsValid())
-    {
-        return false;
-    }
-
-    const String templateNameString = *templateName;
-
-    return GetTemplatePrefabPath(GetDirectory() / templateNameString, templateNameString).Exists();
+    return !FindTemplateDirectory(templateName).Empty();
 }
 
 bool EditorTemplateLibrary::IsValidTemplateName(const String& templateName)
@@ -266,9 +311,11 @@ TResult<Handle<Node>> EditorTemplateLibrary::InstantiateTemplate(Name templateNa
 {
     AssertOnThread(g_simThread);
 
-    if (!HasTemplate(templateName))
+    const FilePath templateDirectory = FindTemplateDirectory(templateName);
+
+    if (templateDirectory.Empty())
     {
-        return HYP_MAKE_ERROR(Error, "No template named '{}' in '{}'", templateName, GetDirectory());
+        return HYP_MAKE_ERROR(Error, "No template named '{}' in '{}' or the enabled plugins", templateName, GetDirectory());
     }
 
     Handle<AssetRegistry> projectRegistry = GetCurrentAssetRegistry();
@@ -277,8 +324,6 @@ TResult<Handle<Node>> EditorTemplateLibrary::InstantiateTemplate(Name templateNa
     {
         return HYP_MAKE_ERROR(Error, "No asset registry to instantiate template '{}' into", templateName);
     }
-
-    const FilePath templateDirectory = GetDirectory() / *templateName;
 
     Handle<AssetRegistry> templateRegistry = MakeHandle<AssetRegistry>(AssetRegistryId::Game, templateDirectory);
     templateRegistry->Initialize();
