@@ -512,9 +512,8 @@ void EngineDriver::LoadEngineContent()
 
                 if (clickedExit)
                 {
-                    // exit the process
-                    std::terminate();
-                    return;
+                    // the engine is only half started, so skip static destructors (they run while the threads are alive)
+                    std::_Exit(1);
                 }
 
                 if (clickedRetry)
@@ -554,7 +553,7 @@ void EngineDriver::LoadEngineContent()
             .Text(String("Engine cache needs to be built. Make sure the cache server is running at ") + EngineGlobals::GetCacheServerAddress() + ".\n"
                   + "Press OK to start building the cache.")
             .Button("OK", &doSync)
-            .Button("Exit", &std::terminate)
+            .Button("Exit", [] { std::_Exit(1); })
             .Show();
     }
 #else

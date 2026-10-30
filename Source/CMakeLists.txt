@@ -1253,6 +1253,11 @@ foreach(plugin_search_dir ${HYP_PLUGIN_SEARCH_DIRECTORIES})
         set(HYP_PLUGIN_TESTS_MODULE_${plugin_name} "${plugin_module_name}")
       endif()
 
+      # Tests/Editor holds the plugin's editor tests (HYP_EDITOR_TEST), built into its first editor module
+      if(plugin_module_name MATCHES "Editor$" AND NOT DEFINED HYP_PLUGIN_EDITOR_TESTS_MODULE_${plugin_name})
+        set(HYP_PLUGIN_EDITOR_TESTS_MODULE_${plugin_name} "${plugin_module_name}")
+      endif()
+
       message(STATUS "Plugin module ${plugin_module_name} (${plugin_module_dir})")
     endforeach()
   endforeach()
@@ -1602,10 +1607,21 @@ foreach(plugin_module ${HYP_PLUGIN_MODULES})
   if(HYP_TESTS AND plugin_module STREQUAL "${HYP_PLUGIN_TESTS_MODULE_${HYP_PLUGIN_NAME_${plugin_module}}}")
     get_filename_component(plugin_tests_dir "${HYP_PLUGIN_SOURCE_ROOT_${plugin_module}}/../Tests" ABSOLUTE)
     file(GLOB_RECURSE plugin_test_sources "${plugin_tests_dir}/*.cpp")
+    list(FILTER plugin_test_sources EXCLUDE REGEX "^${plugin_tests_dir}/Editor/")
 
     if(plugin_test_sources)
       source_group(TREE ${plugin_tests_dir} PREFIX "Tests" FILES ${plugin_test_sources})
       list(APPEND plugin_sources ${plugin_test_sources})
+    endif()
+  endif()
+
+  if(HYP_TESTS AND plugin_module STREQUAL "${HYP_PLUGIN_EDITOR_TESTS_MODULE_${HYP_PLUGIN_NAME_${plugin_module}}}")
+    get_filename_component(plugin_editor_tests_dir "${HYP_PLUGIN_SOURCE_ROOT_${plugin_module}}/../Tests/Editor" ABSOLUTE)
+    file(GLOB_RECURSE plugin_editor_test_sources "${plugin_editor_tests_dir}/*.cpp")
+
+    if(plugin_editor_test_sources)
+      source_group(TREE ${plugin_editor_tests_dir} PREFIX "Tests" FILES ${plugin_editor_test_sources})
+      list(APPEND plugin_sources ${plugin_editor_test_sources})
     endif()
   endif()
 
@@ -1629,6 +1645,13 @@ foreach(plugin_module ${HYP_PLUGIN_MODULES})
       ${HYP_GENERATED_DIR}
       ${CMAKE_SOURCE_DIR}/Engine
       ${HYP_PLUGIN_SOURCE_ROOT_${plugin_module}})
+
+  # a module's own build settings, such as third-party sources; it adds them to ${plugin_target}. The plugin's own submodules are in <Plugin>/External
+  get_filename_component(plugin_external_dir "${HYP_PLUGIN_SOURCE_ROOT_${plugin_module}}/../External" ABSOLUTE)
+
+  if(EXISTS "${plugin_module_dir}/Module.cmake")
+    include("${plugin_module_dir}/Module.cmake")
+  endif()
 
   if(HYP_DYNAMIC_PLUGINS AND HYP_MONOLITHIC)
     target_link_libraries(${plugin_target} PRIVATE $<COMPILE_ONLY:hyperion-core>)

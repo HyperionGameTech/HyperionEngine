@@ -5,7 +5,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:controls="clr-namespace:Hyperion.Editor.Controls;assembly=Hyperion.Editor"
-    xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
+    xmlns:vm="using:Hyperion.Editor.ViewModels"
     x:DataType="vm:CsgPanelViewModel"
     mc:Ignorable="d">
 
@@ -42,11 +42,14 @@
                     <Button
                         Padding="20,6"
                         Command="{Binding FinishCommand}"
+                        Classes="Primary"
+                        ToolTip.Tip="Save pending edits and exit edit mode"
                         Content="Finish" />
                     <Button
                         Padding="20,6"
                         Command="{Binding DiscardCommand}"
-                        Content="Discard Edits" />
+                        ToolTip.Tip="Discard changes made and exit edit mode"
+                        Content="Discard" />
                 </StackPanel>
             </StackPanel>
         </Border>

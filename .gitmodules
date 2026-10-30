@@ -22,3 +22,6 @@
 [submodule "External/Submodules/astc-encoder"]
 	path = External/Submodules/astc-encoder
 	url = https://github.com/ARM-software/astc-encoder
+[submodule "Source/Plugins/CsgToolkit/External/manifold"]
+	path = Source/Plugins/CsgToolkit/External/manifold
+	url = https://github.com/elalish/manifold

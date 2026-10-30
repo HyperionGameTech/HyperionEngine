@@ -49,7 +49,7 @@ struct MeshBooleanResult
     Array<uint32> indices;
 };
 
-class ENGINE_API MeshBoolean final
+class CSG_API MeshBoolean final
 {
 public:
     static bool IsSupported();

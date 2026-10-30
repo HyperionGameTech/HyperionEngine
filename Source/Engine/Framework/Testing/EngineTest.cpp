@@ -13,6 +13,12 @@
 
 #include <Core/Utilities/GlobalContext.hpp>
 
+#include <Core/DataProcessing/JSON/JSON.hpp>
+
+#include <Core/FileSystem/FilePath.hpp>
+
+#include <Core/IO/ByteWriter.hpp>
+
 #include <chrono>
 
 namespace Hyperion {
@@ -109,6 +115,101 @@ EngineTestResult EngineTestRunner::Run(const EngineTestDefinition& test)
     }
 
     return result;
+}
+
+Result EngineTestRunner::RunTests(EngineTestHost host, const String& filter, bool listOnly, const String& resultsPath)
+{
+    JSON::JArray resultsArray;
+    uint32 numFailed = 0;
+
+    String phase = "engine";
+
+    if (listOnly)
+    {
+        phase = "list";
+    }
+    else if (host == EngineTestHost::Editor)
+    {
+        phase = "editor";
+    }
+
+    const auto writeReport = [&]() -> Result
+    {
+        if (resultsPath.Empty())
+        {
+            return {};
+        }
+
+        JSON::Object report {
+            { "phase", JSON::Value(phase) },
+            { "tests", JSON::Value(resultsArray) }
+        };
+
+        const String reportText = JSON::Value(std::move(report)).ToString(true);
+
+        FileByteWriter writer { FilePath(resultsPath) };
+
+        if (!writer.IsOpen())
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to open {} for writing", resultsPath);
+        }
+
+        writer.Write(reportText.Data(), reportText.Size());
+        writer.Close();
+
+        return {};
+    };
+
+    for (const EngineTestDefinition& test : EngineTestRegistry::GetInstance().GetTests())
+    {
+        if (test.host != host || !MatchesFilter(test, filter))
+        {
+            continue;
+        }
+
+        if (listOnly)
+        {
+            resultsArray.PushBack(JSON::Object { { "name", JSON::Value(GetFullName(test)) } });
+
+            continue;
+        }
+
+        const EngineTestResult result = Run(test);
+
+        if (!result.passed)
+        {
+            ++numFailed;
+        }
+
+        resultsArray.PushBack(JSON::Object {
+            { "name", JSON::Value(result.name) },
+            { "passed", JSON::Value(result.passed) },
+            { "message", result.passed ? JSON::Value(JSON::JSNull()) : JSON::Value(result.message) },
+            { "durationMs", JSON::Value(result.durationMs) }
+        });
+
+        if (Result writeResult = writeReport(); writeResult.HasError())
+        {
+            return writeResult;
+        }
+    }
+
+    if (!listOnly)
+    {
+        HYP_LOG(Engine, Info, "{} tests: {} passed, {} failed", phase, resultsArray.Size() - numFailed, numFailed);
+    }
+
+    if (Result writeResult = writeReport(); writeResult.HasError())
+    {
+        return writeResult;
+    }
+
+    if (numFailed != 0)
+    {
+        return HYP_MAKE_ERROR(Error, "{} {} test(s) failed", numFailed, phase);
+    }
+
+    return {};
 }
 
 bool Check(const char* checkName, bool condition, const String& detail)

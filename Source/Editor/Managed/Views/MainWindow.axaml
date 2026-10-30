@@ -271,6 +271,8 @@
                 <ControlTemplate>
                     <Border
                         Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
                         CornerRadius="{DynamicResource Radius.Small}"
                         Padding="{TemplateBinding Padding}">
                         <ContentPresenter
@@ -291,24 +293,16 @@
             <Setter Property="Foreground" Value="{DynamicResource Brush.AccentHover}" />
         </Style>
 
-        <Style Selector="DropDownButton.gizmo-wide.Primary">
-            <Setter Property="Background" Value="{DynamicResource Brush.Primary}" />
-            <Setter Property="Foreground" Value="White" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Transitions">
-                <Transitions>
-                    <BrushTransition Property="Background" Duration="0:0:0.08" />
-                </Transitions>
-            </Setter>
+        <Style Selector="DropDownButton.gizmo-wide.raised">
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="Background" Value="{DynamicResource Brush.PanelRaised}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.BorderLight}" />
+            <Setter Property="BorderThickness" Value="1" />
         </Style>
 
-        <Style Selector="DropDownButton.gizmo-wide.Primary:pointerover">
-            <Setter Property="Background" Value="{DynamicResource Brush.PrimaryHover}" />
-        </Style>
-
-        <Style Selector="DropDownButton.gizmo-wide.Primary:pressed">
-            <Setter Property="Background" Value="{DynamicResource Brush.PrimaryMuted}" />
-            <Setter Property="Foreground" Value="White" />
+        <Style Selector="DropDownButton.gizmo-wide.raised:pointerover">
+            <Setter Property="Background" Value="{DynamicResource Brush.MenuHover}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.HoverBorder}" />
         </Style>
 
         <Style Selector="Border.mode-strip">
@@ -828,15 +822,15 @@
                               HorizontalAlignment="Right"
                               VerticalAlignment="Center"
                               IsEnabled="{Binding !IsSimulating}"
-                              Classes="gizmo-wide Primary"
+                              Classes="gizmo-wide raised"
                               Click="OnDropDownClick"
                               ToolTip.Tip="Add to the active scene">
 
-                            <StackPanel Orientation="Horizontal" Spacing="8">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
                               <controls:Codicon
                                   VerticalAlignment="Center"
                                   Kind="Add"
-                                  Size="16" />
+                                  Size="14" />
                               <TextBlock
                                   VerticalAlignment="Center"
                                   FontSize="11"
@@ -1025,7 +1019,7 @@
                                         <controls:Codicon Kind="ChevronDown" Size="10" />
                                     </StackPanel>
                                     <DropDownButton.ContextMenu>
-                                        <ContextMenu Placement="Bottom">
+                                        <ContextMenu Placement="Bottom" Opened="OnMeshToolsMenuOpened">
                                             <MenuItem
                                                 Command="{Binding ToggleMeshEditMode}"
                                                 Header="Mesh Edit"
@@ -1033,13 +1027,6 @@
                                                 IsEnabled="{Binding CanEnableMeshEditMode}"
                                                 ToggleType="CheckBox"
                                                 ToolTip.Tip="{Binding MeshEditModeTooltip}" />
-                                            <MenuItem
-                                                Command="{Binding ToggleCsgMode}"
-                                                Header="Brush Tools"
-                                                IsChecked="{Binding IsCsgModeEnabled, Mode=OneWay}"
-                                                IsEnabled="{Binding CanEnableCsgMode}"
-                                                ToggleType="CheckBox"
-                                                ToolTip.Tip="{Binding CsgModeTooltip}" />
                                         </ContextMenu>
                                     </DropDownButton.ContextMenu>
                                 </DropDownButton>

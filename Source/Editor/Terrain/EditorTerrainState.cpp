@@ -7,7 +7,6 @@
 #include <EditorPch.hpp>
 
 #include <Editor/Terrain/EditorTerrainState.hpp>
-#include <Editor/Csg/EditorCsgState.hpp>
 #include <Editor/EditorSubsystem.hpp>
 #include <Editor/EditorViewport.hpp>
 #include <Editor/EditorProject.hpp>
@@ -101,7 +100,7 @@ void EditorTerrainState::SetEnabled(bool enabled)
         if (enabled)
         {
             m_subsystem->DisableSurfacePainters();
-            m_subsystem->GetCsgState()->Exit(/* saveEdits */ true);
+            m_subsystem->ExitExtensionTools();
         }
 
         m_enabled = enabled;

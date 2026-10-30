@@ -16,7 +16,7 @@
 #include <Core/Math/Vector2.hpp>
 #include <Core/Math/Vector3.hpp>
 
-#include <Rendering/Util/MeshBoolean.hpp>
+#include <Csg/MeshBoolean.hpp>
 
 #include <Scripting/ScriptableDelegate.hpp>
 
@@ -77,7 +77,7 @@ static constexpr const char* CsgOperationNames[NumCsgOperations] = {
 };
 
 HYP_CLASS(Serialize = false)
-class EDITOR_API EditorCsgState : public ObjectBase
+class CSGEDITOR_API EditorCsgState : public ObjectBase
 {
     HYP_OBJECT_BODY(EditorCsgState);
 

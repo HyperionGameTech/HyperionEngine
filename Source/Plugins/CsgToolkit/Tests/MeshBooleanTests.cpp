@@ -7,7 +7,7 @@
 #ifdef HYP_TESTS
 
 #include <Framework/Testing/EngineTest.hpp>
-#include <Rendering/Util/MeshBoolean.hpp>
+#include <Csg/MeshBoolean.hpp>
 #include <Rendering/Util/MeshBuilder.hpp>
 #include <Rendering/Mesh.hpp>
 

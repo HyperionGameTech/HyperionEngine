@@ -125,7 +125,7 @@ namespace Hyperion.Editor.ViewModels
                 {
                     _ = EngineManager.PostToSimThread(() =>
                     {
-                        _editorSubsystem.EditorCsgState?.SetKeepBrushAfterApply(value);
+                        _editorSubsystem.GetCsgState()?.SetKeepBrushAfterApply(value);
 
                         _refreshState();
                     });
@@ -301,7 +301,7 @@ namespace Hyperion.Editor.ViewModels
         {
             _ = EngineManager.PostToSimThread(() =>
             {
-                EditorCsgState? csgState = _editorSubsystem.EditorCsgState;
+                EditorCsgState? csgState = _editorSubsystem.GetCsgState();
 
                 if (csgState != null)
                 {

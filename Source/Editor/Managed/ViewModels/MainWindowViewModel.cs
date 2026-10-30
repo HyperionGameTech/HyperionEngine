@@ -661,11 +661,20 @@ namespace Hyperion.Editor.ViewModels
             OnPropertyChanged(nameof(CanUseVolumeEditTool));
         }
 
-        private void RefreshVolumeEditAvailability()
+        internal void RefreshVolumeEditAvailability()
         {
             _canUseVolumeEditTool = _editorSubsystem?.CanUseVolumeEditTool() ?? false;
 
             Dispatcher.UIThread.Post(NotifyTransformModeChanged);
+        }
+
+        /// Call on the sim thread once a plugin's mesh tool turns on or off, as that turns the other tools off
+        internal void RefreshToolStates()
+        {
+            RefreshMeshEditState();
+            RefreshTerrainToolState();
+            RefreshPainterToolState();
+            RefreshVolumeEditAvailability();
         }
 
         public bool CanSelectGizmo = true; // temp hax
@@ -909,10 +918,6 @@ namespace Hyperion.Editor.ViewModels
             }
         }
 
-        private CsgStateSnapshot _csgState = new CsgStateSnapshot();
-
-        private CsgPanelViewModel? _csgPanel;
-
         private EditModeStateSnapshot _editModeState = new EditModeStateSnapshot();
 
         public bool IsInEditMode => _editModeState.Active;
@@ -932,35 +937,8 @@ namespace Hyperion.Editor.ViewModels
         public ICommand RevertEditModeCommand { get; private set; }
         public ICommand ExitEditModeCommand { get; private set; }
 
-        public ICommand ToggleCsgMode { get; private set; }
-        public bool IsCsgModeEnabled => _csgState.Enabled;
-        public bool CanEnableCsgMode => _csgState.CanEnable;
-
-        public string CsgModeTooltip
-        {
-            get
-            {
-                if (IsCsgModeEnabled)
-                {
-                    return "Leave CSG mode, keeping changes (Esc)";
-                }
-
-                if (_csgState.Simulating)
-                {
-                    return "Cannot use CSG while in simulation";
-                }
-
-                if (!CanEnableCsgMode)
-                {
-                    return "Select a mesh made of position, normal and UV channels";
-                }
-
-                return "Carve, grow or trim the selected mesh with box, sphere and cylinder brushes";
-            }
-        }
-
-        public bool IsMeshToolActive => IsMeshEditModeEnabled || IsCsgModeEnabled;
-        public bool CanUseMeshTools => IsMeshToolActive || CanEnableMeshEditMode || CanEnableCsgMode;
+        public bool IsMeshToolActive => IsMeshEditModeEnabled || EditorPluginService.Instance.MeshTools.Any(tool => tool.IsActive);
+        public bool CanUseMeshTools => IsMeshToolActive || CanEnableMeshEditMode || EditorPluginService.Instance.MeshTools.Any(tool => tool.CanEnable);
 
         public string MeshToolsTooltip
         {
@@ -971,9 +949,9 @@ namespace Hyperion.Editor.ViewModels
                     return "Mesh Edit";
                 }
 
-                if (IsCsgModeEnabled)
+                if (EditorPluginService.Instance.MeshTools.FirstOrDefault(tool => tool.IsActive) is { } activeTool)
                 {
-                    return "Brush Tools";
+                    return activeTool.Header;
                 }
 
                 return CanUseMeshTools ? "Mesh Tools" : "Mesh Tools - select a mesh first";
@@ -1139,7 +1117,6 @@ namespace Hyperion.Editor.ViewModels
         private DelegateHandler? _prefabAssetsChangedHandler;
         private DelegateHandler? _actionStackStateChangedHandler;
         private DelegateHandler? _meshEditStateChangedHandler;
-        private DelegateHandler? _csgStateChangedHandler;
         private DelegateHandler? _editStateChangedHandler;
         private DelegateHandler? _modelImportReviewQueuedHandler;
         private bool _isShowingModelImport;
@@ -1492,40 +1469,7 @@ namespace Hyperion.Editor.ViewModels
                 });
             });
 
-            ToggleCsgMode = new RelayCommand(() =>
-            {
-                if (_csgPanel != null && _csgState.Enabled && _csgState.HasBrush)
-                {
-                    _csgPanel.RequestFinish();
-
-                    return;
-                }
-
-                _ = EngineManager.PostToSimThread(() =>
-                {
-                    EditorCsgState? csgState = _editorSubsystem.EditorCsgState;
-
-                    if (csgState == null)
-                    {
-                        return;
-                    }
-
-                    if (csgState.IsEnabled())
-                    {
-                        csgState.Exit(/* saveEdits */ true);
-                    }
-                    else
-                    {
-                        csgState.Enter();
-                    }
-
-                    // entering CSG turns mesh edit and the terrain/decal tools off
-                    RefreshCsgState();
-                    RefreshMeshEditState();
-                    RefreshTerrainToolState();
-                    RefreshPainterToolState();
-                });
-            });
+            EditorPluginService.Instance.MeshToolsChanged += NotifyMeshToolsChanged;
 
             SetActiveSceneCommand = new RelayCommand<SceneViewModel>(sceneViewModel =>
             {
@@ -1932,7 +1876,6 @@ namespace Hyperion.Editor.ViewModels
             BindFocusedNodeChanged();
             BindSelectionChanged();
             BindMeshEditStateChanged();
-            BindCsgStateChanged();
             BindEditModeStateChanged();
             BindScriptReloaded();
             BindPlayNetStateChanged();
@@ -2046,7 +1989,6 @@ namespace Hyperion.Editor.ViewModels
             NotifyTransformModeChanged();
 
             _ = EngineManager.PostToSimThread(RefreshMeshEditState);
-            _ = EngineManager.PostToSimThread(RefreshCsgState);
         }
 
         private void OnTaskStarted(EditorTaskBase task, bool isForegroundTask)
@@ -2394,7 +2336,6 @@ namespace Hyperion.Editor.ViewModels
                 OnPropertyChanged(nameof(IsSnapToGridEnabled));
 
                 _ = EngineManager.PostToSimThread(RefreshMeshEditState);
-                _ = EngineManager.PostToSimThread(RefreshCsgState);
                 _ = EngineManager.PostToSimThread(RefreshGridSettings);
 
                 // Update scenes list
@@ -2822,7 +2763,6 @@ namespace Hyperion.Editor.ViewModels
                     ScheduleInspectorSelectionSync();
 
                     _ = EngineManager.PostToSimThread(RefreshMeshEditState);
-                    _ = EngineManager.PostToSimThread(RefreshCsgState);
                 }
                 finally
                 {
@@ -2968,23 +2908,6 @@ namespace Hyperion.Editor.ViewModels
                 });
         }
 
-        private void BindCsgStateChanged()
-        {
-            WeakReference<MainWindowViewModel> weakThis = new WeakReference<MainWindowViewModel>(this);
-
-            _csgStateChangedHandler?.Remove();
-            _csgStateChangedHandler = _editorSubsystem.EditorCsgState?.GetOnStateChangedDelegate()
-                .Bind(() =>
-                {
-                    if (!weakThis.TryGetTarget(out MainWindowViewModel? target))
-                    {
-                        return;
-                    }
-
-                    target.RefreshCsgState();
-                });
-        }
-
         // A reloaded script can add, remove or redefine components on the entities shown
         private void BindScriptReloaded()
         {
@@ -3095,122 +3018,11 @@ namespace Hyperion.Editor.ViewModels
             OnPropertyChanged(nameof(MeshEditLodText));
         }
 
-        private void RefreshCsgState()
-        {
-            if (_editorSubsystem == null)
-            {
-                return;
-            }
-
-            _canUseVolumeEditTool = _editorSubsystem.CanUseVolumeEditTool();
-
-            CsgStateSnapshot snapshot = new();
-
-            try
-            {
-                EditorCsgState? csgState = _editorSubsystem.EditorCsgState;
-
-                snapshot.Simulating = _editorSubsystem.IsSimulating();
-
-                if (csgState != null)
-                {
-                    snapshot.Enabled = csgState.IsEnabled();
-                    snapshot.CanEnable = csgState.CanEnter();
-                    snapshot.HasBrush = csgState.HasBrush();
-                    snapshot.IsBrushSelected = csgState.IsBrushSelected();
-                    snapshot.IsPlacing = csgState.IsPlacing();
-                    snapshot.PlacementShape = csgState.GetPlacementShape();
-                    snapshot.CanApply = csgState.CanApply();
-                    snapshot.HasPendingEdits = csgState.HasPendingEdits();
-                    snapshot.KeepBrushAfterApply = csgState.IsKeepBrushAfterApply();
-                    snapshot.BrushShape = csgState.GetBrushShape();
-                    snapshot.Operation = csgState.GetOperation();
-                    snapshot.TargetName = csgState.GetTargetNode()?.Name.ToString() ?? string.Empty;
-                    snapshot.StatusText = csgState.GetStatusText() ?? string.Empty;
-                    snapshot.SizingShape = csgState.GetSizingShape();
-                    snapshot.SizingHalfExtents = csgState.GetSizingHalfExtents();
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Log(LogLevel.Warning, $"Failed to read CSG state from engine: {ex.Message}");
-
-                return;
-            }
-
-            Dispatcher.UIThread.Post(() =>
-            {
-                _csgState = snapshot;
-
-                NotifyCsgStateChanged();
-            });
-        }
-
-        private void NotifyCsgStateChanged()
-        {
-            OnPropertyChanged(nameof(IsCsgModeEnabled));
-            OnPropertyChanged(nameof(CanEnableCsgMode));
-            OnPropertyChanged(nameof(CsgModeTooltip));
-            NotifyMeshToolsChanged();
-
-            NotifyTransformModeChanged();
-
-            (ToggleCsgMode as RelayCommand)?.RaiseCanExecuteChanged();
-
-            UpdateCsgPanel();
-        }
-
         private void NotifyMeshToolsChanged()
         {
             OnPropertyChanged(nameof(IsMeshToolActive));
             OnPropertyChanged(nameof(CanUseMeshTools));
             OnPropertyChanged(nameof(MeshToolsTooltip));
-        }
-
-        private void UpdateCsgPanel()
-        {
-            if (_csgState.Enabled)
-            {
-                if (_csgPanel == null)
-                {
-                    _csgPanel = new CsgPanelViewModel(_editorSubsystem, RefreshCsgState, CloseCsgPanel);
-
-                    PanelService.Instance.OpenPanel(_csgPanel);
-                }
-
-                _csgPanel.Update(_csgState);
-            }
-            else if (_csgPanel != null)
-            {
-                CsgPanelViewModel panel = _csgPanel;
-                _csgPanel = null;
-
-                PanelService.Instance.RemovePanel(panel);
-            }
-        }
-
-        private void CloseCsgPanel()
-        {
-            CsgPanelViewModel? panel = _csgPanel;
-
-            if (panel != null && _csgState.Enabled && _csgState.HasBrush)
-            {
-                panel.RequestFinish(onCancelled: () => PanelService.Instance.OpenPanel(panel));
-
-                return;
-            }
-
-            _ = EngineManager.PostToSimThread(() =>
-            {
-                EditorCsgState? csgState = _editorSubsystem.EditorCsgState;
-
-                if (csgState != null && csgState.IsEnabled())
-                {
-                    csgState.Exit(/* saveEdits */ true);
-                }
-
-                RefreshCsgState();
-            });
         }
 
         private void BindActiveActionStack(EditorProject? project)

@@ -52,8 +52,6 @@ namespace Hyperion
 
         public EditorInstancePainterState? EditorInstancePainterState => InvokeNativeMethod<EditorInstancePainterState>(new Name("GetInstancePainterState"));
 
-        public EditorCsgState? EditorCsgState => InvokeNativeMethod<EditorCsgState>(new Name("GetCsgState"));
-
         public EditorPrefabEditState? EditorPrefabEditState => InvokeNativeMethod<EditorPrefabEditState>(new Name("GetPrefabEditState"));
 
         public EditorIsolatedEditState? ActiveIsolatedEditState => InvokeNativeMethod<EditorIsolatedEditState>(new Name("GetActiveIsolatedEditState"));

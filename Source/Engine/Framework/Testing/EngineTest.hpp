@@ -14,6 +14,7 @@
 #include <Core/Containers/String.hpp>
 
 #include <Core/Utilities/Format.hpp>
+#include <Core/Utilities/Result.hpp>
 
 namespace Hyperion {
 namespace tests {
@@ -22,11 +23,18 @@ class EngineTestContext;
 
 using EngineTestFunction = void (*)(EngineTestContext& context);
 
+enum class EngineTestHost : uint8
+{
+    Engine,
+    Editor
+};
+
 struct EngineTestDefinition
 {
     const char* suite;
     const char* name;
     EngineTestFunction function;
+    EngineTestHost host = EngineTestHost::Engine;
 };
 
 /// Collects the failed checks of the running test
@@ -84,9 +92,13 @@ private:
 
 struct EngineTestRegistration
 {
-    EngineTestRegistration(const char* suite, const char* name, EngineTestFunction function)
+    EngineTestRegistration(
+        const char* suite,
+        const char* name,
+        EngineTestFunction function,
+        EngineTestHost host = EngineTestHost::Engine)
     {
-        EngineTestRegistry::GetInstance().Register({ suite, name, function });
+        EngineTestRegistry::GetInstance().Register({ suite, name, function, host });
     }
 };
 
@@ -107,6 +119,8 @@ public:
     static bool MatchesFilter(const EngineTestDefinition& test, const String& filter);
 
     static EngineTestResult Run(const EngineTestDefinition& test);
+
+    static Result RunTests(EngineTestHost host, const String& filter, bool listOnly, const String& resultsPath);
 };
 
 ENGINE_API bool Check(const char* checkName, bool condition, const String& detail = String::empty);
@@ -119,6 +133,12 @@ ENGINE_API bool Check(const char* checkName, bool condition, const String& detai
     static const ::Hyperion::tests::EngineTestRegistration HYP_CONCAT(g_hypEngineTestRegistration_##suite##_, name)(                          \
         #suite, #name, &HYP_CONCAT(HypEngineTest_##suite##_, name));                                                                           \
     static void HYP_CONCAT(HypEngineTest_##suite##_, name)(::Hyperion::tests::EngineTestContext & context)
+
+#define HYP_EDITOR_TEST(suite, name)                                                                                                         \
+    static void HYP_CONCAT(HypEditorTest_##suite##_, name)(::Hyperion::tests::EngineTestContext & context);                                  \
+    static const ::Hyperion::tests::EngineTestRegistration HYP_CONCAT(g_hypEditorTestRegistration_##suite##_, name)(                          \
+        #suite, #name, &HYP_CONCAT(HypEditorTest_##suite##_, name), ::Hyperion::tests::EngineTestHost::Editor);                               \
+    static void HYP_CONCAT(HypEditorTest_##suite##_, name)(::Hyperion::tests::EngineTestContext & context)
 
 /// Fails the test if the condition is false and carries on
 #define HYP_TEST_CHECK(condition) \

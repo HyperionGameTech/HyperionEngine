@@ -15,6 +15,7 @@
 #include <Plugins/PluginContext.hpp>
 
 #include <Editor/EditorMemory.hpp>
+#include <Editor/Gizmo/EditorGizmoBase.hpp>
 
 namespace Hyperion {
 
@@ -23,6 +24,8 @@ class DebugDrawCommandList;
 class Node;
 struct Ray;
 class RayTestResults;
+struct MouseEvent;
+struct KeyboardEvent;
 
 // editor behaviour a module adds; one instance per registration, attached to the editor subsystem while it runs
 HYP_CLASS(Abstract, Serialize = false)
@@ -64,6 +67,61 @@ public:
     virtual bool SelectsPickedNode(const Node* node) const
     {
         return false;
+    }
+
+    // viewport input the extension consumes by returning true; a click comes before the editor's own picking
+    virtual bool OnViewportClick(const MouseEvent& event, const Ray& ray)
+    {
+        return false;
+    }
+
+    virtual bool OnViewportMouseDown(const MouseEvent& event)
+    {
+        return false;
+    }
+
+    virtual bool OnViewportMouseDrag(const MouseEvent& event)
+    {
+        return false;
+    }
+
+    virtual void OnViewportMouseMove(const MouseEvent& event)
+    {
+    }
+
+    virtual bool OnViewportKeyDown(const KeyboardEvent& event)
+    {
+        return false;
+    }
+
+    // the mouse buttons were released, over the viewport or not
+    virtual void EndViewportDrag()
+    {
+    }
+
+    // a viewport tool of the extension's is on; other tools and modes call ExitTool before they take over
+    virtual bool IsToolActive() const
+    {
+        return false;
+    }
+
+    virtual void ExitTool()
+    {
+    }
+
+    virtual EditorManipulationMode ResolveManipulationMode(EditorManipulationMode requestedMode)
+    {
+        return requestedMode;
+    }
+
+    // returning true makes outTargetNodes the gizmo's targets instead of the selection
+    virtual bool GetGizmoTargetNodes(Array<Handle<Node>>& outTargetNodes) const
+    {
+        return false;
+    }
+
+    virtual void OnFocusedNodeChanged(const Handle<Node>& focusedNode)
+    {
     }
 
 private:

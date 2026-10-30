@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
 using System.Windows.Input;
@@ -66,6 +67,35 @@ namespace Hyperion.Editor.Services
         }
     }
 
+    /// An entry in the toolbar's Mesh Tools menu, a mode for editing the selected mesh
+    public abstract class EditorMeshToolViewModel : ViewModelBase
+    {
+        public abstract string Header { get; }
+
+        public abstract ICommand ToggleCommand { get; }
+
+        private bool _isActive;
+        public bool IsActive
+        {
+            get => _isActive;
+            protected set => SetProperty(ref _isActive, value);
+        }
+
+        private bool _canEnable;
+        public bool CanEnable
+        {
+            get => _canEnable;
+            protected set => SetProperty(ref _canEnable, value);
+        }
+
+        private string _tooltip = string.Empty;
+        public string Tooltip
+        {
+            get => _tooltip;
+            protected set => SetProperty(ref _tooltip, value);
+        }
+    }
+
     /// What one plugin contributed; dropped as a whole when the plugin is disabled
     public sealed class EditorPluginRegistry
     {
@@ -74,6 +104,7 @@ namespace Hyperion.Editor.Services
         internal readonly List<EditorNodeMenuItem> NodeMenuItems = new();
         internal readonly List<EditorDocumentViewModel> Documents = new();
         internal readonly List<EditModeBarViewModel> EditModeBars = new();
+        internal readonly List<EditorMeshToolViewModel> MeshTools = new();
         internal readonly List<Action<EditorIsolatedEditState?>> EditModeListeners = new();
         internal readonly List<Action<IReadOnlyList<Node>>> SelectionListeners = new();
         internal readonly List<Action<bool>> SimulationListeners = new();
@@ -117,6 +148,11 @@ namespace Hyperion.Editor.Services
         public void AddEditModeBar(EditModeBarViewModel bar)
         {
             EditModeBars.Add(bar);
+        }
+
+        public void AddMeshTool(EditorMeshToolViewModel tool)
+        {
+            MeshTools.Add(tool);
         }
 
         /// Called on the sim thread when an edit mode is entered, left or changes state, with the active one (or null)
@@ -200,6 +236,10 @@ namespace Hyperion.Editor.Services
         public IEnumerable<EditorPluginMenuItem> ToolMenuItems => _registries.Values.SelectMany(registry => registry.ToolMenuItems);
         public IEnumerable<EditorNodeMenuItem> NodeMenuItems => _registries.Values.SelectMany(registry => registry.NodeMenuItems);
         public IEnumerable<Func<Entity, string?>> InspectorWarnings => _registries.Values.SelectMany(registry => registry.InspectorWarnings);
+        public IEnumerable<EditorMeshToolViewModel> MeshTools => _registries.Values.SelectMany(registry => registry.MeshTools);
+
+        /// Raised on the UI thread when a mesh tool is added or removed, or one's state changes
+        public event Action? MeshToolsChanged;
 
         private readonly HashSet<string> _enabledPlugins = new();
 
@@ -253,6 +293,11 @@ namespace Hyperion.Editor.Services
                     EditModeBars.Remove(bar);
                 }
 
+                foreach (EditorMeshToolViewModel tool in registry.MeshTools)
+                {
+                    tool.PropertyChanged -= OnMeshToolPropertyChanged;
+                }
+
                 Logger.Log(PluginsLogChannel, LogLevel.Verbose, "Unregistered editor plugin {0}", pluginName);
             }
 
@@ -288,9 +333,21 @@ namespace Hyperion.Editor.Services
                     EditModeBars.Add(bar);
                 }
 
+                foreach (EditorMeshToolViewModel tool in registry.MeshTools)
+                {
+                    tool.PropertyChanged += OnMeshToolPropertyChanged;
+                }
+
                 Logger.Log(PluginsLogChannel, LogLevel.Verbose, "Registered editor plugin {0} ({1} view(s), {2} menu item(s))",
                     pluginName, registry.Views.Count, registry.ToolMenuItems.Count + registry.NodeMenuItems.Count);
             }
+
+            MeshToolsChanged?.Invoke();
+        }
+
+        private void OnMeshToolPropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            MeshToolsChanged?.Invoke();
         }
 
         public void NotifyEditModeChanged(EditorIsolatedEditState? activeState)

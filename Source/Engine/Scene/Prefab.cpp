@@ -24,6 +24,7 @@
 #include <Core/Containers/Set.hpp>
 
 #include <Framework/EngineGlobals.hpp>
+#include <Framework/Threads/SimThread.hpp>
 
 #include <Prefab.generated.inl>
 
@@ -119,7 +120,10 @@ void Prefab_OnPostLoad(Prefab& prefab)
                 GetDetachedSceneForCurrentThread().GetEntityManager()->AddExistingEntity(rootEntity);
             }
 
-            root->SetScene(&GetDetachedSceneForThread(g_simThread));
+            if (g_simThreadInstance != nullptr && g_simThreadInstance->IsRunning())
+            {
+                root->SetScene(&GetDetachedSceneForThread(g_simThread));
+            }
         }
     }
 }

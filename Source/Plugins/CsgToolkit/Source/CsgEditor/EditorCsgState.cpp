@@ -6,7 +6,8 @@
 
 #include <EditorPch.hpp>
 
-#include <Editor/Csg/EditorCsgState.hpp>
+#include <CsgEditor/EditorCsgState.hpp>
+#include <CsgEditor/CsgEditorExtension.hpp>
 #include <Editor/Terrain/EditorTerrainState.hpp>
 #include <Editor/EditorSubsystem.hpp>
 #include <Editor/EditorViewport.hpp>
@@ -42,7 +43,7 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(Editor);
+EDITOR_API HYP_DECLARE_LOG_CHANNEL(Editor);
 
 namespace {
 
@@ -101,6 +102,18 @@ RenderableAttributeSet BrushOverlayAttributes(FillMode fillMode)
     materialAttributes.flags = MaterialAttributeFlags::None;
 
     return attributes;
+}
+
+EditorCsgState* FindCsgState(EditorSubsystem* editorSubsystem)
+{
+    Handle<CsgEditorExtension> extension = editorSubsystem->GetExtension<CsgEditorExtension>();
+
+    if (!extension.IsValid())
+    {
+        return nullptr;
+    }
+
+    return extension->GetCsgState().Get();
 }
 
 MeshComponent* GetMeshComponent(Node* node)
@@ -816,13 +829,19 @@ void EditorCsgState::PlaceBrush(CsgBrushShape shape, const Transform& transform)
                     {
                         brushNode->SetLocalTransform(transform);
 
-                        editorSubsystem->GetCsgState()->AttachBrush(brushNode, shape);
+                        if (EditorCsgState* csgState = FindCsgState(editorSubsystem))
+                        {
+                            csgState->AttachBrush(brushNode, shape);
+                        }
                     },
                     [brushNode, previousShape, previousTransform](EditorSubsystem* editorSubsystem, EditorProject* editorProject)
                     {
                         brushNode->SetLocalTransform(previousTransform);
 
-                        editorSubsystem->GetCsgState()->AttachBrush(brushNode, previousShape);
+                        if (EditorCsgState* csgState = FindCsgState(editorSubsystem))
+                        {
+                            csgState->AttachBrush(brushNode, previousShape);
+                        }
                     }
                 };
             }));
@@ -842,11 +861,17 @@ void EditorCsgState::PlaceBrush(CsgBrushShape shape, const Transform& transform)
             return {
                 [brushNode, shape](EditorSubsystem* editorSubsystem, EditorProject* editorProject)
                 {
-                    editorSubsystem->GetCsgState()->AttachBrush(brushNode, shape);
+                    if (EditorCsgState* csgState = FindCsgState(editorSubsystem))
+                    {
+                        csgState->AttachBrush(brushNode, shape);
+                    }
                 },
                 [brushNode](EditorSubsystem* editorSubsystem, EditorProject* editorProject)
                 {
-                    editorSubsystem->GetCsgState()->DetachBrush(brushNode);
+                    if (EditorCsgState* csgState = FindCsgState(editorSubsystem))
+                    {
+                        csgState->DetachBrush(brushNode);
+                    }
                 }
             };
         }));
@@ -1050,13 +1075,19 @@ void EditorCsgState::SetBrushTransformUndoable(const Transform& previousTransfor
                 {
                     brushNode->SetLocalTransform(newTransform);
 
-                    editorSubsystem->GetCsgState()->OnStateChanged();
+                    if (EditorCsgState* csgState = FindCsgState(editorSubsystem))
+                    {
+                        csgState->OnStateChanged();
+                    }
                 },
                 [brushNode, previousTransform](EditorSubsystem* editorSubsystem, EditorProject* editorProject)
                 {
                     brushNode->SetLocalTransform(previousTransform);
 
-                    editorSubsystem->GetCsgState()->OnStateChanged();
+                    if (EditorCsgState* csgState = FindCsgState(editorSubsystem))
+                    {
+                        csgState->OnStateChanged();
+                    }
                 }
             };
         }));
@@ -1430,11 +1461,17 @@ void EditorCsgState::CancelBrush()
             return {
                 [brushNode](EditorSubsystem* editorSubsystem, EditorProject* editorProject)
                 {
-                    editorSubsystem->GetCsgState()->DetachBrush(brushNode);
+                    if (EditorCsgState* csgState = FindCsgState(editorSubsystem))
+                    {
+                        csgState->DetachBrush(brushNode);
+                    }
                 },
                 [brushNode, shape](EditorSubsystem* editorSubsystem, EditorProject* editorProject)
                 {
-                    editorSubsystem->GetCsgState()->AttachBrush(brushNode, shape);
+                    if (EditorCsgState* csgState = FindCsgState(editorSubsystem))
+                    {
+                        csgState->AttachBrush(brushNode, shape);
+                    }
                 }
             };
         }));
@@ -1501,9 +1538,9 @@ void EditorCsgState::ApplyBrush()
                     AssignMesh(target, resultMesh);
                     editorSubsystem->SyncBoxPhysicsShapeToLocalBounds(TryCast<Entity>(target.Get()));
 
-                    const Handle<EditorCsgState>& csgState = editorSubsystem->GetCsgState();
+                    EditorCsgState* csgState = FindCsgState(editorSubsystem);
 
-                    if (!csgState->IsSessionActive(sessionId))
+                    if (!csgState || !csgState->IsSessionActive(sessionId))
                     {
                         return;
                     }
@@ -1529,9 +1566,9 @@ void EditorCsgState::ApplyBrush()
                     AssignMesh(target, previousMesh);
                     editorSubsystem->SyncBoxPhysicsShapeToLocalBounds(TryCast<Entity>(target.Get()));
 
-                    const Handle<EditorCsgState>& csgState = editorSubsystem->GetCsgState();
+                    EditorCsgState* csgState = FindCsgState(editorSubsystem);
 
-                    if (csgState->IsSessionActive(sessionId))
+                    if (csgState && csgState->IsSessionActive(sessionId))
                     {
                         csgState->AttachBrush(brushNode, shape);
                     }

@@ -8,7 +8,7 @@ public static unsafe class Program
     {
         if (args.Length < 3)
         {
-            Console.Error.WriteLine("Usage: EditorTestHost create <project file> <managed|native> <disabled plugins, comma separated, or -> | simulate <project directory> <frames> <results file> | switch <project directories, ';' separated> <frames> <results file> | play <project directory> <frames> <Standalone|Client|DedicatedServer> <host> <port> <expected clients> <results file>");
+            Console.Error.WriteLine("Usage: EditorTestHost create <project file> <managed|native> <disabled plugins, comma separated, or -> | simulate <project directory> <frames> <results file> | switch <project directories, ';' separated> <frames> <results file> | play <project directory> <frames> <Standalone|Client|DedicatedServer> <host> <port> <expected clients> <results file> | editor-tests <filter, or -> <list|run> <results file>");
 
             return 2;
         }
@@ -20,6 +20,7 @@ public static unsafe class Program
             "simulate" => 4,
             "switch" => 4,
             "play" => 8,
+            "editor-tests" => 4,
             _ => 3
         };
 
@@ -49,6 +50,7 @@ public static unsafe class Program
             "simulate" => EditorTestHost_Simulate(args[1], int.Parse(args[2]), args[3]),
             "switch" => EditorTestHost_Switch(args[1], int.Parse(args[2]), args[3]),
             "play" => EditorTestHost_Play(args[1], int.Parse(args[2]), args[3], args[4], int.Parse(args[5]), int.Parse(args[6]), args[7]),
+            "editor-tests" => EditorTestHost_RunEditorTests(args[1] == "-" ? "" : args[1], args[2] == "list" ? 1 : 0, args[3]),
             _ => 0
         };
 
@@ -171,4 +173,7 @@ public static unsafe class Program
         int port,
         int expectedClients,
         [MarshalAs(UnmanagedType.LPUTF8Str)] string resultsPath);
+
+    [DllImport("hyperion", CharSet = CharSet.Ansi)]
+    private static extern int EditorTestHost_RunEditorTests([MarshalAs(UnmanagedType.LPUTF8Str)] string filter, int listOnly, [MarshalAs(UnmanagedType.LPUTF8Str)] string resultsPath);
 }
