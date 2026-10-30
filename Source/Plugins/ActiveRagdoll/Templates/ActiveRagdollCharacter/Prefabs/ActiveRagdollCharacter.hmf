@@ -1,0 +1,1340 @@
+Prefab ActiveRagdollCharacter {
+    Root = {
+        UUID = "3721930f-a3c4-49e7-b1a3-4298fc19a696"
+        Name = ActiveRagdollCharacter
+        NodeFlags = MobilityDynamic
+        LocalBounds = {
+            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+        }
+        LocalTransform = {
+            Translation = (0, 0, 0)
+            Scale = (1, 1, 1)
+            Rotation = {
+                X = 0
+                Y = 0
+                Z = 0
+                W = 1
+            }
+        }
+        Children = [
+            Node BaseHumanRig {
+                UUID = "86ed6a32-6c3e-4a90-b57a-f592cfe1cb22"
+                NodeFlags = MobilityDynamic
+                LocalBounds = {
+                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                }
+                LocalTransform = {
+                    Translation = (0, 0, 0)
+                    Scale = (1, 1, 1)
+                    Rotation = {
+                        X = 0
+                        Y = 0
+                        Z = 0
+                        W = 1
+                    }
+                }
+                Children = [
+                    Node BaseHuman {
+                        UUID = "d26cc409-9473-46f3-bc4b-e634459ce49b"
+                        NodeFlags = MobilityDynamic
+                        LocalBounds = {
+                            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                        }
+                        LocalTransform = {
+                            Translation = (0, 0, 0)
+                            Scale = (1, 1, 1)
+                            Rotation = {
+                                X = 0
+                                Y = 0
+                                Z = 0
+                                W = 1
+                            }
+                        }
+                        Children = [
+                            Entity BaseHuman_Primitive0 {
+                                Tags = []
+                                Components = [
+                                    ActiveRagdollComponent {
+                                        Strength = 1
+                                        RootAssist = 1
+                                        Balance = true
+                                        DebugDraw = false
+                                    }
+                                    AnimationComponent {
+                                        PlaybackState = {
+                                            AnimationIndex = 8
+                                            Status = PLAYING
+                                            LoopMode = REPEAT
+                                            Speed = 1
+                                            CurrentTime = 0
+                                            LayerAnimationIndex = 4294967295
+                                            LayerTime = 0
+                                            LayerWeight = 0
+                                            LayerExcludedBone = ""
+                                            SecondLayerAnimationIndex = 4294967295
+                                            SecondLayerTime = 0
+                                            SecondLayerWeight = 0
+                                            TwistAngle = 0
+                                            TwistRootBone = ""
+                                            TwistEndBone = ""
+                                        }
+                                    }
+                                    MeshComponent {
+                                        Mesh = @"Engine://Meshes/BaseHumanMesh"
+                                        Material = @"Engine://Materials/M_BaseHuman"
+                                        Skeleton = @"Engine://Skeletons/BaseHumanRig"
+                                        EnableAutoInstancing = false
+                                        InstanceData = null
+                                        ForcedLod = 0
+                                        LodBias = 0
+                                    }
+                                ]
+                                Layers = []
+                                UUID = "80612b5a-6a21-4c03-ab19-321915d7558f"
+                                NodeFlags = MobilityDynamic
+                                LocalBounds = {
+                                    Min = (-0.6957399, 0, -0.16982281)
+                                    Max = (0.6957399, 1.8, 0.15279415)
+                                }
+                                LocalTransform = {
+                                    Translation = (0, 0, 0)
+                                    Scale = (1, 1, 1)
+                                    Rotation = {
+                                        X = 0
+                                        Y = 0
+                                        Z = 0
+                                        W = 1
+                                    }
+                                }
+                                Children = []
+                                DataEntries = {
+                                    Values = []
+                                }
+                            }
+                        ]
+                        DataEntries = {
+                            Values = []
+                        }
+                    }
+                    Node root {
+                        UUID = "64466abb-15a3-4866-9325-f8b7aed22657"
+                        NodeFlags = MobilityDynamic
+                        LocalBounds = {
+                            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                        }
+                        LocalTransform = {
+                            Translation = (0, 0, 0)
+                            Scale = (1, 1, 1)
+                            Rotation = {
+                                X = 0
+                                Y = 0
+                                Z = 0
+                                W = 1
+                            }
+                        }
+                        Children = [
+                            Node pelvis {
+                                UUID = "ca5062b1-df21-4c64-9fea-7b4669fb0b1e"
+                                NodeFlags = MobilityDynamic
+                                LocalBounds = {
+                                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                }
+                                LocalTransform = {
+                                    Translation = (0, 1.0659062, -0)
+                                    Scale = (1, 1, 1)
+                                    Rotation = {
+                                        X = 0.031652927
+                                        Y = 0
+                                        Z = -0
+                                        W = 0.99949896
+                                    }
+                                }
+                                Children = [
+                                    Node spine_01 {
+                                        UUID = "693ce1ae-d365-415d-a671-bac2567faa05"
+                                        NodeFlags = MobilityDynamic
+                                        LocalBounds = {
+                                            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                        }
+                                        LocalTransform = {
+                                            Translation = (0, 0.08380037, 2.3283064e-09)
+                                            Scale = (1, 1, 1)
+                                            Rotation = {
+                                                X = 2.2351742e-08
+                                                Y = 0
+                                                Z = -0
+                                                W = 1
+                                            }
+                                        }
+                                        Children = [
+                                            Node spine_02 {
+                                                UUID = "9e77c4cf-f743-41a2-874c-2b7290817362"
+                                                NodeFlags = MobilityDynamic
+                                                LocalBounds = {
+                                                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                }
+                                                LocalTransform = {
+                                                    Translation = (0, 0.09776698, 5.5879354e-09)
+                                                    Scale = (1, 1, 1)
+                                                    Rotation = {
+                                                        X = 1.4901161e-08
+                                                        Y = 0
+                                                        Z = -0
+                                                        W = 1
+                                                    }
+                                                }
+                                                Children = [
+                                                    Node spine_03 {
+                                                        UUID = "4e83d00e-bc48-4533-a6fb-ed1300858a97"
+                                                        NodeFlags = MobilityDynamic
+                                                        LocalBounds = {
+                                                            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                        }
+                                                        LocalTransform = {
+                                                            Translation = (0, 0.11173373, -3.7252903e-09)
+                                                            Scale = (1, 1, 1)
+                                                            Rotation = {
+                                                                X = -1.4901161e-08
+                                                                Y = 0
+                                                                Z = -0
+                                                                W = 1
+                                                            }
+                                                        }
+                                                        Children = [
+                                                            Node clavicle_l {
+                                                                UUID = "839ed230-d35d-4e88-b2c8-38f7e3c55234"
+                                                                NodeFlags = MobilityDynamic
+                                                                LocalBounds = {
+                                                                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                }
+                                                                LocalTransform = {
+                                                                    Translation = (-0.06433345, 0.10257208, -0.0015134532)
+                                                                    Scale = (1.0000001, 1.0000002, 1)
+                                                                    Rotation = {
+                                                                        X = -0.67746824
+                                                                        Y = 0.48598734
+                                                                        Z = -0.4561509
+                                                                        W = 0.31109422
+                                                                    }
+                                                                }
+                                                                Children = [
+                                                                    Node upperarm_l {
+                                                                        UUID = "f7fe638b-8133-4dfb-a82d-7872910918ea"
+                                                                        NodeFlags = MobilityDynamic
+                                                                        LocalBounds = {
+                                                                            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                        }
+                                                                        LocalTransform = {
+                                                                            Translation = (5.5879354e-09, 0.13980146, -1.1175871e-08)
+                                                                            Scale = (1, 1, 1)
+                                                                            Rotation = {
+                                                                                X = -0.14241141
+                                                                                Y = 0.16425067
+                                                                                Z = 0.08945084
+                                                                                W = 0.97197706
+                                                                            }
+                                                                        }
+                                                                        Children = [
+                                                                            Node lowerarm_l {
+                                                                                UUID = "c818bf79-20ef-43af-91ba-af9f6047f2cf"
+                                                                                NodeFlags = MobilityDynamic
+                                                                                LocalBounds = {
+                                                                                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                                }
+                                                                                LocalTransform = {
+                                                                                    Translation = (2.6077032e-08, 0.25255737, -3.632158e-08)
+                                                                                    Scale = (1, 1, 1)
+                                                                                    Rotation = {
+                                                                                        X = 0.11512452
+                                                                                        Y = -0.026461532
+                                                                                        Z = 0.09983714
+                                                                                        W = 0.98796695
+                                                                                    }
+                                                                                }
+                                                                                Children = [
+                                                                                    Node hand_l {
+                                                                                        UUID = "f9e29339-6c36-46fb-8aa5-c44fdb39f922"
+                                                                                        NodeFlags = MobilityDynamic
+                                                                                        LocalBounds = {
+                                                                                            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                                            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                                        }
+                                                                                        LocalTransform = {
+                                                                                            Translation = (2.6077032e-08, 0.24640653, 1.359731e-07)
+                                                                                            Scale = (1, 0.99999994, 1)
+                                                                                            Rotation = {
+                                                                                                X = 0.020656604
+                                                                                                Y = 0.015211119
+                                                                                                Z = 0.06564761
+                                                                                                W = 0.9975131
+                                                                                            }
+                                                                                        }
+                                                                                        Children = [
+                                                                                            Node index_01_l {
+                                                                                                UUID = "f17d8341-6c2c-4971-8cfc-a3830bb91440"
+                                                                                                NodeFlags = MobilityDynamic
+                                                                                                LocalBounds = {
+                                                                                                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                                                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                                                }
+                                                                                                LocalTransform = {
+                                                                                                    Translation = (0.022171102, 0.10855164, -0.014163509)
+                                                                                                    Scale = (0.99999994, 1, 0.9999999)
+                                                                                                    Rotation = {
+                                                                                                        X = -0.15039442
+                                                                                                        Y = 0.07743277
+                                                                                                        Z = 0.0070767566
+                                                                                                        W = 0.98556364
+                                                                                                    }
+                                                                                                }
+                                                                                                Children = [
+                                                                                                    Node index_02_l {
+                                                                                                        UUID = "3ae8510a-493b-4841-99b4-2c4069c1338b"
+                                                                                                        NodeFlags = MobilityDynamic
+                                                                                                        LocalBounds = {
+                                                                                                            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                                                            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                                                        }
+                                                                                                        LocalTransform = {
+                                                                                                            Translation = (-7.450581e-09, 0.030834645, 5.2154064e-08)
+                                                                                                            Scale = (1, 1.0000002, 1)
+                                                                                                            Rotation = {
+                                                                                                                X = -0.03389922
+                                                                                                                Y = 0.06842839
+                                                                                                                Z = 0.08465241
+                                                                                                                W = 0.9934799
+                                                                                                            }
+                                                                                                        }
+                                                                                                        Children = [
+                                                                                                            Node index_03_l {
+                                                                                                                UUID = "7b853500-6a80-4f44-b400-3d5be7034725"
+                                                                                                                NodeFlags = MobilityDynamic
+                                                                                                                LocalBounds = {
+                                                                                                                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                                                                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                                                                }
+                                                                                                                LocalTransform = {
+                                                                                                                    Translation = (7.450581e-09, 0.029010352, 1.4901161e-08)
+                                                                                                                    Scale = (1.0000001, 1.0000001, 1.0000001)
+                                                                                                                    Rotation = {
+                                                                                                                        X = -1.2293457e-07
+                                                                                                                        Y = 2.4959442e-07
+                                                                                                                        Z = 2.8870997e-07
+                                                                                                                        W = 1
+                                                                                                                    }
+                                                                                                                }
+                                                                                                                Children = []
+                                                                                                                DataEntries = {
+                                                                                                                    Values = []
+                                                                                                                }
+                                                                                                            }
+                                                                                                        ]
+                                                                                                        DataEntries = {
+                                                                                                            Values = []
+                                                                                                        }
+                                                                                                    }
+                                                                                                ]
+                                                                                                DataEntries = {
+                                                                                                    Values = []
+                                                                                                }
+                                                                                            }
+                                                                                            Node middle_01_l {
+                                                                                                UUID = "82e65ded-c3f1-4781-987a-26ab0b5b1a6c"
+                                                                                                NodeFlags = MobilityDynamic
+                                                                                                LocalBounds = {
+                                                                                                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                                                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                                                }
+                                                                                                LocalTransform = {
+                                                                                                    Translation = (0, 0.101576164, 1.0058284e-07)
+                                                                                                    Scale = (1, 1, 1)
+                                                                                                    Rotation = {
+                                                                                                        X = -0.19608928
+                                                                                                        Y = 0.09107162
+                                                                                                        Z = -0.016259028
+                                                                                                        W = 0.9762124
+                                                                                                    }
+                                                                                                }
+                                                                                                Children = [
+                                                                                                    Node middle_02_l {
+                                                                                                        UUID = "c733a234-549c-4e25-8260-fc9a7d96123b"
+                                                                                                        NodeFlags = MobilityDynamic
+                                                                                                        LocalBounds = {
+                                                                                                            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                                                            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                                                        }
+                                                                                                        LocalTransform = {
+                                                                                                            Translation = (-3.7252903e-08, 0.034121446, -5.2154064e-08)
+                                                                                                            Scale = (0.99999994, 0.99999994, 0.99999994)
+                                                                                                            Rotation = {
+                                                                                                                X = -0.050100345
+                                                                                                                Y = 0.14727168
+                                                                                                                Z = 0.1742458
+                                                                                                                W = 0.9723371
+                                                                                                            }
+                                                                                                        }
+                                                                                                        Children = [
+                                                                                                            Node middle_03_l {
+                                                                                                                UUID = "b1c672c4-194b-408a-8e9d-f3e362ce9828"
+                                                                                                                NodeFlags = MobilityDynamic
+                                                                                                                LocalBounds = {
+                                                                                                                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                                                                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                                                                }
+                                                                                                                LocalTransform = {
+                                                                                                                    Translation = (-9.685755e-08, 0.032932647, 4.4703484e-08)
+                                                                                                                    Scale = (1, 1.0000001, 1.0000001)
+                                                                                                                    Rotation = {
+                                                                                                                        X = -6.9849186e-08
+                                                                                                                        Y = 1.2479722e-07
+                                                                                                                        Z = 5.6810673e-08
+                                                                                                                        W = 1
+                                                                                                                    }
+                                                                                                                }
+                                                                                                                Children = []
+                                                                                                                DataEntries = {
+                                                                                                                    Values = []
+                                                                                                                }
+                                                                                                            }
+                                                                                                        ]
+                                                                                                        DataEntries = {
+                                                                                                            Values = []
+                                                                                                        }
+                                                                                                    }
+                                                                                                ]
+                                                                                                DataEntries = {
+                                                                                                    Values = []
+                                                                                                }
+                                                                                            }
+                                                                                            Node pinky_01_l {
+                                                                                                UUID = "067a6b11-a624-474a-b1ce-a9cd0756dd4a"
+                                                                                                NodeFlags = MobilityDynamic
+                                                                                                LocalBounds = {
+                                                                                                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                                                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                                                }
+                                                                                                LocalTransform = {
+                                                                                                    Translation = (-0.035276935, 0.06706093, 0.03763415)
+                                                                                                    Scale = (1, 1, 0.99999994)
+                                                                                                    Rotation = {
+                                                                                                        X = -0.23498344
+                                                                                                        Y = 0.10993722
+                                                                                                        Z = -0.017417617
+                                                                                                        W = 0.96560514
+                                                                                                    }
+                                                                                                }
+                                                                                                Children = [
+                                                                                                    Node pinky_02_l {
+                                                                                                        UUID = "f50e12a4-1506-4b0b-8202-1410c6415176"
+                                                                                                        NodeFlags = MobilityDynamic
+                                                                                                        LocalBounds = {
+                                                                                                            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                                                            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                                                        }
+                                                                                                        LocalTransform = {
+                                                                                                            Translation = (-2.6077032e-08, 0.026220364, -1.1175871e-08)
+                                                                                                            Scale = (0.99999994, 1, 1)
+                                                                                                            Rotation = {
+                                                                                                                X = -0.04036769
+                                                                                                                Y = 0.25171706
+                                                                                                                Z = 0.30050156
+                                                                                                                W = 0.91907984
+                                                                                                            }
+                                                                                                        }
+                                                                                                        Children = [
+                                                                                                            Node pinky_03_l {
+                                                                                                                UUID = "bd37fd3d-f94c-4934-86a3-7bdc05571f97"
+                                                                                                                NodeFlags = MobilityDynamic
+                                                                                                                LocalBounds = {
+                                                                                                                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                                                                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                                                                }
+                                                                                                                LocalTransform = {
+                                                                                                                    Translation = (4.854519e-08, 0.022205543, -6.519258e-09)
+                                                                                                                    Scale = (1, 1, 1)
+                                                                                                                    Rotation = {
+                                                                                                                        X = -1.5342812e-07
+                                                                                                                        Y = 5.3376425e-07
+                                                                                                                        Z = 6.383634e-07
+                                                                                                                        W = 1
+                                                                                                                    }
+                                                                                                                }
+                                                                                                                Children = []
+                                                                                                                DataEntries = {
+                                                                                                                    Values = []
+                                                                                                                }
+                                                                                                            }
+                                                                                                        ]
+                                                                                                        DataEntries = {
+                                                                                                            Values = []
+                                                                                                        }
+                                                                                                    }
+                                                                                                ]
+                                                                                                DataEntries = {
+                                                                                                    Values = []
+                                                                                                }
+                                                                                            }
+                                                                                            Node ring_01_l {
+                                                                                                UUID = "38f17ff1-a571-4f10-992c-936bee81a9c5"
+                                                                                                NodeFlags = MobilityDynamic
+                                                                                                LocalBounds = {
+                                                                                                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                                                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                                                }
+                                                                                                LocalTransform = {
+                                                                                                    Translation = (-0.020593274, 0.08306188, 0.018511139)
+                                                                                                    Scale = (0.99999994, 1, 0.9999998)
+                                                                                                    Rotation = {
+                                                                                                        X = -0.19425313
+                                                                                                        Y = 0.07163053
+                                                                                                        Z = -0.06401822
+                                                                                                        W = 0.9762359
+                                                                                                    }
+                                                                                                }
+                                                                                                Children = [
+                                                                                                    Node ring_02_l {
+                                                                                                        UUID = "eeea54ba-bd25-4a24-a965-4efdcfc45181"
+                                                                                                        NodeFlags = MobilityDynamic
+                                                                                                        LocalBounds = {
+                                                                                                            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                                                            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                                                        }
+                                                                                                        LocalTransform = {
+                                                                                                            Translation = (2.2351742e-08, 0.034596175, 3.7252903e-09)
+                                                                                                            Scale = (0.99999994, 1, 1)
+                                                                                                            Rotation = {
+                                                                                                                X = -0.07106077
+                                                                                                                Y = 0.21078683
+                                                                                                                Z = 0.24017559
+                                                                                                                W = 0.9448995
+                                                                                                            }
+                                                                                                        }
+                                                                                                        Children = [
+                                                                                                            Node ring_03_l {
+                                                                                                                UUID = "93f254a3-947d-40bf-aaca-dd8845bab1ac"
+                                                                                                                NodeFlags = MobilityDynamic
+                                                                                                                LocalBounds = {
+                                                                                                                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                                                                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                                                                }
+                                                                                                                LocalTransform = {
+                                                                                                                    Translation = (-1.3038516e-08, 0.031438828, -1.4901161e-08)
+                                                                                                                    Scale = (0.99999994, 1, 1)
+                                                                                                                    Rotation = {
+                                                                                                                        X = 2.6077032e-08
+                                                                                                                        Y = -1.0989607e-07
+                                                                                                                        Z = -1.0523946e-07
+                                                                                                                        W = 1
+                                                                                                                    }
+                                                                                                                }
+                                                                                                                Children = []
+                                                                                                                DataEntries = {
+                                                                                                                    Values = []
+                                                                                                                }
+                                                                                                            }
+                                                                                                        ]
+                                                                                                        DataEntries = {
+                                                                                                            Values = []
+                                                                                                        }
+                                                                                                    }
+                                                                                                ]
+                                                                                                DataEntries = {
+                                                                                                    Values = []
+                                                                                                }
+                                                                                            }
+                                                                                            Node thumb_01_l {
+                                                                                                UUID = "1e89202f-97c6-42fb-8f14-4e6c684b2a71"
+                                                                                                NodeFlags = MobilityDynamic
+                                                                                                LocalBounds = {
+                                                                                                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                                                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                                                }
+                                                                                                LocalTransform = {
+                                                                                                    Translation = (0.026581168, 0.026111051, 0.007365521)
+                                                                                                    Scale = (1, 0.99999994, 1)
+                                                                                                    Rotation = {
+                                                                                                        X = -0.03347462
+                                                                                                        Y = 0.16943973
+                                                                                                        Z = 0.39388508
+                                                                                                        W = 0.9027869
+                                                                                                    }
+                                                                                                }
+                                                                                                Children = [
+                                                                                                    Node thumb_02_l {
+                                                                                                        UUID = "adffd5d9-188d-47ab-9218-60dd4bb06ff6"
+                                                                                                        NodeFlags = MobilityDynamic
+                                                                                                        LocalBounds = {
+                                                                                                            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                                                            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                                                        }
+                                                                                                        LocalTransform = {
+                                                                                                            Translation = (1.44355e-08, 0.030385152, 3.7252903e-09)
+                                                                                                            Scale = (1, 0.99999994, 1)
+                                                                                                            Rotation = {
+                                                                                                                X = -0.16098604
+                                                                                                                Y = -0.0039225146
+                                                                                                                Z = -0.0052147536
+                                                                                                                W = 0.98693514
+                                                                                                            }
+                                                                                                        }
+                                                                                                        Children = [
+                                                                                                            Node thumb_03_l {
+                                                                                                                UUID = "2ab6b7e1-1c4d-4241-9815-bd7305241be7"
+                                                                                                                NodeFlags = MobilityDynamic
+                                                                                                                LocalBounds = {
+                                                                                                                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                                                                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                                                                }
+                                                                                                                LocalTransform = {
+                                                                                                                    Translation = (-9.429641e-09, 0.034852333, 3.236346e-08)
+                                                                                                                    Scale = (0.99999994, 0.99999994, 0.99999994)
+                                                                                                                    Rotation = {
+                                                                                                                        X = -3.8026843e-07
+                                                                                                                        Y = 1.3411046e-07
+                                                                                                                        Z = 2.1018789e-07
+                                                                                                                        W = 1
+                                                                                                                    }
+                                                                                                                }
+                                                                                                                Children = []
+                                                                                                                DataEntries = {
+                                                                                                                    Values = []
+                                                                                                                }
+                                                                                                            }
+                                                                                                        ]
+                                                                                                        DataEntries = {
+                                                                                                            Values = []
+                                                                                                        }
+                                                                                                    }
+                                                                                                ]
+                                                                                                DataEntries = {
+                                                                                                    Values = []
+                                                                                                }
+                                                                                            }
+                                                                                        ]
+                                                                                        DataEntries = {
+                                                                                            Values = []
+                                                                                        }
+                                                                                    }
+                                                                                ]
+                                                                                DataEntries = {
+                                                                                    Values = []
+                                                                                }
+                                                                            }
+                                                                        ]
+                                                                        DataEntries = {
+                                                                            Values = []
+                                                                        }
+                                                                    }
+                                                                ]
+                                                                DataEntries = {
+                                                                    Values = []
+                                                                }
+                                                            }
+                                                            Node clavicle_r {
+                                                                UUID = "956489b8-4710-40f6-b147-46fc7687acb6"
+                                                                NodeFlags = MobilityDynamic
+                                                                LocalBounds = {
+                                                                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                }
+                                                                LocalTransform = {
+                                                                    Translation = (0.06433344, 0.10256602, -0.0014196709)
+                                                                    Scale = (1.0000001, 1, 1)
+                                                                    Rotation = {
+                                                                        X = -0.67770547
+                                                                        Y = -0.4856609
+                                                                        Z = 0.4558445
+                                                                        W = 0.31153584
+                                                                    }
+                                                                }
+                                                                Children = [
+                                                                    Node upperarm_r {
+                                                                        UUID = "8e9f2213-7248-49cd-8654-073f279e59d2"
+                                                                        NodeFlags = MobilityDynamic
+                                                                        LocalBounds = {
+                                                                            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                        }
+                                                                        LocalTransform = {
+                                                                            Translation = (-1.8626451e-09, 0.1398015, -1.6018748e-07)
+                                                                            Scale = (0.99999994, 1, 0.99999994)
+                                                                            Rotation = {
+                                                                                X = -0.14332001
+                                                                                Y = -0.16434304
+                                                                                Z = -0.08782938
+                                                                                W = 0.9719757
+                                                                            }
+                                                                        }
+                                                                        Children = [
+                                                                            Node lowerarm_r {
+                                                                                UUID = "547ae414-eb3a-46ea-8ad0-3eee321ab58e"
+                                                                                NodeFlags = MobilityDynamic
+                                                                                LocalBounds = {
+                                                                                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                                }
+                                                                                LocalTransform = {
+                                                                                    Translation = (-3.7252903e-08, 0.25254804, -1.0058284e-07)
+                                                                                    Scale = (1, 0.9999999, 0.9999999)
+                                                                                    Rotation = {
+                                                                                        X = 0.11675178
+                                                                                        Y = 0.026438747
+                                                                                        Z = -0.101994656
+                                                                                        W = 0.98755616
+                                                                                    }
+                                                                                }
+                                                                                Children = [
+                                                                                    Node hand_r {
+                                                                                        UUID = "159df170-9401-4539-978e-a4a53b8e3fd7"
+                                                                                        NodeFlags = MobilityDynamic
+                                                                                        LocalBounds = {
+                                                                                            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                                            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                                        }
+                                                                                        LocalTransform = {
+                                                                                            Translation = (-1.0803342e-07, 0.24665312, 3.7252903e-09)
+                                                                                            Scale = (1.0000001, 1.0000002, 1)
+                                                                                            Rotation = {
+                                                                                                X = 0.019340597
+                                                                                                Y = -0.023515698
+                                                                                                Z = -0.08382462
+                                                                                                W = 0.99601525
+                                                                                            }
+                                                                                        }
+                                                                                        Children = [
+                                                                                            Node index_01_r {
+                                                                                                UUID = "533733a0-2c64-4b65-b7b2-0714afb13ff1"
+                                                                                                NodeFlags = MobilityDynamic
+                                                                                                LocalBounds = {
+                                                                                                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                                                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                                                }
+                                                                                                LocalTransform = {
+                                                                                                    Translation = (-0.018135563, 0.10839914, -0.0144484565)
+                                                                                                    Scale = (0.9999999, 0.99999994, 0.99999994)
+                                                                                                    Rotation = {
+                                                                                                        X = -0.14946902
+                                                                                                        Y = -0.06184661
+                                                                                                        Z = 0.02139448
+                                                                                                        W = 0.9865984
+                                                                                                    }
+                                                                                                }
+                                                                                                Children = [
+                                                                                                    Node index_02_r {
+                                                                                                        UUID = "e66dd23d-4c96-4beb-92e7-7e7df342438c"
+                                                                                                        NodeFlags = MobilityDynamic
+                                                                                                        LocalBounds = {
+                                                                                                            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                                                            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                                                        }
+                                                                                                        LocalTransform = {
+                                                                                                            Translation = (-4.4703484e-08, 0.03144156, 7.450581e-09)
+                                                                                                            Scale = (0.99999994, 1, 1)
+                                                                                                            Rotation = {
+                                                                                                                X = -0.035910353
+                                                                                                                Y = -0.07089049
+                                                                                                                Z = -0.086406246
+                                                                                                                W = 0.99308556
+                                                                                                            }
+                                                                                                        }
+                                                                                                        Children = [
+                                                                                                            Node index_03_r {
+                                                                                                                UUID = "d3f85076-6906-4a29-9d50-2b77e9ecaf97"
+                                                                                                                NodeFlags = MobilityDynamic
+                                                                                                                LocalBounds = {
+                                                                                                                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                                                                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                                                                }
+                                                                                                                LocalTransform = {
+                                                                                                                    Translation = (-2.2351742e-08, 0.02922605, 2.2351742e-08)
+                                                                                                                    Scale = (0.99999994, 0.9999999, 0.99999994)
+                                                                                                                    Rotation = {
+                                                                                                                        X = 1.8998983e-07
+                                                                                                                        Y = 4.6566134e-07
+                                                                                                                        Z = 5.923212e-07
+                                                                                                                        W = 1
+                                                                                                                    }
+                                                                                                                }
+                                                                                                                Children = []
+                                                                                                                DataEntries = {
+                                                                                                                    Values = []
+                                                                                                                }
+                                                                                                            }
+                                                                                                        ]
+                                                                                                        DataEntries = {
+                                                                                                            Values = []
+                                                                                                        }
+                                                                                                    }
+                                                                                                ]
+                                                                                                DataEntries = {
+                                                                                                    Values = []
+                                                                                                }
+                                                                                            }
+                                                                                            Node middle_01_r {
+                                                                                                UUID = "5c5c5544-fbd0-4dbc-a14a-13a7e3fbad9a"
+                                                                                                NodeFlags = MobilityDynamic
+                                                                                                LocalBounds = {
+                                                                                                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                                                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                                                }
+                                                                                                LocalTransform = {
+                                                                                                    Translation = (1.1920929e-07, 0.092742965, -1.4901161e-08)
+                                                                                                    Scale = (0.9999999, 0.99999994, 0.9999998)
+                                                                                                    Rotation = {
+                                                                                                        X = -0.14519444
+                                                                                                        Y = -0.0231119
+                                                                                                        Z = 0.115848646
+                                                                                                        W = 0.9823256
+                                                                                                    }
+                                                                                                }
+                                                                                                Children = [
+                                                                                                    Node middle_02_r {
+                                                                                                        UUID = "4ef7356c-efc7-4bb0-9224-449abec48184"
+                                                                                                        NodeFlags = MobilityDynamic
+                                                                                                        LocalBounds = {
+                                                                                                            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                                                            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                                                        }
+                                                                                                        LocalTransform = {
+                                                                                                            Translation = (9.685755e-08, 0.03563791, -1.4901161e-08)
+                                                                                                            Scale = (1, 1, 1.0000001)
+                                                                                                            Rotation = {
+                                                                                                                X = -0.09051101
+                                                                                                                Y = -0.19724943
+                                                                                                                Z = -0.22395164
+                                                                                                                W = 0.9501295
+                                                                                                            }
+                                                                                                        }
+                                                                                                        Children = [
+                                                                                                            Node middle_03_r {
+                                                                                                                UUID = "75516333-1da8-4e8a-8d1d-53ecb9077f82"
+                                                                                                                NodeFlags = MobilityDynamic
+                                                                                                                LocalBounds = {
+                                                                                                                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                                                                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                                                                }
+                                                                                                                LocalTransform = {
+                                                                                                                    Translation = (-4.0978193e-08, 0.0362435, -1.4901161e-08)
+                                                                                                                    Scale = (1, 1.0000001, 1)
+                                                                                                                    Rotation = {
+                                                                                                                        X = 5.0291415e-08
+                                                                                                                        Y = 2.644956e-07
+                                                                                                                        Z = 3.557652e-07
+                                                                                                                        W = 1
+                                                                                                                    }
+                                                                                                                }
+                                                                                                                Children = []
+                                                                                                                DataEntries = {
+                                                                                                                    Values = []
+                                                                                                                }
+                                                                                                            }
+                                                                                                        ]
+                                                                                                        DataEntries = {
+                                                                                                            Values = []
+                                                                                                        }
+                                                                                                    }
+                                                                                                ]
+                                                                                                DataEntries = {
+                                                                                                    Values = []
+                                                                                                }
+                                                                                            }
+                                                                                            Node pinky_01_r {
+                                                                                                UUID = "ff2500b3-9110-4700-88c0-8ce5b625ae91"
+                                                                                                NodeFlags = MobilityDynamic
+                                                                                                LocalBounds = {
+                                                                                                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                                                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                                                }
+                                                                                                LocalTransform = {
+                                                                                                    Translation = (0.039961353, 0.06664281, 0.039660536)
+                                                                                                    Scale = (0.99999994, 0.99999976, 0.9999999)
+                                                                                                    Rotation = {
+                                                                                                        X = -0.22509255
+                                                                                                        Y = -0.10610806
+                                                                                                        Z = -0.0011371674
+                                                                                                        W = 0.9685418
+                                                                                                    }
+                                                                                                }
+                                                                                                Children = [
+                                                                                                    Node pinky_02_r {
+                                                                                                        UUID = "47dcfcc1-17a0-479e-9696-ccc8f691cc7d"
+                                                                                                        NodeFlags = MobilityDynamic
+                                                                                                        LocalBounds = {
+                                                                                                            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                                                            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                                                        }
+                                                                                                        LocalTransform = {
+                                                                                                            Translation = (8.381903e-08, 0.025841286, -6.3329935e-08)
+                                                                                                            Scale = (1.0000001, 0.99999994, 1)
+                                                                                                            Rotation = {
+                                                                                                                X = -0.03524632
+                                                                                                                Y = -0.23965795
+                                                                                                                Z = -0.30197144
+                                                                                                                W = 0.92202765
+                                                                                                            }
+                                                                                                        }
+                                                                                                        Children = [
+                                                                                                            Node pinky_03_r {
+                                                                                                                UUID = "f19ca110-b64c-4372-9a78-e7527467f190"
+                                                                                                                NodeFlags = MobilityDynamic
+                                                                                                                LocalBounds = {
+                                                                                                                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                                                                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                                                                }
+                                                                                                                LocalTransform = {
+                                                                                                                    Translation = (-2.2584572e-08, 0.02128943, -2.4214387e-08)
+                                                                                                                    Scale = (0.99999994, 1, 1)
+                                                                                                                    Rotation = {
+                                                                                                                        X = 1.5622936e-07
+                                                                                                                        Y = -3.3830293e-07
+                                                                                                                        Z = -3.9907175e-07
+                                                                                                                        W = 1
+                                                                                                                    }
+                                                                                                                }
+                                                                                                                Children = []
+                                                                                                                DataEntries = {
+                                                                                                                    Values = []
+                                                                                                                }
+                                                                                                            }
+                                                                                                        ]
+                                                                                                        DataEntries = {
+                                                                                                            Values = []
+                                                                                                        }
+                                                                                                    }
+                                                                                                ]
+                                                                                                DataEntries = {
+                                                                                                    Values = []
+                                                                                                }
+                                                                                            }
+                                                                                            Node ring_01_r {
+                                                                                                UUID = "217d5ee5-f557-4177-b0d3-24c828e0cba3"
+                                                                                                NodeFlags = MobilityDynamic
+                                                                                                LocalBounds = {
+                                                                                                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                                                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                                                }
+                                                                                                LocalTransform = {
+                                                                                                    Translation = (0.022997968, 0.080230325, 0.018155165)
+                                                                                                    Scale = (0.99999994, 0.9999999, 0.9999999)
+                                                                                                    Rotation = {
+                                                                                                        X = -0.19437097
+                                                                                                        Y = -0.0518885
+                                                                                                        Z = 0.10121162
+                                                                                                        W = 0.97431195
+                                                                                                    }
+                                                                                                }
+                                                                                                Children = [
+                                                                                                    Node ring_02_r {
+                                                                                                        UUID = "f33ef7e8-5721-4329-bb9e-2ecc4c55553e"
+                                                                                                        NodeFlags = MobilityDynamic
+                                                                                                        LocalBounds = {
+                                                                                                            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                                                            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                                                        }
+                                                                                                        LocalTransform = {
+                                                                                                            Translation = (1.1175871e-08, 0.034960072, -3.3527613e-08)
+                                                                                                            Scale = (0.9999999, 0.99999994, 0.99999994)
+                                                                                                            Rotation = {
+                                                                                                                X = -0.080014676
+                                                                                                                Y = -0.2206839
+                                                                                                                Z = -0.24225767
+                                                                                                                W = 0.941386
+                                                                                                            }
+                                                                                                        }
+                                                                                                        Children = [
+                                                                                                            Node ring_03_r {
+                                                                                                                UUID = "a77edacd-5e32-4e3a-b383-f900591dde9a"
+                                                                                                                NodeFlags = MobilityDynamic
+                                                                                                                LocalBounds = {
+                                                                                                                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                                                                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                                                                }
+                                                                                                                LocalTransform = {
+                                                                                                                    Translation = (7.357448e-08, 0.031809654, -8.195639e-08)
+                                                                                                                    Scale = (0.99999994, 1, 1)
+                                                                                                                    Rotation = {
+                                                                                                                        X = -6.984919e-08
+                                                                                                                        Y = 3.222376e-07
+                                                                                                                        Z = 3.6507848e-07
+                                                                                                                        W = 1
+                                                                                                                    }
+                                                                                                                }
+                                                                                                                Children = []
+                                                                                                                DataEntries = {
+                                                                                                                    Values = []
+                                                                                                                }
+                                                                                                            }
+                                                                                                        ]
+                                                                                                        DataEntries = {
+                                                                                                            Values = []
+                                                                                                        }
+                                                                                                    }
+                                                                                                ]
+                                                                                                DataEntries = {
+                                                                                                    Values = []
+                                                                                                }
+                                                                                            }
+                                                                                            Node thumb_01_r {
+                                                                                                UUID = "0e405c65-cfde-4c2f-9389-66c2e87f3fe8"
+                                                                                                NodeFlags = MobilityDynamic
+                                                                                                LocalBounds = {
+                                                                                                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                                                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                                                }
+                                                                                                LocalTransform = {
+                                                                                                    Translation = (-0.025198635, 0.02675182, 0.0063242875)
+                                                                                                    Scale = (0.99999994, 0.9999998, 0.9999999)
+                                                                                                    Rotation = {
+                                                                                                        X = -0.027682109
+                                                                                                        Y = -0.15877129
+                                                                                                        Z = -0.37489533
+                                                                                                        W = 0.91295063
+                                                                                                    }
+                                                                                                }
+                                                                                                Children = [
+                                                                                                    Node thumb_02_r {
+                                                                                                        UUID = "a0397a25-ac41-4567-a418-260c04ca8841"
+                                                                                                        NodeFlags = MobilityDynamic
+                                                                                                        LocalBounds = {
+                                                                                                            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                                                            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                                                        }
+                                                                                                        LocalTransform = {
+                                                                                                            Translation = (-2.537854e-08, 0.029832875, 2.561137e-08)
+                                                                                                            Scale = (1, 1, 1)
+                                                                                                            Rotation = {
+                                                                                                                X = -0.17400087
+                                                                                                                Y = 0.0006803612
+                                                                                                                Z = -0.0014643397
+                                                                                                                W = 0.9847442
+                                                                                                            }
+                                                                                                        }
+                                                                                                        Children = [
+                                                                                                            Node thumb_03_r {
+                                                                                                                UUID = "bd7a572f-2c72-42c8-aeaa-4012382d1ac5"
+                                                                                                                NodeFlags = MobilityDynamic
+                                                                                                                LocalBounds = {
+                                                                                                                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                                                                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                                                                }
+                                                                                                                LocalTransform = {
+                                                                                                                    Translation = (-2.4447218e-09, 0.03518149, 2.6077032e-08)
+                                                                                                                    Scale = (0.99999994, 0.9999999, 1)
+                                                                                                                    Rotation = {
+                                                                                                                        X = -2.0843983e-07
+                                                                                                                        Y = 1.4191028e-07
+                                                                                                                        Z = 2.1455347e-07
+                                                                                                                        W = 1
+                                                                                                                    }
+                                                                                                                }
+                                                                                                                Children = []
+                                                                                                                DataEntries = {
+                                                                                                                    Values = []
+                                                                                                                }
+                                                                                                            }
+                                                                                                        ]
+                                                                                                        DataEntries = {
+                                                                                                            Values = []
+                                                                                                        }
+                                                                                                    }
+                                                                                                ]
+                                                                                                DataEntries = {
+                                                                                                    Values = []
+                                                                                                }
+                                                                                            }
+                                                                                        ]
+                                                                                        DataEntries = {
+                                                                                            Values = []
+                                                                                        }
+                                                                                    }
+                                                                                ]
+                                                                                DataEntries = {
+                                                                                    Values = []
+                                                                                }
+                                                                            }
+                                                                        ]
+                                                                        DataEntries = {
+                                                                            Values = []
+                                                                        }
+                                                                    }
+                                                                ]
+                                                                DataEntries = {
+                                                                    Values = []
+                                                                }
+                                                            }
+                                                            Node neck {
+                                                                UUID = "82acea8f-923b-40de-8229-6f07c824fbf8"
+                                                                NodeFlags = MobilityDynamic
+                                                                LocalBounds = {
+                                                                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                }
+                                                                LocalTransform = {
+                                                                    Translation = (0, 0.12570049, 1.1175871e-08)
+                                                                    Scale = (1, 0.99999994, 1)
+                                                                    Rotation = {
+                                                                        X = -0.1926435
+                                                                        Y = 0
+                                                                        Z = -0
+                                                                        W = 0.9812688
+                                                                    }
+                                                                }
+                                                                Children = [
+                                                                    Node head {
+                                                                        UUID = "bb946bb8-20bf-4091-a3f2-7ab89393e41f"
+                                                                        NodeFlags = MobilityDynamic
+                                                                        LocalBounds = {
+                                                                            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                        }
+                                                                        LocalTransform = {
+                                                                            Translation = (0, 0.104006365, 1.2572855e-08)
+                                                                            Scale = (1, 1, 1)
+                                                                            Rotation = {
+                                                                                X = 0.1614869
+                                                                                Y = 0
+                                                                                Z = -0
+                                                                                W = 0.9868749
+                                                                            }
+                                                                        }
+                                                                        Children = []
+                                                                        DataEntries = {
+                                                                            Values = []
+                                                                        }
+                                                                    }
+                                                                ]
+                                                                DataEntries = {
+                                                                    Values = []
+                                                                }
+                                                            }
+                                                        ]
+                                                        DataEntries = {
+                                                            Values = []
+                                                        }
+                                                    }
+                                                ]
+                                                DataEntries = {
+                                                    Values = []
+                                                }
+                                            }
+                                        ]
+                                        DataEntries = {
+                                            Values = []
+                                        }
+                                    }
+                                    Node thigh_l {
+                                        UUID = "8eef49c6-746b-4881-8e6c-911561e26fb3"
+                                        NodeFlags = MobilityDynamic
+                                        LocalBounds = {
+                                            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                        }
+                                        LocalTransform = {
+                                            Translation = (-0.08938235, -0.0461109, -0.0075783473)
+                                            Scale = (0.9999966, 0.99999976, 0.9999979)
+                                            Rotation = {
+                                                X = 0.99377275
+                                                Y = -0.072774895
+                                                Z = 0.068308406
+                                                W = 0.04953348
+                                            }
+                                        }
+                                        Children = [
+                                            Node calf_l {
+                                                UUID = "fe5651e3-f208-4a2e-9b09-77a31df39c19"
+                                                NodeFlags = MobilityDynamic
+                                                LocalBounds = {
+                                                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                }
+                                                LocalTransform = {
+                                                    Translation = (1.9092113e-08, 0.45673266, -0)
+                                                    Scale = (1.0000001, 1.0000001, 1)
+                                                    Rotation = {
+                                                        X = -0.051680315
+                                                        Y = -0.012598019
+                                                        Z = -0.019350978
+                                                        W = 0.9983967
+                                                    }
+                                                }
+                                                Children = [
+                                                    Node foot_l {
+                                                        UUID = "b6bec162-36f9-4aa5-ac34-97c825f5e151"
+                                                        NodeFlags = MobilityDynamic
+                                                        LocalBounds = {
+                                                            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                        }
+                                                        LocalTransform = {
+                                                            Translation = (-1.3969839e-08, 0.4640404, -6.519258e-09)
+                                                            Scale = (0.9999998, 1, 1)
+                                                            Rotation = {
+                                                                X = 0.47507024
+                                                                Y = -0.09114983
+                                                                Z = -0.0017732759
+                                                                W = 0.8752125
+                                                            }
+                                                        }
+                                                        Children = [
+                                                            Node ball_l {
+                                                                UUID = "5ad91ed6-b25e-43d5-b912-3541b7f24d8d"
+                                                                NodeFlags = MobilityDynamic
+                                                                LocalBounds = {
+                                                                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                }
+                                                                LocalTransform = {
+                                                                    Translation = (-4.656613e-09, 0.16271162, 4.656613e-09)
+                                                                    Scale = (0.99999994, 1, 1)
+                                                                    Rotation = {
+                                                                        X = 0.3357607
+                                                                        Y = -4.7506953e-07
+                                                                        Z = 0.1762819
+                                                                        W = 0.92530507
+                                                                    }
+                                                                }
+                                                                Children = []
+                                                                DataEntries = {
+                                                                    Values = []
+                                                                }
+                                                            }
+                                                        ]
+                                                        DataEntries = {
+                                                            Values = []
+                                                        }
+                                                    }
+                                                ]
+                                                DataEntries = {
+                                                    Values = []
+                                                }
+                                            }
+                                        ]
+                                        DataEntries = {
+                                            Values = []
+                                        }
+                                    }
+                                    Node thigh_r {
+                                        UUID = "08f368b4-873e-483b-8006-4d2daafa31a7"
+                                        NodeFlags = MobilityDynamic
+                                        LocalBounds = {
+                                            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                        }
+                                        LocalTransform = {
+                                            Translation = (0.08938234, -0.046112046, -0.007560221)
+                                            Scale = (1.0000004, 1, 1.0000002)
+                                            Rotation = {
+                                                X = 0.99378335
+                                                Y = 0.07276261
+                                                Z = -0.06829535
+                                                W = 0.049356446
+                                            }
+                                        }
+                                        Children = [
+                                            Node calf_r {
+                                                UUID = "5e2b4abe-fce8-4e64-a380-7a8f1ec5b839"
+                                                NodeFlags = MobilityDynamic
+                                                LocalBounds = {
+                                                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                }
+                                                LocalTransform = {
+                                                    Translation = (-1.8626451e-08, 0.4567252, 1.0244548e-08)
+                                                    Scale = (1.0000001, 1, 1)
+                                                    Rotation = {
+                                                        X = -0.052000888
+                                                        Y = 0.012597406
+                                                        Z = 0.019399345
+                                                        W = 0.9983791
+                                                    }
+                                                }
+                                                Children = [
+                                                    Node foot_r {
+                                                        UUID = "3ec268cb-5159-41cb-9397-11566b4760e3"
+                                                        NodeFlags = MobilityDynamic
+                                                        LocalBounds = {
+                                                            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                        }
+                                                        LocalTransform = {
+                                                            Translation = (1.0244548e-08, 0.4640609, -7.450581e-09)
+                                                            Scale = (0.9999999, 0.9999999, 0.9999998)
+                                                            Rotation = {
+                                                                X = 0.4707377
+                                                                Y = 0.092372514
+                                                                Z = 0.0035160505
+                                                                W = 0.8774172
+                                                            }
+                                                        }
+                                                        Children = [
+                                                            Node ball_r {
+                                                                UUID = "6865f2ca-b6b3-4367-b598-832d0483f120"
+                                                                NodeFlags = MobilityDynamic
+                                                                LocalBounds = {
+                                                                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                }
+                                                                LocalTransform = {
+                                                                    Translation = (7.3341653e-09, 0.16093928, -7.450581e-09)
+                                                                    Scale = (0.99999994, 1.0000001, 0.99999994)
+                                                                    Rotation = {
+                                                                        X = 0.34021652
+                                                                        Y = -5.043848e-08
+                                                                        Z = -0.17862278
+                                                                        W = 0.92322624
+                                                                    }
+                                                                }
+                                                                Children = []
+                                                                DataEntries = {
+                                                                    Values = []
+                                                                }
+                                                            }
+                                                        ]
+                                                        DataEntries = {
+                                                            Values = []
+                                                        }
+                                                    }
+                                                ]
+                                                DataEntries = {
+                                                    Values = []
+                                                }
+                                            }
+                                        ]
+                                        DataEntries = {
+                                            Values = []
+                                        }
+                                    }
+                                ]
+                                DataEntries = {
+                                    Values = []
+                                }
+                            }
+                        ]
+                        DataEntries = {
+                            Values = []
+                        }
+                    }
+                ]
+                DataEntries = {
+                    Values = []
+                }
+            }
+        ]
+        DataEntries = {
+            Values = []
+        }
+    }
+    Revision = 0
+    UUID = "09788742-79dc-40ba-a654-cf6dacd39c0c"
+}

@@ -1,0 +1,322 @@
+RagdollDefinition HumanoidRagdoll {
+    TotalMass = 75
+    Bodies = [
+        RagdollBodyDefinition {
+            Bones = [ Hips ]
+            Ends = [ Spine ]
+            Radius = 0.11
+            Anchor = true
+            MassFraction = 0.2
+        }
+        RagdollBodyDefinition {
+            Bones = [ Spine ]
+            Ends = [ UpperChest Chest Neck Head ]
+            Radius = 0.13
+            SwingForward = 35
+            SwingBack = 20
+            SwingOut = 20
+            SwingIn = 20
+            Twist = 20
+            JointFriction = 6
+            MassFraction = 0.15
+            Muscle = RagdollMuscle {
+                Stiffness = 5
+                Damping = 1.2
+                MaxTorque = 150
+            }
+        }
+        RagdollBodyDefinition {
+            Bones = [ UpperChest Chest ]
+            Ends = [ Neck Head ]
+            ExtraLength = 0.05
+            Radius = 0.13
+            SwingForward = 25
+            SwingBack = 15
+            SwingOut = 15
+            SwingIn = 15
+            Twist = 20
+            JointFriction = 6
+            MassFraction = 0.117
+            Muscle = RagdollMuscle {
+                Stiffness = 5
+                Damping = 1.2
+                MaxTorque = 150
+            }
+        }
+        RagdollBodyDefinition {
+            Bones = [ Neck Head ]
+            Ends = [ Head ]
+            EndAtTip = true
+            Part = Head
+            Radius = 0.09
+            SwingForward = 45
+            SwingBack = 50
+            SwingOut = 35
+            SwingIn = 35
+            Twist = 60
+            JointFriction = 2
+            MassFraction = 0.081
+            Muscle = RagdollMuscle {
+                Stiffness = 5
+                Damping = 1.2
+                MaxTorque = 150
+            }
+        }
+        RagdollBodyDefinition {
+            Bones = [ LeftShoulder ]
+            Ends = [ LeftUpperArm ]
+            ExtraLength = 0.03
+            Radius = 0.03
+            SwingForward = 15
+            SwingBack = 15
+            SwingOut = 30
+            SwingIn = 10
+            Twist = 20
+            JointFriction = 2
+            MassFraction = 0.015
+            Muscle = RagdollMuscle {
+                Stiffness = 5
+                Damping = 1.2
+                MaxTorque = 150
+            }
+        }
+        RagdollBodyDefinition {
+            Bones = [ LeftUpperArm ]
+            Ends = [ LeftLowerArm ]
+            Part = Arm
+            Radius = 0.05
+            SwingForward = 150
+            SwingBack = 45
+            SwingOut = 150
+            SwingIn = 15
+            Twist = 50
+            JointFriction = 3
+            MassFraction = 0.028
+            Muscle = RagdollMuscle {
+                Stiffness = 5
+                Damping = 1.2
+                MaxTorque = 150
+            }
+        }
+        RagdollBodyDefinition {
+            Bones = [ LeftLowerArm ]
+            Ends = [ LeftHand ]
+            Part = Arm
+            Joint = HingeForward
+            Radius = 0.04
+            Flex = 140
+            Twist = 60
+            JointFriction = 2
+            MassFraction = 0.016
+            Muscle = RagdollMuscle {
+                Stiffness = 5
+                Damping = 1.2
+                MaxTorque = 150
+            }
+        }
+        RagdollBodyDefinition {
+            Bones = [ LeftHand ]
+            Ends = [ LeftHand ]
+            EndAtTip = true
+            Part = Arm
+            ExtraLength = 0.05
+            Radius = 0.035
+            Swing = 40
+            Twist = 30
+            JointFriction = 0.5
+            MassFraction = 0.006
+            Muscle = RagdollMuscle {
+                Stiffness = 5
+                Damping = 1.2
+                MaxTorque = 20
+            }
+        }
+        RagdollBodyDefinition {
+            Bones = [ RightShoulder ]
+            Ends = [ RightUpperArm ]
+            ExtraLength = 0.03
+            Radius = 0.03
+            SwingForward = 15
+            SwingBack = 15
+            SwingOut = 30
+            SwingIn = 10
+            Twist = 20
+            JointFriction = 2
+            MassFraction = 0.015
+            Muscle = RagdollMuscle {
+                Stiffness = 5
+                Damping = 1.2
+                MaxTorque = 150
+            }
+        }
+        RagdollBodyDefinition {
+            Bones = [ RightUpperArm ]
+            Ends = [ RightLowerArm ]
+            Part = Arm
+            Radius = 0.05
+            SwingForward = 150
+            SwingBack = 45
+            SwingOut = 150
+            SwingIn = 15
+            Twist = 50
+            JointFriction = 3
+            MassFraction = 0.028
+            Muscle = RagdollMuscle {
+                Stiffness = 5
+                Damping = 1.2
+                MaxTorque = 150
+            }
+        }
+        RagdollBodyDefinition {
+            Bones = [ RightLowerArm ]
+            Ends = [ RightHand ]
+            Part = Arm
+            Joint = HingeForward
+            Radius = 0.04
+            Flex = 140
+            Twist = 60
+            JointFriction = 2
+            MassFraction = 0.016
+            Muscle = RagdollMuscle {
+                Stiffness = 5
+                Damping = 1.2
+                MaxTorque = 150
+            }
+        }
+        RagdollBodyDefinition {
+            Bones = [ RightHand ]
+            Ends = [ RightHand ]
+            EndAtTip = true
+            Part = Arm
+            ExtraLength = 0.05
+            Radius = 0.035
+            Swing = 40
+            Twist = 30
+            JointFriction = 0.5
+            MassFraction = 0.006
+            Muscle = RagdollMuscle {
+                Stiffness = 5
+                Damping = 1.2
+                MaxTorque = 20
+            }
+        }
+        RagdollBodyDefinition {
+            Bones = [ LeftUpperLeg ]
+            Ends = [ LeftLowerLeg ]
+            Part = Leg
+            Radius = 0.075
+            SwingForward = 115
+            SwingBack = 30
+            SwingOut = 45
+            SwingIn = 20
+            Twist = 35
+            JointFriction = 6
+            Anchor = true
+            MassFraction = 0.1
+            Muscle = RagdollMuscle {
+                Stiffness = 10
+                Damping = 1
+                MaxTorque = 250
+            }
+        }
+        RagdollBodyDefinition {
+            Bones = [ LeftLowerLeg ]
+            Ends = [ LeftFoot ]
+            Part = Leg
+            Joint = HingeBackward
+            Radius = 0.055
+            Flex = 135
+            Twist = 10
+            JointFriction = 4
+            Anchor = true
+            MassFraction = 0.0465
+            Muscle = RagdollMuscle {
+                Stiffness = 10
+                Damping = 1
+                MaxTorque = 300
+            }
+        }
+        RagdollBodyDefinition {
+            Bones = [ LeftFoot ]
+            Ends = [ LeftToes ]
+            Part = Leg
+            Foot = true
+            Radius = 0.04
+            FootWidth = 0.09
+            HeelLength = 0.06
+            Friction = 2
+            SwingForward = 30
+            SwingBack = 50
+            SwingOut = 20
+            SwingIn = 30
+            Twist = 10
+            JointFriction = 1
+            Anchor = true
+            MassFraction = 0.0145
+            Muscle = RagdollMuscle {
+                Stiffness = 10
+                Damping = 1
+                MaxTorque = 200
+            }
+        }
+        RagdollBodyDefinition {
+            Bones = [ RightUpperLeg ]
+            Ends = [ RightLowerLeg ]
+            Part = Leg
+            Radius = 0.075
+            SwingForward = 115
+            SwingBack = 30
+            SwingOut = 45
+            SwingIn = 20
+            Twist = 35
+            JointFriction = 6
+            Anchor = true
+            MassFraction = 0.1
+            Muscle = RagdollMuscle {
+                Stiffness = 10
+                Damping = 1
+                MaxTorque = 250
+            }
+        }
+        RagdollBodyDefinition {
+            Bones = [ RightLowerLeg ]
+            Ends = [ RightFoot ]
+            Part = Leg
+            Joint = HingeBackward
+            Radius = 0.055
+            Flex = 135
+            Twist = 10
+            JointFriction = 4
+            Anchor = true
+            MassFraction = 0.0465
+            Muscle = RagdollMuscle {
+                Stiffness = 10
+                Damping = 1
+                MaxTorque = 300
+            }
+        }
+        RagdollBodyDefinition {
+            Bones = [ RightFoot ]
+            Ends = [ RightToes ]
+            Part = Leg
+            Foot = true
+            Radius = 0.04
+            FootWidth = 0.09
+            HeelLength = 0.06
+            Friction = 2
+            SwingForward = 30
+            SwingBack = 50
+            SwingOut = 20
+            SwingIn = 30
+            Twist = 10
+            JointFriction = 1
+            Anchor = true
+            MassFraction = 0.0145
+            Muscle = RagdollMuscle {
+                Stiffness = 10
+                Damping = 1
+                MaxTorque = 200
+            }
+        }
+    ]
+}

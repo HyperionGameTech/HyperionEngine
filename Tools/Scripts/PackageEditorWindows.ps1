@@ -338,6 +338,7 @@ foreach ($pluginBinDir in Get-ChildItem (Join-Path $BinDir "Plugins") -Directory
     }
 
     if (Test-Path (Join-Path $pluginSourceDir "Content")) { Copy-Directory (Join-Path $pluginSourceDir "Content") (Join-Path $pluginStageDir "Content") }
+    if (Test-Path (Join-Path $pluginSourceDir "Templates")) { Copy-Directory (Join-Path $pluginSourceDir "Templates") (Join-Path $pluginStageDir "Templates") }
 
     # the plugin's C#, which the editor loads by name when the plugin loads, so it sits beside the editor rather than in it
     foreach ($moduleLibrary in Get-ChildItem $pluginBinDir.FullName -Filter "hyperion-plugin-*.dll" -File)

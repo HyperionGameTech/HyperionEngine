@@ -576,6 +576,15 @@ void PluginManager::LoadPluginLibraries(const PluginDescriptor& descriptor)
 
     m_pluginsWithLibrariesLoaded.PushBack(descriptor.name);
 
+    // a module library can link a dependency's, which the loader only finds once that one is loaded
+    for (Name dependency : descriptor.dependencies)
+    {
+        if (const PluginDescriptor* dependencyDescriptor = FindPlugin(dependency))
+        {
+            LoadPluginLibraries(*dependencyDescriptor);
+        }
+    }
+
     // the plugin's classes register as its libraries load, in no particular order, so they're initialized once all of them are in
     ClassRegistry::GetInstance().BeginDeferredInitialization();
 

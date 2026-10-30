@@ -92,7 +92,7 @@ struct HumanoidMapping
     HYP_FIELD(Property = "Bones", Serialize = true, Editor = true)
     Array<HumanoidBoneBinding> bones;
 
-    Name GetBoneName(HumanoidBone bone) const;
+    ANIMATION_API Name GetBoneName(HumanoidBone bone) const;
 
     // an invalid name unmaps the bone
     void SetBoneName(HumanoidBone bone, Name boneName);

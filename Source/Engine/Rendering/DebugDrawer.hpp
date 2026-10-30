@@ -322,7 +322,7 @@ public:
     // 16384*sizeof(ImmediateDrawShaderData) = 1,310,720 bytes
     static constexpr size_t MaxHeaders = 16384;
 
-    static DebugDrawer& GetInstance();
+    ENGINE_API static DebugDrawer& GetInstance();
 
     DebugDrawer();
     
@@ -356,7 +356,7 @@ public:
     /*! \brief Changes when this frame's commands differ from another frame's. Render thread callable only. */
     HashCode GetCommandsHash() const;
 
-    DebugDrawCommandList& CreateCommandList();
+    ENGINE_API DebugDrawCommandList& CreateCommandList();
 
     /*! \brief Discard the sim thread's not-yet-consumed command slot, destructing commands in place.
      *  Call from the sim thread before invalidating references (e.g. EnvProbe pointers) they hold. */

@@ -22,9 +22,21 @@ class ObjectLayerPairFilter;
 class ObjectVsBroadPhaseLayerFilter;
 class BodyFilter;
 class CharacterVsCharacterCollisionSimple;
+class ContactListener;
 }
 
 namespace Hyperion {
+
+// JPH::ObjectLayer values
+namespace JoltLayers {
+
+static constexpr uint16 NON_MOVING = 0;
+static constexpr uint16 MOVING = 1;
+// collides with everything but characters
+static constexpr uint16 RAGDOLL = 2;
+static constexpr uint16 NUM_LAYERS = 3;
+
+} // namespace JoltLayers
 
 class JoltPhysicsAdapter : public PhysicsAdapter<JoltPhysicsAdapter>
 {
@@ -62,6 +74,26 @@ public:
 
     bool CastRayStatic(const Vec3f& origin, const Vec3f& direction, float maxDistance, PhysicsRayHit& outHit);
 
+    HYP_FORCE_INLINE JPH::PhysicsSystem* GetPhysicsSystem() const
+    {
+        return m_physicsSystem;
+    }
+
+    HYP_FORCE_INLINE JPH::TempAllocator* GetTempAllocator() const
+    {
+        return m_tempAllocator;
+    }
+
+    // collision steps of the current (or last) update, which step listeners see one at a time
+    HYP_FORCE_INLINE uint32 GetNumCollisionSteps() const
+    {
+        return m_numCollisionSteps;
+    }
+
+    // called from physics threads during updates; add and remove between them
+    ENGINE_API void AddContactListener(JPH::ContactListener* listener);
+    ENGINE_API void RemoveContactListener(JPH::ContactListener* listener);
+
 private:
     JPH::PhysicsSystem* m_physicsSystem;
     JPH::JobSystem* m_jobSystem;
@@ -71,6 +103,8 @@ private:
     JPH::ObjectVsBroadPhaseLayerFilter* m_objectVsBroadPhaseLayerFilter;
     JPH::BodyFilter* m_characterBodyFilter;
     JPH::CharacterVsCharacterCollisionSimple* m_characterVsCharacterCollision;
+    JPH::ContactListener* m_contactListeners;
+    uint32 m_numCollisionSteps;
     Array<SharedPtr<void>, PhysicsAllocator> m_characterControllers;
     Set<uint32, PhysicsAllocator> m_ghostNonCollidableBodyIds;
     Map<uint32, Handle<RigidBody>, PhysicsAllocator> m_bodyIdToRigidBody;

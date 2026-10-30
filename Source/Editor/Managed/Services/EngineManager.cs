@@ -158,7 +158,7 @@ namespace Hyperion.Editor
             _onProjectLoadFinished?.Remove();
             _onProjectLoadFinished = editorState.GetOnCurrentProjectChangedDelegate().Bind((EditorProject? newProject, bool isSimulationStateChange) =>
             {
-                if (newProject != null && !isSimulationStateChange)
+                if (newProject != null)
                 {
                     SetProjectLoadStatus(null);
                 }
