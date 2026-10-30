@@ -122,6 +122,7 @@
 // Extended bits - never set on lightmapped surfaces (their gbuffer bits hold the atlas UV instead)
 #define OBJECT_MASK_TREE (0x10u)
 #define OBJECT_MASK_PLAYER (0x20u)
+#define OBJECT_MASK_DYNAMIC (0x40u)
 
 // Helper math utilities.
 #define HYP_FMATH_SQR(num) ((num) * (num))

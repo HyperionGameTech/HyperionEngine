@@ -213,7 +213,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID, uint vertexId : 
 
     output.object_mask = lightmappedMask
         | treeMask
-        | (GetEntityObjectMask(currentEntity) & OBJECT_MASK_PLAYER)
+        | (GetEntityObjectMask(currentEntity) & (OBJECT_MASK_PLAYER | OBJECT_MASK_DYNAMIC))
         | (min(1u, GET_MATERIAL_PARAM_BIT(material, MATERIAL_FLAG_UNLIT)) * OBJECT_MASK_UNLIT)
         | (min(1u, GET_MATERIAL_PARAM_BIT(material, MATERIAL_FLAG_FOLIAGE)) * OBJECT_MASK_FOLIAGE);
 

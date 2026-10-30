@@ -16,5 +16,6 @@ static constexpr uint8 FoliageObjectMask = 0x04;
 static constexpr uint8 CutoutObjectMask = 0x08;
 static constexpr uint8 TreeObjectMask = 0x10;
 static constexpr uint8 PlayerObjectMask = 0x20;
+static constexpr uint8 DynamicObjectMask = 0x40;
 
 } // namespace Hyperion

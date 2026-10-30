@@ -953,6 +953,11 @@ void Entity::UpdateRenderProxy(RenderProxyMesh* proxy)
     proxy->bufferData.bucket = uint16(meshComponent.material->GetAttributes().bucket);
     proxy->bufferData.objectMask = IsWithinPlayerHierarchy(this) ? PlayerObjectMask : 0;
 
+    if (IsDynamic())
+    {
+        proxy->bufferData.objectMask |= DynamicObjectMask;
+    }
+
     if (TerrainPatchComponent* terrainPatchComponent = TryGetComponent<TerrainPatchComponent>())
     {
         proxy->bufferData.lodMorphStart = terrainPatchComponent->lodMorphStart;

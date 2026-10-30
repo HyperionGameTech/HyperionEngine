@@ -5,6 +5,7 @@
 
 #define GLIMMER_PROBE_FADE_IN_UPDATES 8.0
 #define GLIMMER_PROBE_BEHIND_FADE 0.05
+#define GLIMMER_PROBE_DYNAMIC_BEHIND_FADE 0.5
 
 float3 GlimmerProbePosition(GlimmerProbeVolume volume, uint probeIndex, int4 slot, uint4 state)
 {
@@ -15,6 +16,8 @@ float3 GlimmerProbePosition(GlimmerProbeVolume volume, uint probeIndex, int4 slo
 }
 
 #ifndef GLIMMER_PROBES_NO_SAMPLING
+
+static float g_glimmerProbeBehindFade = GLIMMER_PROBE_BEHIND_FADE;
 
 float GlimmerProbeVisibility(uint probeIndex, float3 probeToPoint, float distanceInSpacings)
 {
@@ -145,7 +148,7 @@ float GlimmerGatherProbeTaps(GlimmerProbeVolume volume, uint levelIndex, float3 
         const float visibility = lerp(1.0, GlimmerProbeVisibility(probeIndex, probeToPoint, length(probeToPoint) / spacing), volume.params.y);
 
         const float fadeIn = GlimmerProbeSleepInterval(state) != 0u ? 1.0 : saturate(float(GlimmerProbeUpdates(state)) / GLIMMER_PROBE_FADE_IN_UPDATES);
-        const float inFront = saturate(1.0 + dot(toProbe, N) / (GLIMMER_PROBE_BEHIND_FADE * spacing));
+        const float inFront = max(saturate(1.0 + dot(toProbe, N) / (g_glimmerProbeBehindFade * spacing)), 1e-3);
         const float weight = trilinearWeight * (backface * backface + 0.2) * visibility * fadeIn * inFront;
 
         presentCoverage += trilinearWeight * fadeIn;

@@ -24,9 +24,9 @@
 #define GBUFFER_EMISSIVE_MIN_LOG2 (-10.0)
 #define GBUFFER_EMISSIVE_MAX_LOG2 (14.0)
 
-// Material data bits (non-lightmapped): [0, 6) foliage transmission, [6, 8) extended object mask, [8, 28) emissive, [28, 32) object mask
-#define GBUFFER_TRANSMISSION_MAX 63u
-#define GBUFFER_EXTENDED_MASK_SHIFT 6u
+// Material data bits (non-lightmapped): [0, 5) foliage transmission, [5, 8) extended object mask, [8, 28) emissive, [28, 32) object mask
+#define GBUFFER_TRANSMISSION_MAX 31u
+#define GBUFFER_EXTENDED_MASK_SHIFT 5u
 
 struct GBufferMaterialParams
 {
@@ -58,7 +58,7 @@ void GBufferUnpackMaterialParams(float roughnessAndMetalPacked, uint mask, out G
 
 uint GBufferPackObjectMask(uint mask)
 {
-    const uint extendedBits = select((mask & OBJECT_MASK_LIGHTMAPPED) != 0, 0u, (mask >> 4u) & 0x3u);
+    const uint extendedBits = select((mask & OBJECT_MASK_LIGHTMAPPED) != 0, 0u, (mask >> 4u) & 0x7u);
 
     return ((mask & 0xFu) << 28u) | (extendedBits << GBUFFER_EXTENDED_MASK_SHIFT);
 }
@@ -66,7 +66,7 @@ uint GBufferPackObjectMask(uint mask)
 uint GBufferUnpackObjectMask(uint materialBits)
 {
     const uint mask = materialBits >> 28u;
-    const uint extendedBits = select((mask & OBJECT_MASK_LIGHTMAPPED) != 0, 0u, (materialBits >> GBUFFER_EXTENDED_MASK_SHIFT) & 0x3u);
+    const uint extendedBits = select((mask & OBJECT_MASK_LIGHTMAPPED) != 0, 0u, (materialBits >> GBUFFER_EXTENDED_MASK_SHIFT) & 0x7u);
 
     return mask | (extendedBits << 4u);
 }
