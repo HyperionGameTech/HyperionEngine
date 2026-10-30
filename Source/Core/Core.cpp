@@ -17,7 +17,11 @@
 
 #include <Core/IO/ByteReader.hpp>
 
+#include <Core/Logging/Logger.hpp>
+
 namespace Hyperion {
+
+CORE_API HYP_DECLARE_LOG_CHANNEL(Core);
 
 namespace threading {
 extern void Task_DeleteAllDeferredTasks();
@@ -37,6 +41,7 @@ List<GlobalConfig> g_globalConfigChain;
 Mutex g_globalConfigMutex;
 
 CommandLineArguments g_commandLineArguments;
+Array<String> g_commandLineArgumentStrings;
 
 CommandLineArgumentRegistration g_argBaseDir {
     "basedir",
@@ -172,11 +177,15 @@ CORE_API bool Initialize(int argc, char** argv)
     {
         JSON::JString configArgsString = configArgs.ToString();
 
-        parseResult = argParse.Parse(g_commandLineArguments.GetCommand(), CommandLineParser::SplitArguments(configArgsString.ToUtf8()), false);
+        const Array<String> configArgStrings = CommandLineParser::SplitArguments(configArgsString.ToUtf8());
+
+        parseResult = argParse.Parse(g_commandLineArguments.GetCommand(), configArgStrings, false);
 
         if (!parseResult.HasError())
         {
             configuredArgs = *parseResult;
+
+            g_commandLineArgumentStrings.Concat(configArgStrings);
         }
     }
 
@@ -192,9 +201,11 @@ CORE_API bool Initialize(int argc, char** argv)
 
         argsFileReader.Close();
 
+        const Array<String> argsFileStrings = CommandLineParser::SplitArguments(argsFileText);
+
         parseResult = argParse.Parse(
             g_commandLineArguments.GetCommand(),
-            CommandLineParser::SplitArguments(argsFileText),
+            argsFileStrings,
             false);
 
         if (parseResult.HasError())
@@ -204,7 +215,14 @@ CORE_API bool Initialize(int argc, char** argv)
         else
         {
             configuredArgs = CommandLineArguments::Merge(*argParse.GetDefinitions(), configuredArgs, *parseResult);
+
+            g_commandLineArgumentStrings.Concat(argsFileStrings);
         }
+    }
+
+    for (int i = 1; i < argc; i++)
+    {
+        g_commandLineArgumentStrings.PushBack(argv[i]);
     }
 
     // merge argv last so that they may override what's in the config and args.txt.
@@ -218,6 +236,24 @@ CORE_API bool Initialize(int argc, char** argv)
 CORE_API const CommandLineArguments& GetCommandLineArguments()
 {
     return g_commandLineArguments;
+}
+
+CORE_API CommandLineArguments ParseCommandLineArguments()
+{
+    const CommandLineArgumentDefinitions definitions(GetRegisteredCommandLineArgumentDefinitions());
+
+    CommandLineParser argParse { &definitions };
+
+    TResult<CommandLineArguments> parseResult = argParse.Parse(g_commandLineArguments.GetCommand(), g_commandLineArgumentStrings);
+
+    if (parseResult.HasError())
+    {
+        HYP_LOG(Core, Error, "Error parsing command line arguments: {}", parseResult.GetError().GetMessage());
+
+        return g_commandLineArguments;
+    }
+
+    return *parseResult;
 }
 
 CORE_API void UpdateGlobalConfig(const ConfigBase& mergeValues)

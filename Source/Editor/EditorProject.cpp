@@ -62,7 +62,51 @@ struct EditorProjectSaveContext {};
 
 EDITOR_API HYP_DECLARE_LOG_CHANNEL(Editor);
 
-static const ANSIString s_defaultProjectName = "Project";
+namespace {
+
+const ANSIString g_defaultProjectName = "Project";
+
+CommandLineArgumentRegistration g_argEnablePlugins {
+    "enableplugins",
+    {},
+    "Plugins enabled for this session on top of the project's, comma separated (not saved)",
+    CommandLineArgumentFlags::NONE,
+    CommandLineArgumentType::STRING
+};
+
+CommandLineArgumentRegistration g_argDisablePlugins {
+    "disableplugins",
+    {},
+    "Plugins disabled for this session, comma separated (not saved)",
+    CommandLineArgumentFlags::NONE,
+    CommandLineArgumentType::STRING
+};
+
+Array<Name> GetPluginListArgument(UTF8StringView key)
+{
+    Array<Name> pluginNames;
+
+    const CommandLineArgumentValue& argument = CoreApi::GetCommandLineArguments()[key];
+
+    if (!argument.IsString())
+    {
+        return pluginNames;
+    }
+
+    for (const String& pluginName : argument.ToString().Split(','))
+    {
+        const String trimmed = pluginName.Trimmed();
+
+        if (trimmed.Any())
+        {
+            pluginNames.PushBack(CreateNameFromDynamicString(trimmed.ToAnsi()));
+        }
+    }
+
+    return pluginNames;
+}
+
+} // namespace
 
 #pragma region EditorProject
 
@@ -70,13 +114,13 @@ static Name GetUniqueProjectName()
 {
     const FilePath projectsDir = EngineGlobals::GetProjectsDirectory();
 
-    ANSIString candidateName = s_defaultProjectName;
+    ANSIString candidateName = g_defaultProjectName;
     uint32 counter = 0;
 
     while ((projectsDir / candidateName).Exists())
     {
         ++counter;
-        candidateName = HYP_FORMAT("{}{}", s_defaultProjectName, counter);
+        candidateName = HYP_FORMAT("{}{}", g_defaultProjectName, counter);
     }
 
     return Name(candidateName);
@@ -354,13 +398,13 @@ Result EditorProject::SaveAs(FilePath filepath)
     if (!m_name.IsValid())
     {
         const FilePath projectsDir = EngineGlobals::GetProjectsDirectory();
-        ANSIString candidateName = s_defaultProjectName;
+        ANSIString candidateName = g_defaultProjectName;
         uint32 counter = 0;
 
         while ((projectsDir / candidateName).Exists())
         {
             ++counter;
-            candidateName = HYP_FORMAT("{}{}", s_defaultProjectName, counter);
+            candidateName = HYP_FORMAT("{}{}", g_defaultProjectName, counter);
         }
 
         m_name = Name(candidateName);
@@ -920,12 +964,31 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
 
 Array<Name> EditorProject::GetEnabledPlugins() const
 {
-    if (!m_projectSettings.IsValid())
+    Array<Name> pluginNames;
+
+    if (m_projectSettings.IsValid())
     {
-        return PluginManager::GetInstance().GetDefaultEnabledPlugins();
+        pluginNames = m_projectSettings->plugins;
+    }
+    else
+    {
+        pluginNames = PluginManager::GetInstance().GetDefaultEnabledPlugins();
     }
 
-    return m_projectSettings->plugins;
+    for (Name pluginName : GetPluginListArgument("enableplugins"))
+    {
+        if (!pluginNames.Contains(pluginName))
+        {
+            pluginNames.PushBack(pluginName);
+        }
+    }
+
+    for (Name pluginName : GetPluginListArgument("disableplugins"))
+    {
+        pluginNames.Erase(pluginName);
+    }
+
+    return pluginNames;
 }
 
 Array<Name> EditorProject::GetEnabledPluginRuntimeModules() const
