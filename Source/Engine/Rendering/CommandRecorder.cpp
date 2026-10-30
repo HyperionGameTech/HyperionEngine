@@ -1529,7 +1529,34 @@ SetShaderUniform::SetShaderUniform(uint32 uniformIndex, StringHash name, const B
     AssertDebug(byteAddressBuffer.gpuBuffer != nullptr);
 }
 
+SetShaderUniform::SetShaderUniform(uint32 uniformIndex, StringHash name, const IndirectArgsBuffer& indirectArgsBuffer, uint32 elementOffset)
+    : uniformIndex(uniformIndex),
+      shaderDataOffset(elementOffset * indirectArgsBuffer.elementSize, indirectArgsBuffer.elementSize),
+      uniform({ name, indirectArgsBuffer.gpuBuffer })
+{
+    AssertDebug(indirectArgsBuffer.gpuBuffer != nullptr);
+}
+
 #pragma endregion SetShaderUniform
+
+#pragma region InsertBarrier
+
+InsertBarrier::InsertBarrier(const RawBuffer& buffer, const ResourceState& state, ShaderModuleType shaderModuleType)
+    : InsertBarrier(buffer.gpuBuffer, state, shaderModuleType)
+{
+    AssertDebug(buffer.gpuBuffer != nullptr);
+}
+
+#pragma endregion InsertBarrier
+
+#pragma region DispatchComputeIndirect
+
+DispatchComputeIndirect::DispatchComputeIndirect(const IndirectArgsBuffer& argsBuffer, uint32 argsOffset)
+    : DispatchComputeIndirect(argsBuffer.gpuBuffer, argsOffset)
+{
+}
+
+#pragma endregion DispatchComputeIndirect
 
 #pragma region FillImage
 

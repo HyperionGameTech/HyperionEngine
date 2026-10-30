@@ -194,31 +194,27 @@ Vec4f MakeGlimmerRandomRotation(uint32 seed)
     };
 }
 
-GpuBufferRef CreateGlimmerStructuredBuffer(size_t elementSize, size_t numElements)
+StructuredBuffer CreateGlimmerStructuredBuffer(size_t elementSize, size_t numElements)
 {
-    GpuBufferRef buffer = RI.MakeGpuBuffer(
-        GpuBufferType::StructuredBuffer,
-        elementSize * MathUtil::Max(numElements, size_t(1)),
-        alignof(Vec4f));
-
-    Check(buffer->Create());
+    StructuredBuffer buffer(MathUtil::Max(numElements, size_t(1)), elementSize, RawBufferFlags::GpuOnly);
+    buffer.Initialize();
 
     return buffer;
 }
 
-GpuBufferRef CreateGlimmerRWBuffer(size_t byteSize, size_t alignment)
+RWStructuredBuffer CreateGlimmerRWBuffer(size_t elementSize, size_t numElements)
 {
-    GpuBufferRef buffer = RI.MakeGpuBuffer(GpuBufferType::RWStructuredBuffer, byteSize, alignment);
-    Check(buffer->Create());
+    RWStructuredBuffer buffer(MathUtil::Max(numElements, size_t(1)), elementSize, RawBufferFlags::GpuOnly);
+    buffer.Initialize();
 
-    ClearGlimmerBuffer(buffer.Get());
+    ClearGlimmerBuffer(buffer);
 
     return buffer;
 }
 
-void ClearGlimmerBuffer(GpuBuffer* buffer)
+void ClearGlimmerBuffer(const RawBuffer& buffer)
 {
-    const size_t size = buffer->Size();
+    const size_t size = buffer.TotalSizeBytes();
 
     GpuBuffer* stagingBuffer = RI.stagingBufferPool->AcquireStagingBuffer(size);
     Assert(stagingBuffer != nullptr);
@@ -230,10 +226,18 @@ void ClearGlimmerBuffer(GpuBuffer* buffer)
 
     cr << InsertBarrier(stagingBuffer, ResourceState::CopySrc);
     cr << InsertBarrier(buffer, ResourceState::CopyDst);
-    cr << CopyBuffer(stagingBuffer, buffer, uint32(size));
+    cr << CopyBuffer(stagingBuffer, buffer.gpuBuffer, uint32(size));
     cr << InsertBarrier(buffer, ResourceState::UnorderedAccess);
 
     cr.Done();
+}
+
+void EnsureGlimmerBufferCapacity(RawBuffer& buffer, size_t byteSize)
+{
+    if (byteSize > buffer.TotalSizeBytes())
+    {
+        buffer.Resize(byteSize);
+    }
 }
 
 Handle<Texture> CreateGlimmerStorageTexture(TextureType type, TextureFormat format, const Vec3u& extent, uint16 numLayers, Name name, TextureWrapMode wrapMode)

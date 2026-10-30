@@ -7,6 +7,7 @@
 #pragma once
 
 #include <Rendering/RenderTypes.hpp>
+#include <Rendering/RawBuffer.hpp>
 #include <Rendering/Glimmer/GlimmerSurfaceCache.hpp>
 #include <Rendering/Glimmer/GlimmerSpanCache.hpp>
 
@@ -95,7 +96,7 @@ struct GlimmerProbeUpdateInputs
 
     const GlimmerLocalLights* localLights = nullptr;
 
-    GpuBuffer* scratchBuffer = nullptr;
+    RWStructuredBuffer* scratchBuffer = nullptr;
 };
 
 class GlimmerProbeVolume final
@@ -125,32 +126,34 @@ public:
         return m_poolBlocks;
     }
 
-    const GpuBufferRef& GetBlockTableBuffer() const;
-    const GpuBufferRef& GetSHBuffer() const;
-    const GpuBufferRef& GetLightBuffer() const;
-    const GpuBufferRef& GetStatesBuffer() const;
-    const GpuBufferRef& GetVisibilityBuffer() const;
-    const GpuBufferRef& GetSlotsBuffer() const;
+    const RWStructuredBuffer& GetBlockTableBuffer() const;
+    const RWStructuredBuffer& GetSHBuffer() const;
+    const RWStructuredBuffer& GetLightBuffer() const;
+    const RWStructuredBuffer& GetStatesBuffer() const;
+    const RWStructuredBuffer& GetVisibilityBuffer() const;
+    const RWStructuredBuffer& GetSlotsBuffer() const;
 
 private:
     void CreateResources(Frame* frame);
     void ReleaseResources();
     void UpdateWindows(const Vec3f& viewerPosition, const Vec3f& lookAhead);
 
-    const GpuBufferRef& GetBufferOrPlaceholder(const GpuBufferRef& buffer) const;
+    // elementSize is the stride the shaders declare for what the placeholder stands in for
+    const RWStructuredBuffer& GetPlaceholderBuffer(size_t elementSize) const;
+    const RWStructuredBuffer& GetBufferOrPlaceholder(const RWStructuredBuffer& buffer, size_t elementSize) const;
 
-    GpuBufferRef m_blockTableBuffer; // a slot (or ~0) per block of each level's window
-    GpuBufferRef m_cellsBuffer;      // per block table entry: the block it was classified for, and whether it wants a slot
-    GpuBufferRef m_slotsBuffer;      // per slot: the block's absolute coordinate and level (-1 when free)
-    GpuBufferRef m_slotTimesBuffer;  // per slot: frames since its block was last wanted, and the frame one of its probes last saw its light change
-    GpuBufferRef m_statesBuffer;
-    GpuBufferRef m_shBuffer;         // 3 per probe: the light put together
-    GpuBufferRef m_lightBuffer;      // 3 per part of the light per probe
-    GpuBufferRef m_visibilityBuffer; // GlimmerProbeVisibilityTexels per probe
-    GpuBufferRef m_trendBuffer;
-    GpuBufferRef m_countersBuffer;   // NumProbeCounters, then the list of probes this frame updates
+    RWStructuredBuffer m_blockTableBuffer; // a slot (or ~0) per block of each level's window
+    RWStructuredBuffer m_cellsBuffer;      // per block table entry: the block it was classified for, and whether it wants a slot
+    RWStructuredBuffer m_slotsBuffer;      // per slot: the block's absolute coordinate and level (-1 when free)
+    RWStructuredBuffer m_slotTimesBuffer;  // per slot: frames since its block was last wanted, and the frame one of its probes last saw its light change
+    RWStructuredBuffer m_statesBuffer;
+    RWStructuredBuffer m_shBuffer;         // 3 per probe: the light put together
+    RWStructuredBuffer m_lightBuffer;      // 3 per part of the light per probe
+    RWStructuredBuffer m_visibilityBuffer; // GlimmerProbeVisibilityTexels per probe
+    RWStructuredBuffer m_trendBuffer;
+    RWStructuredBuffer m_countersBuffer;   // NumProbeCounters, then the list of probes this frame updates
 
-    GpuBufferRef m_placeholderBuffer;
+    mutable RWStructuredBuffer m_placeholderBuffers[2]; // uint and 16 byte elements
 
     Time m_startTime;
     uint32 m_frameIndex;

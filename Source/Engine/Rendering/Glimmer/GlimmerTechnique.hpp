@@ -7,6 +7,7 @@
 #pragma once
 
 #include <Rendering/RenderTypes.hpp>
+#include <Rendering/RawBuffer.hpp>
 #include <Rendering/CommandRecorder.hpp>
 
 #include <Rendering/Glimmer/GlimmerHelpers.hpp>
@@ -137,7 +138,7 @@ private:
 
     uint32 m_relightLightsGeneration = 0;
 
-    GpuBufferRef m_scratchBuffer;
+    RWStructuredBuffer m_scratchBuffer;
 
     GlimmerLightShaderData m_light;
     bool m_hasLight = false;

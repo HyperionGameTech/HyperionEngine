@@ -55,7 +55,7 @@ void GlimmerProbeDebug::CreateResources(uint32 numRecords)
 {
     m_numRecords = numRecords;
 
-    m_recordsBuffer = GlimmerHelpers::CreateGlimmerRWBuffer(m_numRecords * sizeof(GlimmerProbeDebugRecord), alignof(Vec4f));
+    m_recordsBuffer = GlimmerHelpers::CreateGlimmerRWBuffer(sizeof(GlimmerProbeDebugRecord), m_numRecords);
 
     for (GpuBufferRef& readbackBuffer : m_readbackBuffers)
     {
@@ -72,12 +72,12 @@ void GlimmerProbeDebug::CreateResources(uint32 numRecords)
 
 void GlimmerProbeDebug::Reset()
 {
-    if (!m_recordsBuffer.IsValid())
+    if (!m_recordsBuffer.IsInitialized())
     {
         return;
     }
 
-    EnqueueDeletion(std::move(m_recordsBuffer));
+    m_recordsBuffer.Shutdown();
 
     for (GpuBufferRef& readbackBuffer : m_readbackBuffers)
     {
@@ -94,19 +94,19 @@ void GlimmerProbeDebug::Update(Frame* frame, const GlimmerProbeVolume& probeVolu
 {
     HYP_SCOPE;
 
-    if (!probeVolume.IsReady() || !occupancy.GetMaskBuffer().IsValid())
+    if (!probeVolume.IsReady() || !occupancy.GetMaskBuffer().IsInitialized())
     {
         return;
     }
 
     const uint32 numRecords = probeVolume.GetPoolBlocks() * GlimmerProbesPerBlock;
 
-    if (m_recordsBuffer.IsValid() && m_numRecords != numRecords)
+    if (m_recordsBuffer.IsInitialized() && m_numRecords != numRecords)
     {
         Reset();
     }
 
-    if (!m_recordsBuffer.IsValid())
+    if (!m_recordsBuffer.IsInitialized())
     {
         CreateResources(numRecords);
     }
@@ -143,27 +143,27 @@ void GlimmerProbeDebug::Update(Frame* frame, const GlimmerProbeVolume& probeVolu
 
     CommandRecorder& cr = frame->cr;
 
-    cr << InsertBarrier(m_recordsBuffer.Get(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
+    cr << InsertBarrier(m_recordsBuffer, ResourceState::UnorderedAccess, ShaderModuleType::Compute);
 
     cr << SetCurrentShader(ShaderDesc(NAME("GlimmerProbeDebug")));
 
     uint32 uniformIndex = 0;
 
     cr << SetShaderUniform(uniformIndex++, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
-    cr << SetShaderUniform(uniformIndex++, "GlimmerProbeSHBuffer"_sh, probeVolume.GetSHBuffer().Get(), ShaderDataOffset(0, sizeof(Vec4f)));
-    cr << SetShaderUniform(uniformIndex++, "GlimmerProbeStatesBuffer"_sh, probeVolume.GetStatesBuffer().Get(), ShaderDataOffset(0, sizeof(Vec4u)));
-    cr << SetShaderUniform(uniformIndex++, "GlimmerProbeSlotsBuffer"_sh, probeVolume.GetSlotsBuffer().Get(), ShaderDataOffset(0, sizeof(Vec4i)));
+    cr << SetShaderUniform(uniformIndex++, "GlimmerProbeSHBuffer"_sh, probeVolume.GetSHBuffer());
+    cr << SetShaderUniform(uniformIndex++, "GlimmerProbeStatesBuffer"_sh, probeVolume.GetStatesBuffer());
+    cr << SetShaderUniform(uniformIndex++, "GlimmerProbeSlotsBuffer"_sh, probeVolume.GetSlotsBuffer());
     cr << SetShaderUniform(uniformIndex++, "GlimmerGroundTexture"_sh, surfaceCache.GetGroundImageView());
     cr << SetShaderUniform(uniformIndex++, "GlimmerSHOccupancyTexture"_sh, occupancy.GetImageView());
-    cr << SetShaderUniform(uniformIndex++, "GlimmerSHOccupancyMaskBuffer"_sh, occupancy.GetMaskBuffer().Get(), ShaderDataOffset(0, sizeof(uint32)));
-    cr << SetShaderUniform(uniformIndex++, "OutRecords"_sh, m_recordsBuffer.Get(), ShaderDataOffset(0, sizeof(GlimmerProbeDebugRecord)));
+    cr << SetShaderUniform(uniformIndex++, "GlimmerSHOccupancyMaskBuffer"_sh, occupancy.GetMaskBuffer());
+    cr << SetShaderUniform(uniformIndex++, "OutRecords"_sh, m_recordsBuffer);
 
     cr << DispatchCompute(Vec3u { (m_numRecords + ProbeDebugGroupSize - 1) / ProbeDebugGroupSize, 1, 1 });
 
-    cr << InsertBarrier(m_recordsBuffer.Get(), ResourceState::CopySrc, ShaderModuleType::Compute);
+    cr << InsertBarrier(m_recordsBuffer, ResourceState::CopySrc, ShaderModuleType::Compute);
     cr << InsertBarrier(readbackBuffer.Get(), ResourceState::CopyDst, ShaderModuleType::Compute);
 
-    cr << CopyBuffer(m_recordsBuffer.Get(), readbackBuffer.Get(), uint32(m_numRecords * sizeof(GlimmerProbeDebugRecord)));
+    cr << CopyBuffer(m_recordsBuffer.gpuBuffer, readbackBuffer.Get(), uint32(m_numRecords * sizeof(GlimmerProbeDebugRecord)));
 
     m_isPending[slot] = true;
 }

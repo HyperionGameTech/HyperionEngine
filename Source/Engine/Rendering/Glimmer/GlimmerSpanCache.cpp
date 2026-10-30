@@ -86,13 +86,8 @@ GlimmerSpanCache::GlimmerSpanCache()
 
 GlimmerSpanCache::~GlimmerSpanCache()
 {
-    EnqueueDeletion(std::move(m_spansBuffer));
-    EnqueueDeletion(std::move(m_heightBoundsBuffer));
-}
-
-const GpuBufferRef& GlimmerSpanCache::GetSpansBuffer() const
-{
-    return m_spansBuffer;
+    m_spansBuffer.Shutdown();
+    m_heightBoundsBuffer.Shutdown();
 }
 
 bool GlimmerSpanCache::RectList::Add(const Rect& rect)
@@ -160,20 +155,20 @@ void GlimmerSpanCache::FillLevel(
         uint32 uniformIndex = 0;
 
         cr << SetShaderUniform(uniformIndex++, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
-        cr << SetShaderUniform(uniformIndex++, "SpansBuffer"_sh, m_spansBuffer.Get(), ShaderDataOffset(0, sizeof(uint32)));
-        cr << SetShaderUniform(uniformIndex++, "SpanInstancesBuffer"_sh, sceneInstances.GetSpanInstancesBuffer().Get(), ShaderDataOffset(0, sizeof(GlimmerSpanInstanceShaderData)));
-        cr << SetShaderUniform(uniformIndex++, "SpanChunksBuffer"_sh, sceneInstances.GetSpanChunksBuffer().Get(), ShaderDataOffset(0, sizeof(GlimmerSpanChunkShaderData)));
-        cr << SetShaderUniform(uniformIndex++, "GlimmerTrianglesBuffer"_sh, triangleCache.GetTrianglesBuffer().Get(), ShaderDataOffset(0, sizeof(uint32)));
+        cr << SetShaderUniform(uniformIndex++, "SpansBuffer"_sh, m_spansBuffer);
+        cr << SetShaderUniform(uniformIndex++, "SpanInstancesBuffer"_sh, sceneInstances.GetSpanInstancesBuffer());
+        cr << SetShaderUniform(uniformIndex++, "SpanChunksBuffer"_sh, sceneInstances.GetSpanChunksBuffer());
+        cr << SetShaderUniform(uniformIndex++, "GlimmerTrianglesBuffer"_sh, triangleCache.GetTrianglesBuffer());
         cr << SetShaderUniform(uniformIndex++, "MaterialsBuffer"_sh, RI.namedBuffers[NamedBuffer::Materials]);
         cr << SetShaderUniform(uniformIndex++, "SamplerLinearMipmap"_sh, RI.placeholderData->GetSamplerLinearMipmap());
         cr << SetShaderUniform(uniformIndex++, "GlimmerGroundTexture"_sh, surfaceCache.GetGroundImageView());
 
         cr << DispatchCompute(groups);
 
-        cr << InsertBarrier(m_spansBuffer.Get(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
+        cr << InsertBarrier(m_spansBuffer, ResourceState::UnorderedAccess, ShaderModuleType::Compute);
     };
 
-    cr << InsertBarrier(m_spansBuffer.Get(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
+    cr << InsertBarrier(m_spansBuffer, ResourceState::UnorderedAccess, ShaderModuleType::Compute);
 
     dispatchPass(s_propSpanModeClear, GlimmerGroundResolution * GlimmerGroundResolution);
 
@@ -184,7 +179,7 @@ void GlimmerSpanCache::FillLevel(
         dispatchPass(s_propSpanModeFill, sceneInstances.GetNumSpanChunks() * SpanGroupSize);
     }
 
-    cr << InsertBarrier(m_spansBuffer.Get(), ResourceState::ShaderResource, ShaderModuleType::Compute);
+    cr << InsertBarrier(m_spansBuffer, ResourceState::ShaderResource, ShaderModuleType::Compute);
 
     m_builtOrigins[levelIndex] = windowOrigin;
     m_builtGenerations[levelIndex] = sceneInstances.GetGeneration();
@@ -203,15 +198,16 @@ void GlimmerSpanCache::UpdateHeightBounds(Frame* frame, const GlimmerChannelStat
 
     CommandRecorder& cr = frame->cr;
 
-    if (!m_heightBoundsBuffer.IsValid())
+    if (!m_heightBoundsBuffer.IsInitialized())
     {
         const size_t numValues = size_t(GlimmerGroundLevels) * GlimmerHeightBoundsStride;
 
-        m_heightBoundsBuffer = RI.MakeGpuBuffer(GpuBufferType::RWStructuredBuffer, numValues * sizeof(float), alignof(float));
-        Check(m_heightBoundsBuffer->Create());
+        // seeded below, so not zeroed first
+        m_heightBoundsBuffer = RWStructuredBuffer(numValues, sizeof(float), RawBufferFlags::GpuOnly);
+        m_heightBoundsBuffer.Initialize();
 
 #ifdef HYP_RHI_DEBUG_NAMES
-        m_heightBoundsBuffer->SetDebugName(NAME("GlimmerHeightBounds"));
+        m_heightBoundsBuffer.gpuBuffer->SetDebugName(NAME("GlimmerHeightBounds"));
 #endif
 
         Array<float, GlimmerAllocator> unbounded;
@@ -229,9 +225,9 @@ void GlimmerSpanCache::UpdateHeightBounds(Frame* frame, const GlimmerChannelStat
         stagingBuffer->Flush(0, unbounded.ByteSize());
 
         cr << InsertBarrier(stagingBuffer, ResourceState::CopySrc);
-        cr << InsertBarrier(m_heightBoundsBuffer.Get(), ResourceState::CopyDst);
-        cr << CopyBuffer(stagingBuffer, m_heightBoundsBuffer.Get(), uint32(unbounded.ByteSize()));
-        cr << InsertBarrier(m_heightBoundsBuffer.Get(), ResourceState::ShaderResource, ShaderModuleType::Compute);
+        cr << InsertBarrier(m_heightBoundsBuffer, ResourceState::CopyDst);
+        cr << CopyBuffer(stagingBuffer, m_heightBoundsBuffer.gpuBuffer, uint32(unbounded.ByteSize()));
+        cr << InsertBarrier(m_heightBoundsBuffer, ResourceState::ShaderResource, ShaderModuleType::Compute);
     }
 
     const GlimmerGroundShaderData& groundShaderData = surfaceCache.GetGroundShaderData();
@@ -289,7 +285,7 @@ void GlimmerSpanCache::UpdateHeightBounds(Frame* frame, const GlimmerChannelStat
 
     ENGINE_STAT_GPU_SCOPE(&s_statGlimmerHeightBounds);
 
-    cr << InsertBarrier(m_heightBoundsBuffer.Get(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
+    cr << InsertBarrier(m_heightBoundsBuffer, ResourceState::UnorderedAccess, ShaderModuleType::Compute);
 
     for (uint32 levelIndex = 0; levelIndex < GlimmerGroundLevels; levelIndex++)
     {
@@ -326,16 +322,16 @@ void GlimmerSpanCache::UpdateHeightBounds(Frame* frame, const GlimmerChannelStat
 
             cr << SetShaderUniform(0, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
             cr << SetShaderUniform(1, "GlimmerGroundTexture"_sh, surfaceCache.GetGroundImageView());
-            cr << SetShaderUniform(2, "GlimmerSpansBuffer"_sh, m_spansBuffer.Get(), ShaderDataOffset(0, sizeof(uint32)));
-            cr << SetShaderUniform(3, "OutHeightBounds"_sh, m_heightBoundsBuffer.Get(), ShaderDataOffset(0, sizeof(float)));
+            cr << SetShaderUniform(2, "GlimmerSpansBuffer"_sh, m_spansBuffer);
+            cr << SetShaderUniform(3, "OutHeightBounds"_sh, m_heightBoundsBuffer);
 
             cr << DispatchCompute(modeProperty == &s_propBoundsModeTiles ? tileGroups : Vec3u { 1, 1, 1 });
 
-            cr << InsertBarrier(m_heightBoundsBuffer.Get(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
+            cr << InsertBarrier(m_heightBoundsBuffer, ResourceState::UnorderedAccess, ShaderModuleType::Compute);
         }
     }
 
-    cr << InsertBarrier(m_heightBoundsBuffer.Get(), ResourceState::ShaderResource, ShaderModuleType::Compute);
+    cr << InsertBarrier(m_heightBoundsBuffer, ResourceState::ShaderResource, ShaderModuleType::Compute);
 }
 
 void GlimmerSpanCache::Update(Frame* frame, const GlimmerChannelState& state, const GlimmerSceneInstances& sceneInstances, const GlimmerTriangleCache& triangleCache, const GlimmerSurfaceCache& surfaceCache)
@@ -347,16 +343,16 @@ void GlimmerSpanCache::Update(Frame* frame, const GlimmerChannelState& state, co
         lastFilledRect = Rect {};
     }
 
-    if (!sceneInstances.IsReady() || !triangleCache.IsReady() || !sceneInstances.GetSpanInstancesBuffer().IsValid())
+    if (!sceneInstances.IsReady() || !triangleCache.IsReady() || !sceneInstances.GetSpanInstancesBuffer().IsInitialized())
     {
         return;
     }
 
-    if (!m_spansBuffer.IsValid())
+    if (!m_spansBuffer.IsInitialized())
     {
         const size_t numValues = size_t(GlimmerGroundLevels) * GlimmerGroundResolution * GlimmerGroundResolution * GlimmerSpanValuesPerTexel;
 
-        m_spansBuffer = GlimmerHelpers::CreateGlimmerRWBuffer(numValues * sizeof(uint32), alignof(uint32));
+        m_spansBuffer = GlimmerHelpers::CreateGlimmerRWBuffer(sizeof(uint32), numValues);
     }
 
     // a swap only has to redo where its span instances changed, on every level; one missed means not knowing where that was

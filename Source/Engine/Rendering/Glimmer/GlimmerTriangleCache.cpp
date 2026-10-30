@@ -442,10 +442,10 @@ GlimmerTriangleCache::~GlimmerTriangleCache()
         }
     }
 
-    EnqueueDeletion(std::move(m_nodesBuffer));
-    EnqueueDeletion(std::move(m_trianglesBuffer));
-    EnqueueDeletion(std::move(m_lightmapUVsBuffer));
-    EnqueueDeletion(std::move(m_texcoordsBuffer));
+    m_nodesBuffer.Shutdown();
+    m_trianglesBuffer.Shutdown();
+    m_lightmapUVsBuffer.Shutdown();
+    m_texcoordsBuffer.Shutdown();
 }
 
 uint64 GlimmerTriangleCache::MakeKey(const Mesh* mesh, uint8 lodIndex)
@@ -455,13 +455,22 @@ uint64 GlimmerTriangleCache::MakeKey(const Mesh* mesh, uint8 lodIndex)
     return (uint64(mesh->Id().Value()) << 8) | uint64(lodIndex);
 }
 
+// the shaders read these pools as StructuredBuffer<uint>, so they're sized in words
+template <class T>
+static StructuredBuffer CreateWordPoolBuffer(uint32 capacity)
+{
+    static_assert(sizeof(T) % sizeof(uint32) == 0);
+
+    return GlimmerHelpers::CreateGlimmerStructuredBuffer(sizeof(uint32), size_t(capacity) * (sizeof(T) / sizeof(uint32)));
+}
+
 void GlimmerTriangleCache::CreatePoolBuffers()
 {
     const uint32 triangleCapacity = uint32(PoolBytes / sizeof(GlimmerTriangle));
     const uint32 lightmapUVCapacity = uint32(LightmapUVPoolBytes / sizeof(GlimmerTriangleLightmapUVs));
 
-    m_trianglesBuffer = GlimmerHelpers::CreateGlimmerStructuredBuffer(sizeof(GlimmerTriangle), triangleCapacity);
-    m_lightmapUVsBuffer = GlimmerHelpers::CreateGlimmerStructuredBuffer(sizeof(GlimmerTriangleLightmapUVs), lightmapUVCapacity);
+    m_trianglesBuffer = CreateWordPoolBuffer<GlimmerTriangle>(triangleCapacity);
+    m_lightmapUVsBuffer = CreateWordPoolBuffer<GlimmerTriangleLightmapUVs>(lightmapUVCapacity);
 
     // only bindless-supported devices sample the textures for the bricks.
     // others will use material's average
@@ -469,12 +478,12 @@ void GlimmerTriangleCache::CreatePoolBuffers()
         ? uint32(TexcoordPoolBytes / sizeof(GlimmerTriangleTexcoords))
         : 1u;
 
-    m_texcoordsBuffer = GlimmerHelpers::CreateGlimmerStructuredBuffer(sizeof(GlimmerTriangleTexcoords), texcoordCapacity);
+    m_texcoordsBuffer = CreateWordPoolBuffer<GlimmerTriangleTexcoords>(texcoordCapacity);
 
 #ifdef HYP_RHI_DEBUG_NAMES
-    m_trianglesBuffer->SetDebugName(NAME("GlimmerTriangles"));
-    m_lightmapUVsBuffer->SetDebugName(NAME("GlimmerTriangleLightmapUVs"));
-    m_texcoordsBuffer->SetDebugName(NAME("GlimmerTriangleTexcoords"));
+    m_trianglesBuffer.gpuBuffer->SetDebugName(NAME("GlimmerTriangles"));
+    m_lightmapUVsBuffer.gpuBuffer->SetDebugName(NAME("GlimmerTriangleLightmapUVs"));
+    m_texcoordsBuffer.gpuBuffer->SetDebugName(NAME("GlimmerTriangleTexcoords"));
 #endif
 
     m_triangleAllocator.Reset(triangleCapacity);
@@ -489,7 +498,7 @@ void GlimmerTriangleCache::CreatePoolBuffers()
         m_nodesBuffer = GlimmerHelpers::CreateGlimmerStructuredBuffer(sizeof(GlimmerBLASNode), nodeCapacity);
 
 #ifdef HYP_RHI_DEBUG_NAMES
-        m_nodesBuffer->SetDebugName(NAME("GlimmerBLASNodes"));
+        m_nodesBuffer.gpuBuffer->SetDebugName(NAME("GlimmerBLASNodes"));
 #endif
     }
 
@@ -1287,18 +1296,18 @@ void GlimmerTriangleCache::UploadEntry(Frame* frame, Entry& entry)
     stagingBuffer->Flush(0, nodesOffset + nodesByteSize);
 
     cr << InsertBarrier(stagingBuffer, ResourceState::CopySrc);
-    cr << InsertBarrier(m_trianglesBuffer.Get(), ResourceState::CopyDst);
+    cr << InsertBarrier(m_trianglesBuffer, ResourceState::CopyDst);
 
-    cr << CopyBuffer(stagingBuffer, m_trianglesBuffer.Get(),
+    cr << CopyBuffer(stagingBuffer, m_trianglesBuffer.gpuBuffer,
         0,
         uint32(size_t(entry.ref.triangleBase) * sizeof(GlimmerTriangle)),
         uint32(trianglesByteSize));
 
     if (lightmapUVsByteSize != 0)
     {
-        cr << InsertBarrier(m_lightmapUVsBuffer.Get(), ResourceState::CopyDst);
+        cr << InsertBarrier(m_lightmapUVsBuffer, ResourceState::CopyDst);
 
-        cr << CopyBuffer(stagingBuffer, m_lightmapUVsBuffer.Get(),
+        cr << CopyBuffer(stagingBuffer, m_lightmapUVsBuffer.gpuBuffer,
             uint32(trianglesByteSize),
             uint32(size_t(entry.ref.lightmapUVBase) * sizeof(GlimmerTriangleLightmapUVs)),
             uint32(lightmapUVsByteSize));
@@ -1306,9 +1315,9 @@ void GlimmerTriangleCache::UploadEntry(Frame* frame, Entry& entry)
 
     if (texcoordsByteSize != 0)
     {
-        cr << InsertBarrier(m_texcoordsBuffer.Get(), ResourceState::CopyDst);
+        cr << InsertBarrier(m_texcoordsBuffer, ResourceState::CopyDst);
 
-        cr << CopyBuffer(stagingBuffer, m_texcoordsBuffer.Get(),
+        cr << CopyBuffer(stagingBuffer, m_texcoordsBuffer.gpuBuffer,
             uint32(texcoordsOffset),
             uint32(size_t(entry.ref.texcoordBase) * sizeof(GlimmerTriangleTexcoords)),
             uint32(texcoordsByteSize));
@@ -1316,9 +1325,9 @@ void GlimmerTriangleCache::UploadEntry(Frame* frame, Entry& entry)
 
     if (nodesByteSize != 0)
     {
-        cr << InsertBarrier(m_nodesBuffer.Get(), ResourceState::CopyDst);
+        cr << InsertBarrier(m_nodesBuffer, ResourceState::CopyDst);
 
-        cr << CopyBuffer(stagingBuffer, m_nodesBuffer.Get(),
+        cr << CopyBuffer(stagingBuffer, m_nodesBuffer.gpuBuffer,
             uint32(nodesOffset),
             uint32(size_t(entry.ref.nodeBase) * sizeof(GlimmerBLASNode)),
             uint32(nodesByteSize));
@@ -1342,12 +1351,12 @@ void GlimmerTriangleCache::Update(Frame* frame)
     {
         CreatePoolBuffers();
 
-        frame->cr << InsertBarrier(m_lightmapUVsBuffer.Get(), ResourceState::ShaderResource, ShaderModuleType::Compute);
-        frame->cr << InsertBarrier(m_texcoordsBuffer.Get(), ResourceState::ShaderResource, ShaderModuleType::Compute);
+        frame->cr << InsertBarrier(m_lightmapUVsBuffer, ResourceState::ShaderResource, ShaderModuleType::Compute);
+        frame->cr << InsertBarrier(m_texcoordsBuffer, ResourceState::ShaderResource, ShaderModuleType::Compute);
 
-        if (m_nodesBuffer.IsValid())
+        if (m_nodesBuffer.IsInitialized())
         {
-            frame->cr << InsertBarrier(m_nodesBuffer.Get(), ResourceState::ShaderResource, ShaderModuleType::Compute);
+            frame->cr << InsertBarrier(m_nodesBuffer, ResourceState::ShaderResource, ShaderModuleType::Compute);
         }
     }
 
@@ -1712,14 +1721,14 @@ void GlimmerTriangleCache::Update(Frame* frame)
 
     if (uploadedAny)
     {
-        frame->cr << InsertBarrier(m_trianglesBuffer.Get(), ResourceState::ShaderResource, ShaderModuleType::Compute);
-        frame->cr << InsertBarrier(m_lightmapUVsBuffer.Get(), ResourceState::ShaderResource, ShaderModuleType::Compute);
+        frame->cr << InsertBarrier(m_trianglesBuffer, ResourceState::ShaderResource, ShaderModuleType::Compute);
+        frame->cr << InsertBarrier(m_lightmapUVsBuffer, ResourceState::ShaderResource, ShaderModuleType::Compute);
 
-        if (m_nodesBuffer.IsValid())
+        if (m_nodesBuffer.IsInitialized())
         {
-            frame->cr << InsertBarrier(m_nodesBuffer.Get(), ResourceState::ShaderResource, ShaderModuleType::Compute);
+            frame->cr << InsertBarrier(m_nodesBuffer, ResourceState::ShaderResource, ShaderModuleType::Compute);
         }
-        frame->cr << InsertBarrier(m_texcoordsBuffer.Get(), ResourceState::ShaderResource, ShaderModuleType::Compute);
+        frame->cr << InsertBarrier(m_texcoordsBuffer, ResourceState::ShaderResource, ShaderModuleType::Compute);
     }
 }
 

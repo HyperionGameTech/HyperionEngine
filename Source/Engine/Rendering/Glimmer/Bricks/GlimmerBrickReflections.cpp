@@ -134,12 +134,12 @@ GlimmerBrickReflections::GlimmerBrickReflections() = default;
 
 GlimmerBrickReflections::~GlimmerBrickReflections()
 {
-    EnqueueDeletion(std::move(m_blocksBuffer));
-    EnqueueDeletion(std::move(m_claimsBuffer));
-    EnqueueDeletion(std::move(m_requestsBuffer));
-    EnqueueDeletion(std::move(m_wantedBuffer));
-    EnqueueDeletion(std::move(m_listBuffer));
-    EnqueueDeletion(std::move(m_countsBuffer));
+    m_blocksBuffer.Shutdown();
+    m_claimsBuffer.Shutdown();
+    m_requestsBuffer.Shutdown();
+    m_wantedBuffer.Shutdown();
+    m_listBuffer.Shutdown();
+    m_countsBuffer.Shutdown();
 }
 
 const GpuImageViewRef& GlimmerBrickReflections::GetImageView() const
@@ -147,12 +147,12 @@ const GpuImageViewRef& GlimmerBrickReflections::GetImageView() const
     return RI.textureViewCache->GetOrCreate(m_isValid ? m_fullTexture : RI.placeholderData->textureSolidBlack);
 }
 
-static GpuBufferRef CreateWordBuffer(size_t numWords, Name name)
+static RWStructuredBuffer CreateWordBuffer(size_t numWords, Name name)
 {
-    GpuBufferRef buffer = GlimmerHelpers::CreateGlimmerRWBuffer(MathUtil::Max(numWords, size_t(4)) * sizeof(uint32), alignof(uint32));
+    RWStructuredBuffer buffer = GlimmerHelpers::CreateGlimmerRWBuffer(sizeof(uint32), MathUtil::Max(numWords, size_t(4)));
 
 #ifdef HYP_RHI_DEBUG_NAMES
-    buffer->SetDebugName(name);
+    buffer.gpuBuffer->SetDebugName(name);
 #endif
 
     return buffer;
@@ -186,8 +186,8 @@ void GlimmerBrickReflections::CreateTextures(const Vec2u& extent)
     m_fullTexture = createTexture(extent, NAME("GlimmerBrickReflections"));
     m_unusedOutputTexture = createTexture(Vec2u(1, 1), NAME("GlimmerBrickReflectionsUnused"));
 
-    EnqueueDeletion(std::move(m_wantedBuffer));
-    EnqueueDeletion(std::move(m_listBuffer));
+    m_wantedBuffer.Shutdown();
+    m_listBuffer.Shutdown();
 
     const size_t numHalfPixels = size_t(halfExtent.x) * halfExtent.y;
 
@@ -200,10 +200,10 @@ void GlimmerBrickReflections::CreateTextures(const Vec2u& extent)
 
 void GlimmerBrickReflections::CreateSlotBuffers(uint32 numCrossings)
 {
-    EnqueueDeletion(std::move(m_blocksBuffer));
-    EnqueueDeletion(std::move(m_claimsBuffer));
-    EnqueueDeletion(std::move(m_requestsBuffer));
-    EnqueueDeletion(std::move(m_countsBuffer));
+    m_blocksBuffer.Shutdown();
+    m_claimsBuffer.Shutdown();
+    m_requestsBuffer.Shutdown();
+    m_countsBuffer.Shutdown();
 
     m_blocksBuffer = CreateWordBuffer(size_t(NumBlocks) * BlockWords, NAME("GlimmerBrickSlotBlocks"));
     m_claimsBuffer = CreateWordBuffer(NumClaims, NAME("GlimmerBrickSlotClaims"));
@@ -239,7 +239,7 @@ void GlimmerBrickReflections::Render(Frame* frame, View* view, GBuffer* gbuffer,
         CreateTextures(extent);
     }
 
-    if (!m_blocksBuffer.IsValid() || brickWorld->GetNumCrossings() < m_numCrossings)
+    if (!m_blocksBuffer.IsInitialized() || brickWorld->GetNumCrossings() < m_numCrossings)
     {
         CreateSlotBuffers(brickWorld->GetNumCrossings());
     }
@@ -291,13 +291,13 @@ void GlimmerBrickReflections::Render(Frame* frame, View* view, GBuffer* gbuffer,
         return uniformIndex;
     };
 
-    const Pair<StringHash, GpuBuffer*> slotBuffers[] = {
-        { "SlotBlocksBuffer"_sh, m_blocksBuffer.Get() },
-        { "SlotClaimsBuffer"_sh, m_claimsBuffer.Get() },
-        { "SlotRequestsBuffer"_sh, m_requestsBuffer.Get() },
-        { "SlotWantedBuffer"_sh, m_wantedBuffer.Get() },
-        { "SlotListBuffer"_sh, m_listBuffer.Get() },
-        { "SlotCountsBuffer"_sh, m_countsBuffer.Get() }
+    const Pair<StringHash, const RWStructuredBuffer*> slotBuffers[] = {
+        { "SlotBlocksBuffer"_sh, &m_blocksBuffer },
+        { "SlotClaimsBuffer"_sh, &m_claimsBuffer },
+        { "SlotRequestsBuffer"_sh, &m_requestsBuffer },
+        { "SlotWantedBuffer"_sh, &m_wantedBuffer },
+        { "SlotListBuffer"_sh, &m_listBuffer },
+        { "SlotCountsBuffer"_sh, &m_countsBuffer }
     };
 
     const auto dispatchPass = [&](const ReflectionsPass& pass)
@@ -325,7 +325,7 @@ void GlimmerBrickReflections::Render(Frame* frame, View* view, GBuffer* gbuffer,
         {
             for (const auto& slotBuffer : slotBuffers)
             {
-                cr << InsertBarrier(slotBuffer.second, ResourceState::UnorderedAccess, ShaderModuleType::Compute);
+                cr << InsertBarrier(*slotBuffer.second, ResourceState::UnorderedAccess, ShaderModuleType::Compute);
             }
         }
 
@@ -342,7 +342,7 @@ void GlimmerBrickReflections::Render(Frame* frame, View* view, GBuffer* gbuffer,
 
         for (const auto& slotBuffer : slotBuffers)
         {
-            cr << SetShaderUniform(uniformIndex++, slotBuffer.first, slotBuffer.second, ShaderDataOffset(0, sizeof(uint32)));
+            cr << SetShaderUniform(uniformIndex++, slotBuffer.first, *slotBuffer.second);
         }
 
         const auto setOutput = [&](StringHash name, Texture* texture)
@@ -394,8 +394,8 @@ void GlimmerBrickReflections::Render(Frame* frame, View* view, GBuffer* gbuffer,
         && scene->surfaceCache && scene->spanCache && relight
         && scene->surfaceCache->GetGroundImageView().IsValid()
         && scene->surfaceCache->GetGroundAlbedoImageView().IsValid()
-        && scene->spanCache->GetSpansBuffer().IsValid()
-        && scene->spanCache->GetHeightBoundsBuffer().IsValid()
+        && scene->spanCache->GetSpansBuffer().IsInitialized()
+        && scene->spanCache->GetHeightBoundsBuffer().IsInitialized()
         && relight->GetGpuImage().IsValid();
 
     // what the bricks left uncovered, from the heightfield
@@ -430,8 +430,8 @@ void GlimmerBrickReflections::Render(Frame* frame, View* view, GBuffer* gbuffer,
         cr << InsertBarrier(outColor->GetGpuImage(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
         cr << InsertBarrier((outInfo ? outInfo : m_unusedOutputTexture.Get())->GetGpuImage(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
         cr << InsertBarrier(relight->GetGpuImage(), ResourceState::ShaderResource, ShaderModuleType::Compute);
-        cr << InsertBarrier(m_wantedBuffer.Get(), ResourceState::ShaderResource, ShaderModuleType::Compute);
-        cr << InsertBarrier(m_countsBuffer.Get(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
+        cr << InsertBarrier(m_wantedBuffer, ResourceState::ShaderResource, ShaderModuleType::Compute);
+        cr << InsertBarrier(m_countsBuffer, ResourceState::UnorderedAccess, ShaderModuleType::Compute);
 
         cr << SetCurrentShader(ShaderDesc(NAME("GlimmerBrickReflectionsHeightfield"), shaderProperties));
 
@@ -444,13 +444,13 @@ void GlimmerBrickReflections::Render(Frame* frame, View* view, GBuffer* gbuffer,
         cr << SetShaderUniform(uniformIndex++, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
         cr << SetShaderUniform(uniformIndex++, "GlimmerGroundTexture"_sh, scene->surfaceCache->GetGroundImageView());
         cr << SetShaderUniform(uniformIndex++, "GlimmerGroundAlbedoTexture"_sh, scene->surfaceCache->GetGroundAlbedoImageView());
-        cr << SetShaderUniform(uniformIndex++, "GlimmerSpansBuffer"_sh, scene->spanCache->GetSpansBuffer().Get(), ShaderDataOffset(0, sizeof(uint32)));
-        cr << SetShaderUniform(uniformIndex++, "GlimmerHeightBoundsBuffer"_sh, scene->spanCache->GetHeightBoundsBuffer().Get(), ShaderDataOffset(0, sizeof(float)));
+        cr << SetShaderUniform(uniformIndex++, "GlimmerSpansBuffer"_sh, scene->spanCache->GetSpansBuffer());
+        cr << SetShaderUniform(uniformIndex++, "GlimmerHeightBoundsBuffer"_sh, scene->spanCache->GetHeightBoundsBuffer());
         cr << SetShaderUniform(uniformIndex++, "GlimmerRelightTexture"_sh, relight->GetImageView());
         cr << SetShaderUniform(uniformIndex++, "OutColor"_sh, RI.textureViewCache->GetOrCreate(outColor));
         cr << SetShaderUniform(uniformIndex++, "OutInfo"_sh, RI.textureViewCache->GetOrCreate(outInfo ? outInfo : m_unusedOutputTexture.Get()));
-        cr << SetShaderUniform(uniformIndex++, "SlotWholeBuffer"_sh, m_wantedBuffer.Get(), ShaderDataOffset(0, sizeof(uint32)));
-        cr << SetShaderUniform(uniformIndex++, "SlotCountsBuffer"_sh, m_countsBuffer.Get(), ShaderDataOffset(0, sizeof(uint32)));
+        cr << SetShaderUniform(uniformIndex++, "SlotWholeBuffer"_sh, m_wantedBuffer);
+        cr << SetShaderUniform(uniformIndex++, "SlotCountsBuffer"_sh, m_countsBuffer);
 
         uniformIndex = GlimmerTechnique::BindApplyResources(cr, uniformIndex, technique);
 

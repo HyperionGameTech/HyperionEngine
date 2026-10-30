@@ -94,8 +94,8 @@ GlimmerSurfaceCache::~GlimmerSurfaceCache()
     m_ground.Reset();
     m_groundAlbedo.Reset();
 
-    EnqueueDeletion(std::move(m_terrainPatchesBuffer));
-    EnqueueDeletion(std::move(m_groundCoverAlbedoBuffer));
+    m_terrainPatchesBuffer.Shutdown();
+    m_groundCoverAlbedoBuffer.Shutdown();
 }
 
 void GlimmerSurfaceCache::CreateTextures()
@@ -118,12 +118,9 @@ void GlimmerSurfaceCache::CreateTextures()
         sizeof(GlimmerTerrainPatchShaderData),
         GlimmerMaxTerrainPatches);
 
-    m_groundCoverAlbedoBuffer = RI.MakeGpuBuffer(
-        GpuBufferType::RWStructuredBuffer,
-        GlimmerGroundCoverLayers * sizeof(Vec4f),
-        alignof(Vec4f));
-
-    Check(m_groundCoverAlbedoBuffer->Create());
+    // cleared to unknown on its first update
+    m_groundCoverAlbedoBuffer = RWStructuredBuffer(GlimmerGroundCoverLayers, sizeof(Vec4f), RawBufferFlags::GpuOnly);
+    m_groundCoverAlbedoBuffer.Initialize();
 }
 
 const GpuImageViewRef& GlimmerSurfaceCache::GetGroundImageView() const
@@ -184,9 +181,9 @@ void GlimmerSurfaceCache::UploadTerrainPatches(Frame* frame, Span<const GlimmerT
     CommandRecorder& cr = frame->cr;
 
     cr << InsertBarrier(stagingBuffer, ResourceState::CopySrc);
-    cr << InsertBarrier(m_terrainPatchesBuffer.Get(), ResourceState::CopyDst);
-    cr << CopyBuffer(stagingBuffer, m_terrainPatchesBuffer.Get(), uint32(byteSize));
-    cr << InsertBarrier(m_terrainPatchesBuffer.Get(), ResourceState::ShaderResource, ShaderModuleType::Compute);
+    cr << InsertBarrier(m_terrainPatchesBuffer, ResourceState::CopyDst);
+    cr << CopyBuffer(stagingBuffer, m_terrainPatchesBuffer.gpuBuffer, uint32(byteSize));
+    cr << InsertBarrier(m_terrainPatchesBuffer, ResourceState::ShaderResource, ShaderModuleType::Compute);
 }
 
 void GlimmerSurfaceCache::UpdateGroundCover(Frame* frame, const GlimmerChannelState& state)
@@ -208,9 +205,9 @@ void GlimmerSurfaceCache::UpdateGroundCover(Frame* frame, const GlimmerChannelSt
         stagingBuffer->Flush(0, sizeof(unknown));
 
         cr << InsertBarrier(stagingBuffer, ResourceState::CopySrc);
-        cr << InsertBarrier(m_groundCoverAlbedoBuffer.Get(), ResourceState::CopyDst);
-        cr << CopyBuffer(stagingBuffer, m_groundCoverAlbedoBuffer.Get(), uint32(sizeof(unknown)));
-        cr << InsertBarrier(m_groundCoverAlbedoBuffer.Get(), ResourceState::ShaderResource, ShaderModuleType::Compute);
+        cr << InsertBarrier(m_groundCoverAlbedoBuffer, ResourceState::CopyDst);
+        cr << CopyBuffer(stagingBuffer, m_groundCoverAlbedoBuffer.gpuBuffer, uint32(sizeof(unknown)));
+        cr << InsertBarrier(m_groundCoverAlbedoBuffer, ResourceState::ShaderResource, ShaderModuleType::Compute);
     }
 
     GlimmerGroundCoverConstants constants {};
@@ -258,18 +255,18 @@ void GlimmerSurfaceCache::UpdateGroundCover(Frame* frame, const GlimmerChannelSt
     RI.cbufferAllocator->Write(&constants);
     RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
 
-    cr << InsertBarrier(m_groundCoverAlbedoBuffer.Get(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
+    cr << InsertBarrier(m_groundCoverAlbedoBuffer, ResourceState::UnorderedAccess, ShaderModuleType::Compute);
 
     cr << SetCurrentShader(ShaderDesc(NAME("GlimmerGroundCover")));
 
     cr << SetShaderUniform(0, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
     cr << SetShaderUniform(1, "MaterialsBuffer"_sh, RI.namedBuffers[NamedBuffer::Materials]);
     cr << SetShaderUniform(2, "SamplerLinearMipmap"_sh, RI.placeholderData->GetSamplerLinearMipmap());
-    cr << SetShaderUniform(3, "OutGroundCoverAlbedo"_sh, m_groundCoverAlbedoBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4f)));
+    cr << SetShaderUniform(3, "OutGroundCoverAlbedo"_sh, m_groundCoverAlbedoBuffer);
 
     cr << DispatchCompute(Vec3u { 1, 1, 1 });
 
-    cr << InsertBarrier(m_groundCoverAlbedoBuffer.Get(), ResourceState::ShaderResource, ShaderModuleType::Compute);
+    cr << InsertBarrier(m_groundCoverAlbedoBuffer, ResourceState::ShaderResource, ShaderModuleType::Compute);
 }
 
 void GlimmerSurfaceCache::UpdateGroundAlbedo(Frame* frame, const GlimmerChannelState& state)
@@ -416,8 +413,8 @@ void GlimmerSurfaceCache::UpdateGroundAlbedo(Frame* frame, const GlimmerChannelS
             cr << SetShaderUniform(uniformIndex++, "MaterialsBuffer"_sh, RI.namedBuffers[NamedBuffer::Materials]);
             cr << SetShaderUniform(uniformIndex++, "SamplerLinearMipmap"_sh, RI.placeholderData->GetSamplerLinearMipmap());
             cr << SetShaderUniform(uniformIndex++, "GlimmerGroundTexture"_sh, RI.textureViewCache->GetOrCreate(m_ground));
-            cr << SetShaderUniform(uniformIndex++, "TerrainPatchesBuffer"_sh, m_terrainPatchesBuffer.Get(), ShaderDataOffset(0, sizeof(GlimmerTerrainPatchShaderData)));
-            cr << SetShaderUniform(uniformIndex++, "GroundCoverAlbedoBuffer"_sh, m_groundCoverAlbedoBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4f)));
+            cr << SetShaderUniform(uniformIndex++, "TerrainPatchesBuffer"_sh, m_terrainPatchesBuffer);
+            cr << SetShaderUniform(uniformIndex++, "GroundCoverAlbedoBuffer"_sh, m_groundCoverAlbedoBuffer);
             cr << SetShaderUniform(uniformIndex++, "OutGroundAlbedo"_sh, RI.textureViewCache->GetOrCreate(m_groundAlbedo));
 
             const Vec2u extent = Vec2u(uint32(rect.max.x - rect.min.x), uint32(rect.max.y - rect.min.y));
@@ -470,8 +467,8 @@ void GlimmerSurfaceCache::Update(Frame* frame, const GlimmerChannelState& state,
             totalHeights += upload.heights.Size();
         }
 
-        GpuBufferRef heightsBuffer = RI.MakeGpuBuffer(GpuBufferType::StructuredBuffer, MathUtil::Max(totalHeights, size_t(1)) * sizeof(float), alignof(float));
-        Check(heightsBuffer->Create());
+        // deleted once the frames using it are done, when it goes out of scope
+        StructuredBuffer heightsBuffer = GlimmerHelpers::CreateGlimmerStructuredBuffer(sizeof(float), totalHeights);
 
         GpuBuffer* stagingBuffer = RI.stagingBufferPool->AcquireStagingBuffer(totalHeights * sizeof(float));
         Assert(stagingBuffer != nullptr);
@@ -487,9 +484,9 @@ void GlimmerSurfaceCache::Update(Frame* frame, const GlimmerChannelState& state,
         stagingBuffer->Flush(0, totalHeights * sizeof(float));
 
         cr << InsertBarrier(stagingBuffer, ResourceState::CopySrc);
-        cr << InsertBarrier(heightsBuffer.Get(), ResourceState::CopyDst);
-        cr << CopyBuffer(stagingBuffer, heightsBuffer.Get(), uint32(totalHeights * sizeof(float)));
-        cr << InsertBarrier(heightsBuffer.Get(), ResourceState::ShaderResource, ShaderModuleType::Compute);
+        cr << InsertBarrier(heightsBuffer, ResourceState::CopyDst);
+        cr << CopyBuffer(stagingBuffer, heightsBuffer.gpuBuffer, uint32(totalHeights * sizeof(float)));
+        cr << InsertBarrier(heightsBuffer, ResourceState::ShaderResource, ShaderModuleType::Compute);
 
         cr << InsertBarrier(m_ground->GetGpuImage(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
 
@@ -514,7 +511,7 @@ void GlimmerSurfaceCache::Update(Frame* frame, const GlimmerChannelState& state,
             RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
 
             cr << SetShaderUniform(0, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
-            cr << SetShaderUniform(1, "HeightsBuffer"_sh, heightsBuffer.Get(), ShaderDataOffset(0, sizeof(float)));
+            cr << SetShaderUniform(1, "HeightsBuffer"_sh, heightsBuffer);
             cr << SetShaderUniform(2, "OutGround"_sh, RI.textureViewCache->GetOrCreate(m_ground));
 
             cr << DispatchCompute(groups);
@@ -527,7 +524,6 @@ void GlimmerSurfaceCache::Update(Frame* frame, const GlimmerChannelState& state,
 
         cr << InsertBarrier(m_ground->GetGpuImage(), ResourceState::ShaderResource, ShaderModuleType::Compute);
 
-        EnqueueDeletion(std::move(heightsBuffer));
     }
 
     for (uint32 levelIndex = 0; levelIndex < GlimmerGroundLevels; levelIndex++)

@@ -103,7 +103,7 @@ GlimmerSHOccupancy::~GlimmerSHOccupancy()
 {
     m_texture.Reset();
 
-    EnqueueDeletion(std::move(m_maskBuffer));
+    m_maskBuffer.Shutdown();
 }
 
 void GlimmerSHOccupancy::CreateResources()
@@ -127,7 +127,7 @@ void GlimmerSHOccupancy::CreateResources()
     const size_t numMaskWords = numVoxels * GlimmerSHOccupancyMaskWords + numCascadeVoxels * GlimmerSHOccupancyTracedCascades * GlimmerSHOccupancyLightmapFaces
         + (numCascadeVoxels / (OccupancyBlockVoxels * OccupancyBlockVoxels * OccupancyBlockVoxels)) * GlimmerSHOccupancyTracedCascades;
 
-    m_maskBuffer = GlimmerHelpers::CreateGlimmerRWBuffer(numMaskWords * sizeof(uint32), alignof(uint32));
+    m_maskBuffer = GlimmerHelpers::CreateGlimmerRWBuffer(sizeof(uint32), numMaskWords);
 }
 
 const GpuImageViewRef& GlimmerSHOccupancy::GetImageView() const
@@ -179,14 +179,14 @@ void GlimmerSHOccupancy::SplatBox(
 
         cr << SetShaderUniform(uniformIndex++, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
         cr << SetShaderUniform(uniformIndex++, "OutOccupancy"_sh, RI.textureViewCache->GetOrCreate(m_texture));
-        cr << SetShaderUniform(uniformIndex++, "OutOccupancyMask"_sh, m_maskBuffer.Get(), ShaderDataOffset(0, sizeof(uint32)));
-        cr << SetShaderUniform(uniformIndex++, "OutAlbedoSums"_sh, m_albedoSumsBuffer, ShaderDataOffset(0, sizeof(uint32)));
-        cr << SetShaderUniform(uniformIndex++, "SpanInstancesBuffer"_sh, sceneInstances.GetSpanInstancesBuffer().Get(), ShaderDataOffset(0, sizeof(GlimmerSpanInstanceShaderData)));
-        cr << SetShaderUniform(uniformIndex++, "SpanChunksBuffer"_sh, sceneInstances.GetSpanChunksBuffer().Get(), ShaderDataOffset(0, sizeof(GlimmerSpanChunkShaderData)));
-        cr << SetShaderUniform(uniformIndex++, "GlimmerTrianglesBuffer"_sh, triangleCache.GetTrianglesBuffer().Get(), ShaderDataOffset(0, sizeof(uint32)));
+        cr << SetShaderUniform(uniformIndex++, "OutOccupancyMask"_sh, m_maskBuffer);
+        cr << SetShaderUniform(uniformIndex++, "OutAlbedoSums"_sh, *m_albedoSumsBuffer);
+        cr << SetShaderUniform(uniformIndex++, "SpanInstancesBuffer"_sh, sceneInstances.GetSpanInstancesBuffer());
+        cr << SetShaderUniform(uniformIndex++, "SpanChunksBuffer"_sh, sceneInstances.GetSpanChunksBuffer());
+        cr << SetShaderUniform(uniformIndex++, "GlimmerTrianglesBuffer"_sh, triangleCache.GetTrianglesBuffer());
         cr << SetShaderUniform(uniformIndex++, "MaterialsBuffer"_sh, RI.namedBuffers[NamedBuffer::Materials]);
         cr << SetShaderUniform(uniformIndex++, "SamplerLinearMipmap"_sh, RI.placeholderData->GetSamplerLinearMipmap());
-        cr << SetShaderUniform(uniformIndex++, "GlimmerTriangleLightmapUVsBuffer"_sh, triangleCache.GetLightmapUVsBuffer().Get(), ShaderDataOffset(0, sizeof(uint32)));
+        cr << SetShaderUniform(uniformIndex++, "GlimmerTriangleLightmapUVsBuffer"_sh, triangleCache.GetLightmapUVsBuffer());
 
         for (uint32 pageIndex = 0; pageIndex < GlimmerMaxLightmapPages; pageIndex++)
         {
@@ -202,8 +202,8 @@ void GlimmerSHOccupancy::SplatBox(
     const auto insertWriteBarriers = [&]()
     {
         cr << InsertBarrier(m_texture->GetGpuImage(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
-        cr << InsertBarrier(m_maskBuffer.Get(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
-        cr << InsertBarrier(m_albedoSumsBuffer, ResourceState::UnorderedAccess, ShaderModuleType::Compute);
+        cr << InsertBarrier(m_maskBuffer, ResourceState::UnorderedAccess, ShaderModuleType::Compute);
+        cr << InsertBarrier(*m_albedoSumsBuffer, ResourceState::UnorderedAccess, ShaderModuleType::Compute);
     };
 
     ENGINE_STAT_GPU_SCOPE(&s_statGlimmerSHOccupancy);
@@ -249,7 +249,7 @@ void GlimmerSHOccupancy::SplatBox(
     }
 
     cr << InsertBarrier(m_texture->GetGpuImage(), ResourceState::ShaderResource, ShaderModuleType::Compute);
-    cr << InsertBarrier(m_maskBuffer.Get(), ResourceState::ShaderResource, ShaderModuleType::Compute);
+    cr << InsertBarrier(m_maskBuffer, ResourceState::ShaderResource, ShaderModuleType::Compute);
 }
 
 void GlimmerSHOccupancy::SetBuilt(uint32 cascadeIndex, const Vec3i& origin)
@@ -311,7 +311,7 @@ void GlimmerSHOccupancy::Update(
     const GlimmerSceneInstances& sceneInstances,
     const GlimmerTriangleCache& triangleCache,
     const GlimmerLightmapPages& lightmapPages,
-    GpuBuffer& scratchBuffer)
+    RWStructuredBuffer& scratchBuffer)
 {
     HYP_SCOPE;
 
@@ -322,18 +322,16 @@ void GlimmerSHOccupancy::Update(
         CreateResources();
 
         frame->cr << InsertBarrier(m_texture->GetGpuImage(), ResourceState::ShaderResource, ShaderModuleType::Compute);
-        frame->cr << InsertBarrier(m_maskBuffer.Get(), ResourceState::ShaderResource, ShaderModuleType::Compute);
+        frame->cr << InsertBarrier(m_maskBuffer, ResourceState::ShaderResource, ShaderModuleType::Compute);
     }
 
     const size_t numCascadeVoxels = size_t(GlimmerSHOccupancyGridXZ) * GlimmerSHOccupancyGridY * GlimmerSHOccupancyGridXZ;
 
-    Check(scratchBuffer.EnsureCapacity(
-        numCascadeVoxels * (AlbedoSumWords + LightmapSumWords) * sizeof(uint32),
-        alignof(Vec4f)));
+    GlimmerHelpers::EnsureGlimmerBufferCapacity(scratchBuffer, numCascadeVoxels * (AlbedoSumWords + LightmapSumWords) * sizeof(uint32));
 
     m_albedoSumsBuffer = &scratchBuffer;
 
-    if (!sceneInstances.IsReady() || !triangleCache.IsReady() || !sceneInstances.GetSpanInstancesBuffer().IsValid())
+    if (!sceneInstances.IsReady() || !triangleCache.IsReady() || !sceneInstances.GetSpanInstancesBuffer().IsInitialized())
     {
         m_isSettled = true;
 

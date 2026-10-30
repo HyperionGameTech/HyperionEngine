@@ -7,6 +7,7 @@
 #pragma once
 
 #include <Rendering/RenderTypes.hpp>
+#include <Rendering/RawBuffer.hpp>
 
 #include <Core/Containers/FixedArray.hpp>
 
@@ -56,12 +57,12 @@ private:
     Handle<Texture> m_fullTexture;
     Handle<Texture> m_unusedOutputTexture;
 
-    GpuBufferRef m_blocksBuffer;
-    GpuBufferRef m_claimsBuffer;
-    GpuBufferRef m_requestsBuffer;
-    GpuBufferRef m_wantedBuffer; // what each resolved pixel found missing, until the finish; then the pixels of the view that get a ray after the spread
-    GpuBufferRef m_listBuffer;
-    GpuBufferRef m_countsBuffer;
+    RWStructuredBuffer m_blocksBuffer;
+    RWStructuredBuffer m_claimsBuffer;
+    RWStructuredBuffer m_requestsBuffer;
+    RWStructuredBuffer m_wantedBuffer; // what each resolved pixel found missing, until the finish; then the pixels of the view that get a ray after the spread
+    RWStructuredBuffer m_listBuffer;
+    RWStructuredBuffer m_countsBuffer;
 
     Vec2u m_extent;
     uint32 m_numCrossings = 0;

@@ -195,10 +195,10 @@ GlimmerSceneInstances::~GlimmerSceneInstances()
         m_buildTask.Await();
     }
 
-    EnqueueDeletion(std::move(m_spanInstancesBuffer));
-    EnqueueDeletion(std::move(m_tlasNodesBuffer));
-    EnqueueDeletion(std::move(m_tracedInstancesBuffer));
-    EnqueueDeletion(std::move(m_spanChunksBuffer));
+    m_spanInstancesBuffer.Shutdown();
+    m_tlasNodesBuffer.Shutdown();
+    m_tracedInstancesBuffer.Shutdown();
+    m_spanChunksBuffer.Shutdown();
 }
 
 void GlimmerSceneInstances::Release(GlimmerTriangleCache& triangleCache)
@@ -793,11 +793,11 @@ void GlimmerSceneInstances::Upload(Frame* frame, BuildResult& result)
 
     CommandRecorder& cr = frame->cr;
 
-    GpuBufferRef spanInstancesBuffer = GlimmerHelpers::CreateGlimmerStructuredBuffer(
+    StructuredBuffer spanInstancesBuffer = GlimmerHelpers::CreateGlimmerStructuredBuffer(
         sizeof(GlimmerSpanInstanceShaderData),
         result.spanInstances.Size());
 
-    GpuBufferRef spanChunksBuffer = GlimmerHelpers::CreateGlimmerStructuredBuffer(
+    StructuredBuffer spanChunksBuffer = GlimmerHelpers::CreateGlimmerStructuredBuffer(
         sizeof(GlimmerSpanChunkShaderData),
         result.spanChunks.Size());
 
@@ -815,16 +815,16 @@ void GlimmerSceneInstances::Upload(Frame* frame, BuildResult& result)
         stagingBuffer->Flush(0, totalByteSize);
 
         cr << InsertBarrier(stagingBuffer, ResourceState::CopySrc);
-        cr << InsertBarrier(spanInstancesBuffer.Get(), ResourceState::CopyDst);
-        cr << InsertBarrier(spanChunksBuffer.Get(), ResourceState::CopyDst);
+        cr << InsertBarrier(spanInstancesBuffer, ResourceState::CopyDst);
+        cr << InsertBarrier(spanChunksBuffer, ResourceState::CopyDst);
 
         size_t copyOffset = 0;
 
-        const auto copyInto = [&](const GpuBufferRef& buffer, size_t byteSize)
+        const auto copyInto = [&](const StructuredBuffer& buffer, size_t byteSize)
         {
             if (byteSize != 0)
             {
-                cr << CopyBuffer(stagingBuffer, buffer.Get(), uint32(copyOffset), 0, uint32(byteSize));
+                cr << CopyBuffer(stagingBuffer, buffer.gpuBuffer, uint32(copyOffset), 0, uint32(byteSize));
             }
 
             copyOffset += byteSize;
@@ -834,11 +834,8 @@ void GlimmerSceneInstances::Upload(Frame* frame, BuildResult& result)
         copyInto(spanChunksBuffer, spanChunksByteSize);
     }
 
-    cr << InsertBarrier(spanInstancesBuffer.Get(), ResourceState::ShaderResource, ShaderModuleType::Compute);
-    cr << InsertBarrier(spanChunksBuffer.Get(), ResourceState::ShaderResource, ShaderModuleType::Compute);
-
-    EnqueueDeletion(std::move(m_spanInstancesBuffer));
-    EnqueueDeletion(std::move(m_spanChunksBuffer));
+    cr << InsertBarrier(spanInstancesBuffer, ResourceState::ShaderResource, ShaderModuleType::Compute);
+    cr << InsertBarrier(spanChunksBuffer, ResourceState::ShaderResource, ShaderModuleType::Compute);
 
     m_spanInstancesBuffer = std::move(spanInstancesBuffer);
     m_spanChunksBuffer = std::move(spanChunksBuffer);
@@ -859,11 +856,11 @@ void GlimmerSceneInstances::UploadTLAS(Frame* frame, BuildResult& result)
     m_stats.numTLASBuilds++;
 
     // a single placeholder element keeps the buffers bindable without a TLAS
-    GpuBufferRef nodesBuffer = GlimmerHelpers::CreateGlimmerStructuredBuffer(
+    StructuredBuffer nodesBuffer = GlimmerHelpers::CreateGlimmerStructuredBuffer(
         sizeof(SAHBVHNode),
         MathUtil::Max(result.tlasNodes.Size(), size_t(1)));
 
-    GpuBufferRef instancesBuffer = GlimmerHelpers::CreateGlimmerStructuredBuffer(
+    StructuredBuffer instancesBuffer = GlimmerHelpers::CreateGlimmerStructuredBuffer(
         sizeof(GlimmerTracedInstanceShaderData),
         MathUtil::Max(result.tracedInstances.Size(), size_t(1)));
 
@@ -880,18 +877,15 @@ void GlimmerSceneInstances::UploadTLAS(Frame* frame, BuildResult& result)
         stagingBuffer->Flush(0, nodesByteSize + instancesByteSize);
 
         cr << InsertBarrier(stagingBuffer, ResourceState::CopySrc);
-        cr << InsertBarrier(nodesBuffer.Get(), ResourceState::CopyDst);
-        cr << InsertBarrier(instancesBuffer.Get(), ResourceState::CopyDst);
+        cr << InsertBarrier(nodesBuffer, ResourceState::CopyDst);
+        cr << InsertBarrier(instancesBuffer, ResourceState::CopyDst);
 
-        cr << CopyBuffer(stagingBuffer, nodesBuffer.Get(), 0, 0, uint32(nodesByteSize));
-        cr << CopyBuffer(stagingBuffer, instancesBuffer.Get(), uint32(nodesByteSize), 0, uint32(instancesByteSize));
+        cr << CopyBuffer(stagingBuffer, nodesBuffer.gpuBuffer, 0, 0, uint32(nodesByteSize));
+        cr << CopyBuffer(stagingBuffer, instancesBuffer.gpuBuffer, uint32(nodesByteSize), 0, uint32(instancesByteSize));
     }
 
-    cr << InsertBarrier(nodesBuffer.Get(), ResourceState::ShaderResource, ShaderModuleType::Compute);
-    cr << InsertBarrier(instancesBuffer.Get(), ResourceState::ShaderResource, ShaderModuleType::Compute);
-
-    EnqueueDeletion(std::move(m_tlasNodesBuffer));
-    EnqueueDeletion(std::move(m_tracedInstancesBuffer));
+    cr << InsertBarrier(nodesBuffer, ResourceState::ShaderResource, ShaderModuleType::Compute);
+    cr << InsertBarrier(instancesBuffer, ResourceState::ShaderResource, ShaderModuleType::Compute);
 
     m_tlasNodesBuffer = std::move(nodesBuffer);
     m_tracedInstancesBuffer = std::move(instancesBuffer);
