@@ -44,6 +44,7 @@ bool IsLocalPlayerEntity(const Entity& entity);
 /// Can we simulate physics for the entity?
 bool CanSimulateEntityPhysics(const Entity& entity);
 
+ENGINE_API const CharacterControllerComponent* FindCharacterControllerComponent(const Entity& entity);
 ENGINE_API float GetCapsuleHeightOffset(const CharacterControllerComponent& component);
 void MoveCharacter(Entity* entity, CharacterControllerComponent& component, const PlayerMove& move, Vec3f& outResultTranslation);
 

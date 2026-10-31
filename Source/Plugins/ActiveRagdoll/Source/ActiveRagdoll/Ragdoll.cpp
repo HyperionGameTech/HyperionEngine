@@ -24,7 +24,11 @@ namespace Hyperion {
 
 using namespace RagdollMath;
 
-static void GetBoneWorld(const Mat4f& entityWorldMatrix, const Mat4f& modelMatrix, JPH::Vec3& outPosition, JPH::Quat& outOrientation)
+static void GetBoneWorld(
+    const Mat4f& entityWorldMatrix,
+    const Mat4f& modelMatrix,
+    JPH::Vec3& outPosition,
+    JPH::Quat& outOrientation)
 {
     const Mat4f world = entityWorldMatrix * modelMatrix;
 
@@ -37,14 +41,46 @@ Ragdoll::~Ragdoll()
     Destroy();
 }
 
-JPH::BodyInterface& Ragdoll::GetBodyInterface() const
+void Ragdoll::Destroy()
 {
-    return m_physicsSystem->GetBodyInterface();
-}
+    if (m_physicsSystem != nullptr && m_rootAssistConstraint != nullptr)
+    {
+        m_physicsSystem->RemoveConstraint(m_rootAssistConstraint);
+    }
 
-JPH::BodyID Ragdoll::GetBodyID(uint32 bodyIndex) const
-{
-    return m_ragdoll->GetBodyID(int(bodyIndex));
+    m_rootAssistConstraint = nullptr;
+
+    if (m_physicsSystem != nullptr && m_ragdoll != nullptr)
+    {
+        m_physicsSystem->RemoveStepListener(this);
+    }
+
+    if (m_ragdoll != nullptr)
+    {
+        m_ragdoll->RemoveFromPhysicsSystem();
+        m_ragdoll = nullptr;
+    }
+
+    m_physicsSystem = nullptr;
+    m_physicsWorld = nullptr;
+    m_contacts = nullptr;
+
+    m_bodies.Clear();
+    m_bodyOfSlot.Clear();
+    m_targets.Clear();
+    m_states.Clear();
+    m_motorOverrides.Clear();
+    m_overrideTargets.Clear();
+    m_hadOverride.Clear();
+    m_layers.Clear();
+    m_poseModelMatrices.Clear();
+    m_totalMass = 0.0f;
+    m_hasTargets = false;
+    m_hasMotors = false;
+    m_isLimp = false;
+    m_rig = RagdollRig {};
+    m_balance = RagdollBalance {};
+    m_isBalancing = false;
 }
 
 bool Ragdoll::IsAwake() const
@@ -75,7 +111,11 @@ void Ragdoll::Activate(JPH::Vec3Arg velocity)
     m_isLimp = true;
 }
 
-void Ragdoll::Drive(Span<const Mat4f> modelMatrices, const Mat4f& entityWorldMatrix, float deltaTime, bool teleport)
+void Ragdoll::Drive(
+    Span<const Mat4f> modelMatrices,
+    const Mat4f& entityWorldMatrix,
+    float deltaTime,
+    bool teleport)
 {
     if (m_ragdoll == nullptr || m_isLimp)
     {
@@ -131,15 +171,6 @@ void Ragdoll::Drive(Span<const Mat4f> modelMatrices, const Mat4f& entityWorldMat
     m_hasTargets = true;
 }
 
-void Ragdoll::SnapBodyToTarget(JPH::BodyInterface& bodyInterface, uint32 bodyIndex, JPH::EActivation activation)
-{
-    const BodyTarget& target = m_targets[bodyIndex];
-    const JPH::BodyID bodyId = GetBodyID(bodyIndex);
-
-    bodyInterface.SetPositionAndRotation(bodyId, JPH::RVec3(target.position), target.orientation, activation);
-    bodyInterface.SetLinearAndAngularVelocity(bodyId, JPH::Vec3::sZero(), JPH::Vec3::sZero());
-}
-
 void Ragdoll::GoLimp(const Mat4f& entityWorldMatrix)
 {
     if (m_ragdoll == nullptr || m_isLimp)
@@ -155,6 +186,11 @@ void Ragdoll::GoLimp(const Mat4f& entityWorldMatrix)
     m_ragdoll->Activate();
 
     m_isLimp = true;
+}
+
+void Ragdoll::RebaseTargets()
+{
+    m_hasTargets = false;
 }
 
 void Ragdoll::SetBodyMode(uint32 bodyIndex, RagdollBodyMode mode)
@@ -307,6 +343,23 @@ void Ragdoll::SetAllBodyBlends(float blend)
     }
 }
 
+void Ragdoll::ClearBodyLayers()
+{
+    for (BodyLayer& layer : m_layers)
+    {
+        layer = BodyLayer {};
+    }
+}
+
+void Ragdoll::SetBodyLayers(Span<const BodyLayer> layers, float gravityScale)
+{
+    for (uint32 i = 0; i < uint32(m_layers.Size()) && i < uint32(layers.Size()); i++)
+    {
+        m_layers[i] = layers[i];
+        m_layers[i].gravityScale = gravityScale;
+    }
+}
+
 void Ragdoll::SetRootAssist(float assist)
 {
     m_rootAssist = MathUtil::Clamp(assist, 0.0f, 1.0f);
@@ -338,43 +391,6 @@ void Ragdoll::SetBalancing(bool balancing)
     }
 }
 
-void Ragdoll::RebaseTargets()
-{
-    m_hasTargets = false;
-}
-
-void Ragdoll::ClearBodyLayers()
-{
-    for (BodyLayer& layer : m_layers)
-    {
-        layer = BodyLayer {};
-    }
-}
-
-void Ragdoll::SetBodyLayers(Span<const BodyLayer> layers, float gravityScale)
-{
-    for (uint32 i = 0; i < uint32(m_layers.Size()) && i < uint32(layers.Size()); i++)
-    {
-        m_layers[i] = layers[i];
-        m_layers[i].gravityScale = gravityScale;
-    }
-}
-
-void Ragdoll::AddImpulse(JPH::BodyID bodyId, JPH::Vec3Arg impulse, JPH::Vec3Arg point)
-{
-    const int32 bodyIndex = FindBodyIndex(bodyId);
-
-    if (bodyIndex < 0 || m_bodies[bodyIndex].mode == RagdollBodyMode::Kinematic)
-    {
-        return;
-    }
-
-    JPH::BodyInterface& bodyInterface = GetBodyInterface();
-
-    bodyInterface.ActivateBody(bodyId);
-    bodyInterface.AddImpulse(bodyId, impulse, JPH::RVec3(point));
-}
-
 int32 Ragdoll::FindBodyIndex(JPH::BodyID bodyId) const
 {
     if (m_ragdoll == nullptr)
@@ -391,6 +407,11 @@ int32 Ragdoll::FindBodyIndex(JPH::BodyID bodyId) const
     }
 
     return -1;
+}
+
+JPH::BodyID Ragdoll::GetBodyID(uint32 bodyIndex) const
+{
+    return m_ragdoll->GetBodyID(int(bodyIndex));
 }
 
 float Ragdoll::GetBodyMass(uint32 bodyIndex) const
@@ -413,14 +434,14 @@ RagdollBodyPart Ragdoll::GetBodyPart(uint32 bodyIndex) const
     return m_bodies[bodyIndex].part;
 }
 
-JPH::Vec3 Ragdoll::GetBodyOrigin(uint32 bodyIndex) const
-{
-    return JPH::Vec3(GetBodyInterface().GetPosition(GetBodyID(bodyIndex)));
-}
-
 JPH::Vec3 Ragdoll::GetBodyPosition(uint32 bodyIndex) const
 {
     return JPH::Vec3(GetBodyInterface().GetCenterOfMassPosition(GetBodyID(bodyIndex)));
+}
+
+JPH::Vec3 Ragdoll::GetBodyOrigin(uint32 bodyIndex) const
+{
+    return JPH::Vec3(GetBodyInterface().GetPosition(GetBodyID(bodyIndex)));
 }
 
 JPH::Vec3 Ragdoll::GetBodyTargetOrigin(uint32 bodyIndex) const
@@ -451,6 +472,56 @@ JPH::Vec3 Ragdoll::GetPelvisHeading(bool animated) const
     const JPH::Vec3 forward = (orientation * m_bodies[0].restOrientation.Conjugated()) * m_rig.restForward;
 
     return frame.Horizontal(forward).NormalizedOr(JPH::Vec3::sZero());
+}
+
+bool Ragdoll::GetBodyGroundContact(uint32 bodyIndex, RagdollGroundContact& outContact) const
+{
+    if (m_ragdoll == nullptr || m_contacts == nullptr || bodyIndex >= GetBodyCount())
+    {
+        outContact = RagdollGroundContact {};
+
+        return false;
+    }
+
+    return m_contacts->GetGroundContact(GetBodyID(bodyIndex), outContact);
+}
+
+bool Ragdoll::IsBodyOnGround(uint32 bodyIndex, JPH::Vec3Arg up, float minUp) const
+{
+    RagdollGroundContact contact;
+
+    return GetBodyGroundContact(bodyIndex, contact) && IsSupportNormal(contact, up, minUp);
+}
+
+bool Ragdoll::IsSupportNormal(const RagdollGroundContact& contact, JPH::Vec3Arg up, float minUp)
+{
+    return contact.normal.Dot(up) >= minUp;
+}
+
+bool Ragdoll::CastRayStatic(
+    JPH::Vec3Arg origin,
+    JPH::Vec3Arg vector,
+    JPH::Vec3& outPoint,
+    JPH::Vec3& outNormal) const
+{
+    const float length = vector.Length();
+
+    if (m_physicsWorld == nullptr || length <= 1e-6f)
+    {
+        return false;
+    }
+
+    PhysicsRayHit hit;
+
+    if (!m_physicsWorld->CastRayStatic(FromJolt(origin), FromJolt(vector / length), length, hit))
+    {
+        return false;
+    }
+
+    outPoint = ToJolt(hit.position);
+    outNormal = ToJolt(hit.normal);
+
+    return true;
 }
 
 void Ragdoll::SampleBody(JPH::BodyInterface& bodyInterface, uint32 bodyIndex, BodyState& outState) const
@@ -488,61 +559,26 @@ bool Ragdoll::GetMassAverage(Span<const BodyState> states, JPH::Vec3& outCenter,
     return true;
 }
 
-bool Ragdoll::GetBodyGroundContact(uint32 bodyIndex, RagdollGroundContact& outContact) const
+void Ragdoll::AddImpulse(JPH::BodyID bodyId, JPH::Vec3Arg impulse, JPH::Vec3Arg point)
 {
-    if (m_ragdoll == nullptr || m_contacts == nullptr || bodyIndex >= GetBodyCount())
-    {
-        outContact = RagdollGroundContact {};
+    const int32 bodyIndex = FindBodyIndex(bodyId);
 
-        return false;
+    if (bodyIndex < 0 || m_bodies[bodyIndex].mode == RagdollBodyMode::Kinematic)
+    {
+        return;
     }
 
-    return m_contacts->GetGroundContact(GetBodyID(bodyIndex), outContact);
+    JPH::BodyInterface& bodyInterface = GetBodyInterface();
+
+    bodyInterface.ActivateBody(bodyId);
+    bodyInterface.AddImpulse(bodyId, impulse, JPH::RVec3(point));
 }
 
-bool Ragdoll::IsSupportNormal(const RagdollGroundContact& contact, JPH::Vec3Arg up, float minUp)
-{
-    return contact.normal.Dot(up) >= minUp;
-}
-
-bool Ragdoll::IsBodyOnGround(uint32 bodyIndex, JPH::Vec3Arg up, float minUp) const
-{
-    RagdollGroundContact contact;
-
-    return GetBodyGroundContact(bodyIndex, contact) && IsSupportNormal(contact, up, minUp);
-}
-
-bool Ragdoll::CastRayStatic(JPH::Vec3Arg origin, JPH::Vec3Arg vector, JPH::Vec3& outPoint, JPH::Vec3& outNormal) const
-{
-    const float length = vector.Length();
-
-    if (m_physicsWorld == nullptr || length <= 1e-6f)
-    {
-        return false;
-    }
-
-    PhysicsRayHit hit;
-
-    if (!m_physicsWorld->CastRayStatic(FromJolt(origin), FromJolt(vector / length), length, hit))
-    {
-        return false;
-    }
-
-    outPoint = ToJolt(hit.position);
-    outNormal = ToJolt(hit.normal);
-
-    return true;
-}
-
-void Ragdoll::GetBodyWorld(uint32 bodyIndex, JPH::Vec3& outPosition, JPH::Quat& outOrientation) const
-{
-    JPH::RVec3 position;
-    GetBodyInterface().GetPositionAndRotation(GetBodyID(bodyIndex), position, outOrientation);
-
-    outPosition = JPH::Vec3(position);
-}
-
-bool Ragdoll::WritePose(Span<const Transform> animatedPose, const SkeletonBindData& bindData, const Mat4f& entityWorldMatrix, Array<Transform>& outPose)
+bool Ragdoll::WritePose(
+    Span<const Transform> animatedPose,
+    const SkeletonBindData& bindData,
+    const Mat4f& entityWorldMatrix,
+    Array<Transform>& outPose)
 {
     const uint32 numSlots = bindData.NumSlots();
 
@@ -633,46 +669,26 @@ bool Ragdoll::WritePose(Span<const Transform> animatedPose, const SkeletonBindDa
     return true;
 }
 
-void Ragdoll::Destroy()
+void Ragdoll::SnapBodyToTarget(JPH::BodyInterface& bodyInterface, uint32 bodyIndex, JPH::EActivation activation)
 {
-    if (m_physicsSystem != nullptr && m_rootAssistConstraint != nullptr)
-    {
-        m_physicsSystem->RemoveConstraint(m_rootAssistConstraint);
-    }
+    const BodyTarget& target = m_targets[bodyIndex];
+    const JPH::BodyID bodyId = GetBodyID(bodyIndex);
 
-    m_rootAssistConstraint = nullptr;
+    bodyInterface.SetPositionAndRotation(bodyId, JPH::RVec3(target.position), target.orientation, activation);
+    bodyInterface.SetLinearAndAngularVelocity(bodyId, JPH::Vec3::sZero(), JPH::Vec3::sZero());
+}
 
-    if (m_physicsSystem != nullptr && m_ragdoll != nullptr)
-    {
-        m_physicsSystem->RemoveStepListener(this);
-    }
+void Ragdoll::GetBodyWorld(uint32 bodyIndex, JPH::Vec3& outPosition, JPH::Quat& outOrientation) const
+{
+    JPH::RVec3 position;
+    GetBodyInterface().GetPositionAndRotation(GetBodyID(bodyIndex), position, outOrientation);
 
-    if (m_ragdoll != nullptr)
-    {
-        m_ragdoll->RemoveFromPhysicsSystem();
-        m_ragdoll = nullptr;
-    }
+    outPosition = JPH::Vec3(position);
+}
 
-    m_physicsSystem = nullptr;
-    m_physicsWorld = nullptr;
-    m_contacts = nullptr;
-
-    m_bodies.Clear();
-    m_bodyOfSlot.Clear();
-    m_targets.Clear();
-    m_states.Clear();
-    m_motorOverrides.Clear();
-    m_overrideTargets.Clear();
-    m_hadOverride.Clear();
-    m_layers.Clear();
-    m_poseModelMatrices.Clear();
-    m_totalMass = 0.0f;
-    m_hasTargets = false;
-    m_hasMotors = false;
-    m_isLimp = false;
-    m_rig = RagdollRig {};
-    m_balance = RagdollBalance {};
-    m_isBalancing = false;
+JPH::BodyInterface& Ragdoll::GetBodyInterface() const
+{
+    return m_physicsSystem->GetBodyInterface();
 }
 
 } // namespace Hyperion

@@ -56,18 +56,34 @@ Color Dim(const Color& color, float factor)
     return Color(color.GetRed() * factor, color.GetGreen() * factor, color.GetBlue() * factor);
 }
 
-void DrawLine(DebugDrawCommandList& list, JPH::Vec3Arg from, JPH::Vec3Arg to, const Color& color)
+void DrawLine(
+    DebugDrawCommandList& list,
+    JPH::Vec3Arg from,
+    JPH::Vec3Arg to,
+    const Color& color)
 {
     list.line(FromJolt(from), FromJolt(to), color);
 }
 
-void DrawGroundCross(DebugDrawCommandList& list, JPH::Vec3Arg point, JPH::Vec3Arg axisA, JPH::Vec3Arg axisB, float size, const Color& color)
+void DrawGroundCross(
+    DebugDrawCommandList& list,
+    JPH::Vec3Arg point,
+    JPH::Vec3Arg axisA,
+    JPH::Vec3Arg axisB,
+    float size,
+    const Color& color)
 {
     DrawLine(list, point - axisA * size, point + axisA * size, color);
     DrawLine(list, point - axisB * size, point + axisB * size, color);
 }
 
-void DrawWireBox(DebugDrawCommandList& list, JPH::Vec3Arg center, JPH::Vec3Arg x, JPH::Vec3Arg y, JPH::Vec3Arg z, const Color& color)
+void DrawWireBox(
+    DebugDrawCommandList& list,
+    JPH::Vec3Arg center,
+    JPH::Vec3Arg x,
+    JPH::Vec3Arg y,
+    JPH::Vec3Arg z,
+    const Color& color)
 {
     JPH::Vec3 corners[8];
 
@@ -103,7 +119,7 @@ void Ragdoll::DebugDraw(DebugDrawCommandList& list) const
 
     JPH::BodyInterface& bodyInterface = GetBodyInterface();
 
-    Array<BodyState> samples;
+    Array<BodyState, DebugDrawAllocator> samples;
     samples.Resize(m_bodies.Size());
 
     for (uint32 i = 0; i < GetBodyCount(); i++)
@@ -111,10 +127,10 @@ void Ragdoll::DebugDraw(DebugDrawCommandList& list) const
         SampleBody(bodyInterface, i, samples[i]);
     }
 
-    Array<JPH::Vec3> centers;
+    Array<JPH::Vec3, DebugDrawAllocator> centers;
     centers.Resize(m_bodies.Size());
 
-    DrawDebugBodies(list, samples.ToSpan(), centers);
+    DrawDebugBodies(list, samples.ToSpan(), centers.ToSpan());
     DrawDebugLinks(list, centers.ToSpan());
     DrawDebugSupport(list, samples.ToSpan());
 
@@ -124,7 +140,7 @@ void Ragdoll::DebugDraw(DebugDrawCommandList& list) const
     }
 }
 
-void Ragdoll::DrawDebugBodies(DebugDrawCommandList& list, Span<const BodyState> samples, Array<JPH::Vec3>& outCenters) const
+void Ragdoll::DrawDebugBodies(DebugDrawCommandList& list, Span<const BodyState> samples, Span<JPH::Vec3> outCenters) const
 {
     for (uint32 i = 0; i < GetBodyCount(); i++)
     {
@@ -208,7 +224,7 @@ void Ragdoll::DrawDebugSupport(DebugDrawCommandList& list, Span<const BodyState>
     DrawLine(list, com - up * ComCrossSize, com + up * ComCrossSize, ComColor);
     DrawLine(list, com - frame.axisV * ComCrossSize, com + frame.axisV * ComCrossSize, ComColor);
 
-    Array<PlanePoint> supportPoints;
+    Array<PlanePoint, DebugDrawAllocator> supportPoints;
     float supportHeightSum = 0.0f;
 
     for (uint32 i = 0; i < GetBodyCount(); i++)
@@ -235,7 +251,7 @@ void Ragdoll::DrawDebugSupport(DebugDrawCommandList& list, Span<const BodyState>
     DrawLine(list, com, comOnSupport, ComColor);
     DrawGroundCross(list, comOnSupport, frame.axisU, frame.axisV, ComGroundCrossSize, ComColor);
 
-    Array<PlanePoint> hull;
+    Array<PlanePoint, DebugDrawAllocator> hull;
     hull.Resize(supportPoints.Size() + 1);
 
     const uint32 hullCount = BuildHull(supportPoints.Data(), uint32(supportPoints.Size()), hull.Data());

@@ -66,6 +66,7 @@ const AssetPath& AssetReference::GetAssetPath() const
 
 const Handle<AssetObject>& AssetReference::Resolve() const
 {
+    // Check if cached value is stored already from a previous resolve. 
     if (m_data.Is<Handle<AssetObject>>())
     {
         return m_data.GetUnchecked<Handle<AssetObject>>();
@@ -103,18 +104,12 @@ const Handle<AssetObject>& AssetReference::Resolve() const
 
         Handle<AssetObject> assetObject = registry->GetAsset(assetPath.GetBucket(), assetPath.assetName);
 
-        if (assetObject)
+        if (!assetObject.IsValid())
         {
-            // TEMP debug
-            if (assetPath.assetName.ToString().StartsWith("reflprobe"))
-            {
-                HYP_LOG(Assets, Info, "reflprobe asset (obj name) = {}", assetObject->GetName());
-            }
-
-            return m_data.Emplace<Handle<AssetObject>>(assetObject);
+            HYP_LOG(Assets, Error, "Failed to resolve asset reference for path '{}'", assetPath);
         }
-
-        HYP_LOG(Assets, Error, "Failed to resolve asset reference for path '{}'", assetPath);
+        
+        return m_data.Emplace<Handle<AssetObject>>(assetObject);
     }
 
     return Handle<AssetObject>::Null();

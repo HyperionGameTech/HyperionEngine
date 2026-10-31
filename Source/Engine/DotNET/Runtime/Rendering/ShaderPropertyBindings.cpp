@@ -68,7 +68,7 @@ extern "C"
             return 0;
         }
 
-        Handle<ShaderBundle> bundle = GetEngineAssetRegistry()->GetAsset<ShaderBundle>(AssetBuckets::ShaderBundles, *pShaderName);
+        Handle<ShaderBundle> bundle = GetEngineAssetRegistry()->GetAsset<ShaderBundle>(AssetBuckets::ShaderBundles, GetShaderBundleAssetName(*pShaderName, HostShaderCompileTarget));
 
         if (!bundle.IsValid())
         {

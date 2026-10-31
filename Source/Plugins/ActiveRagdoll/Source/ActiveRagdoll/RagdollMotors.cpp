@@ -37,7 +37,11 @@ static constexpr float RootAssistMaxForce = 1500.0f;
 static constexpr float RootAssistMaxTorque = 600.0f;
 
 // a spring of natural frequency `omega` and damping ratio `damping` for `mass` (or a moment of inertia), times `scale`
-JPH::SpringSettings MakeSpring(float mass, float omega, float damping, float scale = 1.0f)
+JPH::SpringSettings MakeSpring(
+    float mass,
+    float omega,
+    float damping,
+    float scale = 1.0f)
 {
     return JPH::SpringSettings(JPH::ESpringMode::StiffnessAndDamping, scale * mass * omega * omega, scale * 2.0f * damping * omega * mass);
 }
@@ -208,7 +212,12 @@ JPH::SwingTwistConstraint* Ragdoll::GetJoint(uint32 bodyIndex) const
     return static_cast<JPH::SwingTwistConstraint*>(m_ragdoll->GetConstraint(int(bodyIndex) - 1));
 }
 
-Ragdoll::MotorOverride& Ragdoll::SetMotorTarget(uint32 bodyIndex, JPH::QuatArg parentWorld, JPH::QuatArg childWorld, float frequencyScale, bool isSupported)
+Ragdoll::MotorOverride& Ragdoll::SetMotorTarget(
+    uint32 bodyIndex,
+    JPH::QuatArg parentWorld,
+    JPH::QuatArg childWorld,
+    float frequencyScale,
+    bool isSupported)
 {
     MotorOverride& motorOverride = m_motorOverrides[bodyIndex];
 
@@ -220,7 +229,14 @@ Ragdoll::MotorOverride& Ragdoll::SetMotorTarget(uint32 bodyIndex, JPH::QuatArg p
     return motorOverride;
 }
 
-void Ragdoll::GetHingeChainRotations(uint32 upper, uint32 lower, JPH::Vec3Arg upperDirection, JPH::Vec3Arg lowerDirection, JPH::Vec3Arg hinge, JPH::Quat& outUpper, JPH::Quat& outLower) const
+void Ragdoll::GetHingeChainRotations(
+    uint32 upper,
+    uint32 lower,
+    JPH::Vec3Arg upperDirection,
+    JPH::Vec3Arg lowerDirection,
+    JPH::Vec3Arg hinge,
+    JPH::Quat& outUpper,
+    JPH::Quat& outLower) const
 {
     const BodyInfo& upperBody = m_bodies[upper];
     const BodyInfo& lowerBody = m_bodies[lower];

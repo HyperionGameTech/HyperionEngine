@@ -86,37 +86,6 @@ EDITOR_API HYP_DECLARE_LOG_CHANNEL(Editor);
 
 struct CookingContext {};
 
-#if defined(HYP_WEBGPU)
-static constexpr ANSIStringView HostBackendName = "WEBGPU";
-static constexpr ShaderCompileTargetBackend HostShaderCompileBackend = ShaderCompileTargetBackend::WebGPU;
-#elif defined(HYP_DX12)
-static constexpr ANSIStringView HostBackendName = "DX12";
-static constexpr ShaderCompileTargetBackend HostShaderCompileBackend = ShaderCompileTargetBackend::DX12;
-#else
-static constexpr ANSIStringView HostBackendName = "VULKAN";
-static constexpr ShaderCompileTargetBackend HostShaderCompileBackend = ShaderCompileTargetBackend::Vulkan;
-#endif
-
-#if defined(HYP_WEB) || defined(HYP_WEBGPU)
-static constexpr ANSIStringView HostTargetName = "WEB";
-static constexpr ShaderCompileTargetPlatform HostShaderCompilePlatform = ShaderCompileTargetPlatform::Web;
-#elif defined(HYP_WINDOWS)
-static constexpr ANSIStringView HostTargetName = "WINDOWS";
-static constexpr ShaderCompileTargetPlatform HostShaderCompilePlatform = ShaderCompileTargetPlatform::Windows;
-#elif defined(HYP_MACOS)
-static constexpr ANSIStringView HostTargetName = "MAC";
-static constexpr ShaderCompileTargetPlatform HostShaderCompilePlatform = ShaderCompileTargetPlatform::Mac;
-#elif defined(HYP_ANDROID)
-static constexpr ANSIStringView HostTargetName = "ANDROID";
-static constexpr ShaderCompileTargetPlatform HostShaderCompilePlatform = ShaderCompileTargetPlatform::Android;
-#elif defined(HYP_IOS)
-static constexpr ANSIStringView HostTargetName = "IOS";
-static constexpr ShaderCompileTargetPlatform HostShaderCompilePlatform = ShaderCompileTargetPlatform::IOS;
-#else
-static constexpr ANSIStringView HostTargetName = "LINUX";
-static constexpr ShaderCompileTargetPlatform HostShaderCompilePlatform = ShaderCompileTargetPlatform::Linux;
-#endif
-
 class BlobStorageCookCommandlet final : public CommandletBase
 {
     HYP_OBJECT_BODY(BlobStorageCookCommandlet);
@@ -447,16 +416,16 @@ protected:
         s_hasTargetPlatform = ParseTargetPlatform(args["target-platform"].ToString().ToAnsi(), s_targetPlatform);
 #endif // HYP_EDITOR
 
-        SetShaderBuild(HostTargetName, HostBackendName);
+        s_shaderTarget = HostShaderCompileTarget;
 
 #ifdef HYP_EDITOR
         if (s_hasTargetPlatform && s_targetPlatform == TargetPlatform::Android)
         {
-            SetShaderBuild("ANDROID", "VULKAN");
+            s_shaderTarget = { ShaderCompileTargetPlatform::Android, ShaderCompileTargetBackend::Vulkan };
         }
         else if (s_hasTargetPlatform && s_targetPlatform == TargetPlatform::Web)
         {
-            SetShaderBuild("WEB", "WEBGPU");
+            s_shaderTarget = { ShaderCompileTargetPlatform::Web, ShaderCompileTargetBackend::WebGPU };
         }
 #endif // HYP_EDITOR
 
@@ -507,7 +476,7 @@ private:
     static inline bool s_hasTargetPlatform = false;
     static inline TargetPlatform s_targetPlatform = TargetPlatform::Windows;
 #endif // HYP_EDITOR
-    static inline Array<ShaderPropertyId> s_foreignShaderPropertyIds;
+    static inline ShaderCompileTarget s_shaderTarget;
     static inline Set<const AssetObject*> s_dataOnlyTextures;
 
     static inline Array<FilePath> s_pluginContentDirectories;
@@ -835,43 +804,10 @@ private:
         return {};
     }
 
-    static void SetShaderBuild(ANSIStringView targetName, ANSIStringView backendName)
-    {
-        static const char* const s_backends[] = { "VULKAN", "DX12", "WEBGPU" };
-        static const char* const s_targets[] = { "WINDOWS", "MAC", "LINUX", "ANDROID", "IOS", "WEB" };
-
-        ShaderPropertyDictionary& dictionary = ShaderPropertyDictionary::GetInstance();
-
-        s_foreignShaderPropertyIds.Clear();
-
-        for (const char* backend : s_backends)
-        {
-            if (backendName != backend)
-            {
-                s_foreignShaderPropertyIds.PushBack(dictionary.Intern(ShaderProperty(NAME("BACKEND"), CreateNameFromDynamicString(backend))));
-            }
-        }
-
-        for (const char* target : s_targets)
-        {
-            if (targetName != target)
-            {
-                s_foreignShaderPropertyIds.PushBack(dictionary.Intern(ShaderProperty(NAME("TARGET"), CreateNameFromDynamicString(target))));
-            }
-        }
-    }
-
     static bool IsShaderForThisBuild(const Shader& shader)
     {
-        for (ShaderPropertyId propertyId : s_foreignShaderPropertyIds)
-        {
-            if (shader.properties.Test(propertyId))
-            {
-                return false;
-            }
-        }
-
-        return true;
+        // a variant without TARGET or BACKEND isn't specific to another build
+        return GetShaderCompileTargetForProperties(shader.properties, s_shaderTarget) == s_shaderTarget;
     }
 
     static Result CookBucketInFull(
@@ -892,6 +828,11 @@ private:
 
         for (const AssetDesc& assetDesc : assetDescs)
         {
+            if (bucket == AssetBuckets::ShaderBundles && !IsShaderBundleForTarget(assetDesc.name, s_shaderTarget))
+            {
+                continue;
+            }
+
             Handle<AssetObject> assetObject = registry->GetAsset(bucket, assetDesc.name);
 
             if (bucket == AssetBuckets::Shaders && assetObject.IsValid() && !IsShaderForThisBuild(*static_cast<const Shader*>(assetObject.Get())))
@@ -949,10 +890,7 @@ private:
     {
         bool isEnabled = false;
         String name;
-        ShaderCompileTargetPlatform platform = ShaderCompileTargetPlatform::None;
-        ShaderCompileTargetBackend backend = ShaderCompileTargetBackend::None;
-        Name targetPropertyValue;
-        Name backendPropertyValue;
+        ShaderCompileTarget compileTarget;
         JSON::Value config;
         Set<Name> materialShaderNames;
     };
@@ -1006,24 +944,15 @@ private:
     {
         if (target == "web")
         {
-            outShaderTarget.platform = ShaderCompileTargetPlatform::Web;
-            outShaderTarget.backend = ShaderCompileTargetBackend::WebGPU;
-            outShaderTarget.targetPropertyValue = NAME("WEB");
-            outShaderTarget.backendPropertyValue = NAME("WEBGPU");
+            outShaderTarget.compileTarget = { ShaderCompileTargetPlatform::Web, ShaderCompileTargetBackend::WebGPU };
         }
         else if (target == "android")
         {
-            outShaderTarget.platform = ShaderCompileTargetPlatform::Android;
-            outShaderTarget.backend = ShaderCompileTargetBackend::Vulkan;
-            outShaderTarget.targetPropertyValue = NAME("ANDROID");
-            outShaderTarget.backendPropertyValue = NAME("VULKAN");
+            outShaderTarget.compileTarget = { ShaderCompileTargetPlatform::Android, ShaderCompileTargetBackend::Vulkan };
         }
         else if (target == "host")
         {
-            outShaderTarget.platform = HostShaderCompilePlatform;
-            outShaderTarget.backend = HostShaderCompileBackend;
-            outShaderTarget.targetPropertyValue = CreateNameFromDynamicString(HostTargetName);
-            outShaderTarget.backendPropertyValue = CreateNameFromDynamicString(HostBackendName);
+            outShaderTarget.compileTarget = HostShaderCompileTarget;
         }
         else
         {
@@ -1102,8 +1031,8 @@ private:
         }
 
         ShaderCompileParams params;
-        params.SetTargetPlatforms(outShaderTarget.platform);
-        params.SetTargetBackends(outShaderTarget.backend);
+        params.SetTargetPlatforms(outShaderTarget.compileTarget.platform);
+        params.SetTargetBackends(outShaderTarget.compileTarget.backend);
         params.shaderFilters = passShaderNames;
         params.exactShaderFilters = true;
 
@@ -1117,14 +1046,11 @@ private:
 
         g_shaderCompiler->Initialize(/* precompileShaders */ false, previousParams);
 
-        const ShaderPropertyId backendPropertyId = ShaderPropertyDictionary::GetInstance().Intern(ShaderProperty(NAME("BACKEND"), outShaderTarget.backendPropertyValue));
-        const ShaderPropertyId targetPropertyId = ShaderPropertyDictionary::GetInstance().Intern(ShaderProperty(NAME("TARGET"), outShaderTarget.targetPropertyValue));
-
         uint32 numVariants = 0;
 
         for (const String& shaderName : passShaderNames)
         {
-            Handle<AssetObject> bundleAsset = engineRegistry->GetAsset(AssetBuckets::ShaderBundles, StringHash(shaderName));
+            Handle<AssetObject> bundleAsset = engineRegistry->GetAsset(AssetBuckets::ShaderBundles, GetShaderBundleAssetName(CreateNameFromDynamicString(shaderName.Data()), outShaderTarget.compileTarget));
 
             if (!bundleAsset.IsValid())
             {
@@ -1136,7 +1062,7 @@ private:
 
             for (const Handle<Shader>& shader : static_cast<const ShaderBundle*>(bundleAsset.Get())->compiledShaders)
             {
-                if (shader.IsValid() && shader->properties.Test(backendPropertyId) && shader->properties.Test(targetPropertyId))
+                if (shader.IsValid() && GetShaderCompileTargetForProperties(shader->properties) == outShaderTarget.compileTarget)
                 {
                     outAssets.PushBack(shader);
                     ++numVariants;
@@ -1348,7 +1274,7 @@ private:
         }
 
         // the renderer adds bindless textures where the device supports them, so a target that can have them gets both variants
-        if (shaderTarget.backend != ShaderCompileTargetBackend::WebGPU)
+        if (shaderTarget.compileTarget.backend != ShaderCompileTargetBackend::WebGPU)
         {
             const ShaderPropertyId bindlessTexturesPropertyId = propertyDictionary.Intern(ShaderProperty(NAME("HYP_FEATURES_BINDLESS_TEXTURES")));
             const size_t numRequests = requests.Size();
@@ -1378,23 +1304,20 @@ private:
                     return HYP_FORMAT("{} {}", it.second, it.first);
                 }));
 
-        const ShaderPropertyId targetPropertyId = propertyDictionary.Intern(ShaderProperty(NAME("TARGET"), shaderTarget.targetPropertyValue));
-        const ShaderPropertyId backendPropertyId = propertyDictionary.Intern(ShaderProperty(NAME("BACKEND"), shaderTarget.backendPropertyValue));
         const ShaderPropertyId numGBufferTexturesPropertyId = propertyDictionary.Intern(ShaderProperty(NAME("NUM_GBUFFER_TEXTURES"), int(NumGBufferTargets)));
 
         Map<Name, Map<HashCode, ShaderPropertySet>> requestedVariants;
 
         for (const VariantRequest& request : requests)
         {
-            if (!g_shaderCompiler->CompileVariantForTarget(request.shaderName, request.properties, VertexInputLayoutDesc { VT_Simple }, shaderTarget.platform, shaderTarget.backend))
+            if (!g_shaderCompiler->CompileVariantForTarget(request.shaderName, request.properties, VertexInputLayoutDesc { VT_Simple }, shaderTarget.compileTarget))
             {
                 HYP_LOG(Assets, Warning, "Failed to compile a {} variant for {} (see the errors above)", request.shaderName, shaderTarget.name);
                 continue;
             }
 
             ShaderPropertySet targetProperties = request.properties;
-            targetProperties.Add(targetPropertyId);
-            targetProperties.Add(backendPropertyId);
+            AddShaderCompileTargetProperties(shaderTarget.compileTarget, targetProperties);
 
             requestedVariants[request.shaderName][targetProperties.GetHashCode()] = targetProperties;
         }
@@ -1403,7 +1326,7 @@ private:
 
         for (const auto& it : requestedVariants)
         {
-            Handle<AssetObject> bundleAsset = engineRegistry->GetAsset(AssetBuckets::ShaderBundles, it.first);
+            Handle<AssetObject> bundleAsset = engineRegistry->GetAsset(AssetBuckets::ShaderBundles, GetShaderBundleAssetName(it.first, shaderTarget.compileTarget));
 
             if (!bundleAsset.IsValid())
             {

@@ -19,10 +19,14 @@
 #include <Scene/World.hpp>
 #include <Scene/Entity.hpp>
 #include <Scene/EntityManager.hpp>
+
 #include <Scene/Animation/Skeleton.hpp>
+
 #include <Scene/Components/MeshComponent.hpp>
 #include <Scene/Components/TransformComponent.hpp>
 #include <Scene/Components/CharacterControllerComponent.hpp>
+
+#include <Scene/Util/SceneHelpers.hpp>
 
 #include <Physics/PhysicsWorld.hpp>
 
@@ -52,14 +56,17 @@ using namespace RagdollMath;
 
 namespace {
 
-static constexpr float AssistFadeTime = 0.5f;
-static constexpr float MinPoweredTime = 1.0f;
-static constexpr float BlendOutTime = 0.4f;
-static constexpr float GroundProbe = 2.0f;
+constexpr float AssistFadeTime = 0.5f;
+constexpr float MinPoweredTime = 1.0f;
+constexpr float BlendOutTime = 0.4f;
+constexpr float GroundProbe = 2.0f;
 
-static constexpr uint32 HitChainLength = 3;
-static constexpr float HitChainFalloff[HitChainLength] = { 1.0f, 0.6f, 0.3f };
-static constexpr float HitChainMaxSpeed = 2.0f;
+constexpr uint32 HitChainLength = 3;
+constexpr float HitChainFalloff[HitChainLength] = { 1.0f, 0.6f, 0.3f };
+constexpr float HitChainMaxSpeed = 2.0f;
+
+constexpr float MinBumpSpeed = 0.3f;
+constexpr float BumpCooldown = 0.3f;
 
 } // namespace
 
@@ -91,26 +98,27 @@ struct ActiveRagdollInstance
     bool isTeleported = true;
     float assistFade = 1.0f;
     float poweredTime = 0.0f;
+    float bumpCooldown = 0.0f;
     float physicsBlend = 1.0f;
 
-    // the pelvis's horizontal offset from the entity, kept while the body is down so the entity follows it
     JPH::Vec3 pelvisOffset = JPH::Vec3::sZero();
     bool followsPelvis = false;
 
-    // the skeleton shows the pose written last frame, which nothing else replaces when no animation poses the entity
     bool isPoseWritten = false;
 
-    bool IsPowered() const
+    HYP_FORCE_INLINE bool IsPowered() const
     {
-        return ragdoll.IsCreated() && ragdoll.GetBodyCount() > 0 && ragdoll.GetBodyMode(0) == RagdollBodyMode::Powered;
+        return ragdoll.IsCreated()
+            && ragdoll.GetBodyCount() > 0
+            && ragdoll.GetBodyMode(0) == RagdollBodyMode::Powered;
     }
 
-    bool IsAlive() const
+    HYP_FORCE_INLINE bool IsAlive() const
     {
         return !isDying && state != ActiveRagdollState::Limp;
     }
 
-    const Mat4f& GetEntityWorldMatrix() const
+    HYP_FORCE_INLINE const Mat4f& GetEntityWorldMatrix() const
     {
         return entity->GetWorldMatrix();
     }
@@ -360,7 +368,6 @@ struct ActiveRagdollInstance
 
         if (ragdoll.GetBalanceStatus().state == RagdollBalanceState::Fallen)
         {
-            // dying bodies skip the fallen behaviours and keep tracking their held pose while their strength fades
             if (isDying)
             {
                 ReturnToAnimation();
@@ -407,7 +414,6 @@ struct ActiveRagdollInstance
             return;
         }
 
-        // eased, so the hand-back to the animation starts and lands gently
         ragdoll.SetAllBodyBlends(SmoothStep(physicsBlend));
     }
 
@@ -426,8 +432,6 @@ struct ActiveRagdollInstance
         }
     }
 
-    // NPC-side updates run after the physics step, so push the new balance request and strengths now or the step that
-    // takes the impulse would still use the old ones
     void ApplyBehaviourOutput()
     {
         UpdateBalance(0.0f);
@@ -454,8 +458,6 @@ struct ActiveRagdollInstance
             return;
         }
 
-        // the struck body leads and its parents follow, so a light hand isn't flicked away and snapped back by its own
-        // muscles; only the struck body takes the hit off centre and spins
         const float speed = MathUtil::Min(length / weightedMass, HitChainMaxSpeed);
         const JPH::Vec3 velocity = impulse * (speed / length);
 
@@ -517,13 +519,10 @@ struct ActiveRagdollInstance
             }
         }
 
-        // a hit while the body still moves from the last one only tops its speed back up, so a burst knocks harder than
-        // one shot without each hit adding a full shove
         const float targetSpeed = speed * totalMass / movedMass;
         const float currentSpeed = MathUtil::Max(momentum / movedMass, 0.0f);
         const float addedSpeed = MathUtil::Max(targetSpeed - currentSpeed, targetSpeed * shove.repeatShoveFraction);
 
-        // everything above the feet moves together, so the body tips over its planted feet without bending at the hips
         const JPH::Vec3 velocity = direction * addedSpeed;
 
         for (uint32 i = 0; i < ragdoll.GetBodyCount(); i++)
@@ -617,7 +616,6 @@ struct ActiveRagdollInstance
             return;
         }
 
-        // shove first, so the speed it tops up to isn't already counted from the struck limbs' push
         Shove(impulse * shove.hitShoveScale, shove.minShoveSpeed);
 
         PushHitChain(body, impulse, point);
@@ -666,7 +664,7 @@ struct ActiveRagdollInstance
         behaviours.HandleEvent(ragdoll, event);
     }
 
-    void Push(JPH::Vec3Arg impulse)
+    void Push(JPH::Vec3Arg impulse, float chestFraction = 1.0f)
     {
         const float length = impulse.Length();
 
@@ -675,7 +673,6 @@ struct ActiveRagdollInstance
             return;
         }
 
-        // pushed at the chest, like a shove, rather than wherever the push touched
         const uint32 chest = ragdoll.GetRig().chest;
         const JPH::Vec3 point = ragdoll.GetBodyPosition(chest);
 
@@ -689,9 +686,32 @@ struct ActiveRagdollInstance
         behaviours.HandleEvent(ragdoll, event);
         ApplyBehaviourOutput();
 
-        ragdoll.AddImpulse(ragdoll.GetBodyID(chest), impulse, point);
+        if (chestFraction > 0.0f)
+        {
+            ragdoll.AddImpulse(ragdoll.GetBodyID(chest), impulse * chestFraction, point);
+        }
 
         Shove(impulse, 0.0f);
+    }
+
+    void Bump(JPH::Vec3Arg normal, float speed, float otherMass)
+    {
+        if (bumpCooldown > 0.0f || speed < MinBumpSpeed || otherMass <= 0.0f)
+        {
+            return;
+        }
+
+        const float mass = ragdoll.GetTotalMass();
+        const JPH::Vec3 direction = ragdoll.GetGravityFrame().Horizontal(normal).NormalizedOr(JPH::Vec3::sZero());
+
+        if (mass <= 0.0f || direction.IsNearZero())
+        {
+            return;
+        }
+
+        bumpCooldown = BumpCooldown;
+
+        Push(direction * (speed * mass * otherMass / (mass + otherMass)), 0.0f);
     }
 
     void Kill(int32 body)
@@ -734,7 +754,7 @@ struct ActiveRagdollInstance
             return false;
         }
 
-        if (behaviourName == NAME("Dying"))
+        if (behaviourName == "Dying"_sh)
         {
             Kill(-1);
 
@@ -813,6 +833,19 @@ ActiveRagdollInstance* ActiveRagdollSystem::FindInstance(Entity* entity) const
     return it->second.Get();
 }
 
+ActiveRagdollInstance* ActiveRagdollSystem::FindInstanceBySerial(uint32 serial) const
+{
+    for (const auto& it : m_instances)
+    {
+        if (it.second->ragdoll.IsCreated() && it.second->ragdoll.GetSerial() == serial)
+        {
+            return it.second.Get();
+        }
+    }
+
+    return nullptr;
+}
+
 void ActiveRagdollSystem::DestroyInstance(Entity* entity)
 {
     const auto it = m_instances.Find(entity);
@@ -846,6 +879,7 @@ void ActiveRagdollSystem::DestroyAllInstances()
             if (physicsWorld.GetAdapter().GetPhysicsSystem() == m_contactsPhysicsSystem)
             {
                 physicsWorld.GetAdapter().RemoveContactListener(m_contacts);
+                physicsWorld.GetAdapter().RemoveCharacterContactListener(m_contacts);
             }
         }
 
@@ -884,6 +918,7 @@ bool ActiveRagdollSystem::EnsureContacts()
         m_contactsPhysicsSystem = physicsSystem;
 
         physicsWorld.GetAdapter().AddContactListener(m_contacts);
+        physicsWorld.GetAdapter().AddCharacterContactListener(m_contacts);
     }
 
     return true;
@@ -1062,6 +1097,12 @@ void ActiveRagdollSystem::Process(float delta, Span<Handle<Scene>> scenes)
             instance->shove = component.shove;
             instance->debugDraw = component.debugDraw;
             instance->behaviours.ApplySettings(component.behaviours);
+            instance->bumpCooldown = MathUtil::Max(instance->bumpCooldown - delta, 0.0f);
+
+            if (const CharacterControllerComponent* controller = SceneHelpers::FindCharacterControllerComponent(*entity); controller != nullptr && controller->physicsHandle)
+            {
+                static_cast<PhysicsWorld&>(*GetWorld()->GetPhysicsWorld()).GetAdapter().SetCharacterIgnoredCollisionGroup(controller->physicsHandle, instance->ragdoll.GetSerial());
+            }
 
             UpdateInstance(*instance, meshComponent, isAnimated, delta);
 
@@ -1085,13 +1126,36 @@ void ActiveRagdollSystem::Process(float delta, Span<Handle<Scene>> scenes)
 
     for (const RagdollImpact& impact : m_impacts)
     {
-        for (const auto& it : m_instances)
+        ActiveRagdollInstance* instance = FindInstanceBySerial(impact.serial);
+
+        if (instance == nullptr)
         {
-            if (it.second->ragdoll.IsCreated() && it.second->ragdoll.GetSerial() == impact.serial)
-            {
-                it.second->OnImpact(impact);
-                break;
-            }
+            continue;
+        }
+
+        if (impact.otherSerial == 0)
+        {
+            instance->OnImpact(impact);
+
+            continue;
+        }
+
+        // another ragdoll staggering or falling into this one
+        const ActiveRagdollInstance* other = FindInstanceBySerial(impact.otherSerial);
+
+        if (other != nullptr && impact.otherSpeed >= MinBumpSpeed)
+        {
+            instance->Bump(impact.normal, impact.speed, other->ragdoll.GetTotalMass());
+        }
+    }
+
+    m_contacts->DrainBumps(m_bumps);
+
+    for (const RagdollBump& bump : m_bumps)
+    {
+        if (ActiveRagdollInstance* instance = FindInstanceBySerial(bump.serial))
+        {
+            instance->Bump(bump.normal, bump.speed, bump.characterMass);
         }
     }
 

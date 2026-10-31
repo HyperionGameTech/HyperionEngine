@@ -24,6 +24,8 @@
 #include <Core/Reflection/Class.hpp>
 
 #include <Core/Threading/Scheduler.hpp>
+#include <Core/Threading/ConditionVariable.hpp>
+#include <Core/Threading/Util/ThreadId.hpp>
 
 #include <Core/Reflection/Field.hpp>
 #include <Core/Reflection/Property.hpp>
@@ -342,6 +344,11 @@ public:
     TBitset<AssetAllocator> usedIndices;
 
     SharedMutex mtx;
+
+    // assets being loaded by GetAsset(), so concurrent requests for one asset wait on a single load
+    Mutex loadMutex;
+    ConditionVariable loadFinished;
+    Map<uint32, ThreadId> loadingIndices;
 
     AssetBucketData()
     {
@@ -745,6 +752,49 @@ Handle<AssetObject> AssetRegistry::GetAsset(const AssetBucket& bucket, StringHas
     }
 
     lock.Reset();
+
+    const ThreadId currentThreadId = ThreadId::Current();
+    bool ownsLoad = false;
+
+    {
+        Mutex::Guard loadGuard(data.loadMutex);
+
+        while (true)
+        {
+            auto loadingIt = data.loadingIndices.Find(index);
+
+            // loading on this thread already means the asset references itself - don't wait on ourselves
+            if (loadingIt == data.loadingIndices.End() || loadingIt->second == currentThreadId)
+            {
+                break;
+            }
+
+            data.loadFinished.Wait(data.loadMutex);
+        }
+
+        {
+            TSharedLock cacheLock(data.mtx);
+
+            pAssetObject = data.assetObjectCache.TryGet(index);
+
+            if (pAssetObject != nullptr)
+            {
+                return *pAssetObject;
+            }
+        }
+
+        ownsLoad = data.loadingIndices.Insert(index, currentThreadId).second;
+    }
+
+    HYP_DEFER({
+        if (ownsLoad)
+        {
+            Mutex::Guard loadGuard(data.loadMutex);
+
+            data.loadingIndices.Erase(index);
+            data.loadFinished.NotifyAll();
+        }
+    });
 
     // Load it into cache
     Handle<AssetObject> assetObject;

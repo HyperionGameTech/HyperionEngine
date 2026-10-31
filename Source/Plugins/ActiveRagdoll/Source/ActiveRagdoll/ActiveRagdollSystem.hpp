@@ -99,6 +99,7 @@ private:
     }
 
     ActiveRagdollInstance* FindInstance(Entity* entity) const;
+    ActiveRagdollInstance* FindInstanceBySerial(uint32 serial) const;
     ActiveRagdollInstance* CreateInstance(Entity* entity, ActiveRagdollComponent& component, MeshComponent& meshComponent);
     void DestroyInstance(Entity* entity);
     void DestroyAllInstances();
@@ -114,6 +115,7 @@ private:
 
     RagdollContacts* m_contacts = nullptr;
     Array<RagdollImpact> m_impacts;
+    Array<RagdollBump> m_bumps;
     JPH::PhysicsSystem* m_contactsPhysicsSystem = nullptr;
 };
 

@@ -15,6 +15,7 @@
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Body/BodyID.h>
 #include <Jolt/Physics/Collision/ContactListener.h>
+#include <Jolt/Physics/Character/CharacterVirtual.h>
 
 #include <atomic>
 
@@ -59,6 +60,8 @@ struct RagdollImpact
     float otherMass = 0.0f;
     bool isOtherStatic = false;
     uint32 serial = 0;
+    // the other ragdoll's serial, 0 when it isn't one
+    uint32 otherSerial = 0;
 
     HYP_FORCE_INLINE bool IsStruck(float minSpeed) const
     {
@@ -66,8 +69,16 @@ struct RagdollImpact
     }
 };
 
-// ragdoll bodies touching static geometry since the last Clear, and new contacts closing faster than MinImpactSpeed
-class RagdollContacts final : public JPH::ContactListener
+struct RagdollBump
+{
+    JPH::Vec3 point = JPH::Vec3::sZero();
+    JPH::Vec3 normal = JPH::Vec3::sZero();
+    float speed = 0.0f;
+    float characterMass = 0.0f;
+    uint32 serial = 0;
+};
+
+class RagdollContacts final : public JPH::ContactListener, public JPH::CharacterContactListener
 {
 public:
     static constexpr float MinImpactSpeed = 0.5f;
@@ -76,10 +87,14 @@ public:
     void OnContactAdded(const JPH::Body& inBody1, const JPH::Body& inBody2, const JPH::ContactManifold& inManifold, JPH::ContactSettings& ioSettings) override;
     void OnContactPersisted(const JPH::Body& inBody1, const JPH::Body& inBody2, const JPH::ContactManifold& inManifold, JPH::ContactSettings& ioSettings) override;
 
+    void OnContactAdded(const JPH::CharacterVirtual* inCharacter, const JPH::CharacterContact& inContact, JPH::CharacterContactSettings& ioSettings) override;
+    void OnContactPersisted(const JPH::CharacterVirtual* inCharacter, const JPH::CharacterContact& inContact, JPH::CharacterContactSettings& ioSettings) override;
+
     // between physics updates
     void Clear();
 
     void DrainImpacts(Array<RagdollImpact>& outImpacts);
+    void DrainBumps(Array<RagdollBump>& outBumps);
 
     bool GetGroundContact(JPH::BodyID bodyId, RagdollGroundContact& outContact) const;
 
@@ -99,10 +114,13 @@ private:
 
     void Record(const JPH::Body& inBody1, const JPH::Body& inBody2, const JPH::ContactManifold& inManifold);
     void QueueImpact(const JPH::Body& inBody1, const JPH::Body& inBody2, const JPH::ContactManifold& inManifold);
+    void RecordBump(const JPH::CharacterVirtual& character, const JPH::CharacterContact& contact, JPH::CharacterContactSettings& ioSettings);
 
     mutable Mutex m_mutex;
     Map<uint32, Accum> m_accums;
     Array<RagdollImpact> m_impacts;
+    // the fastest bump on each ragdoll this update, by serial
+    Map<uint32, RagdollBump> m_bumps;
     std::atomic<uint32> m_generation { 0 };
 };
 

@@ -184,30 +184,117 @@ String InputLayoutToString(const VertexInputLayoutDesc& inputLayout)
 #ifndef VK_API_VERSION_1_4
 #define VK_API_VERSION_1_4 VK_MAKE_API_VERSION(0, 1, 4, 0)
 #endif
-static constexpr uint32 HYP_VULKAN_API_VERSION = VK_API_VERSION_1_2;
+constexpr uint32 HYP_VULKAN_API_VERSION = VK_API_VERSION_1_2;
 #endif // !HYP_VULKAN
 
 // Target platform properties for cross-compilation
-static StaticShaderPropertyId s_propTargetWindows { ShaderProperty(NAME("TARGET"), NAME("WINDOWS")) };
-static StaticShaderPropertyId s_propTargetMac { ShaderProperty(NAME("TARGET"), NAME("MAC")) };
-static StaticShaderPropertyId s_propTargetLinux { ShaderProperty(NAME("TARGET"), NAME("LINUX")) };
-static StaticShaderPropertyId s_propTargetAndroid { ShaderProperty(NAME("TARGET"), NAME("ANDROID")) };
-static StaticShaderPropertyId s_propTargetIOS { ShaderProperty(NAME("TARGET"), NAME("IOS")) };
-static StaticShaderPropertyId s_propTargetWeb { ShaderProperty(NAME("TARGET"), NAME("WEB")) };
+StaticShaderPropertyId g_propTargetWindows { ShaderProperty(NAME("TARGET"), NAME("WINDOWS")) };
+StaticShaderPropertyId g_propTargetMac { ShaderProperty(NAME("TARGET"), NAME("MAC")) };
+StaticShaderPropertyId g_propTargetLinux { ShaderProperty(NAME("TARGET"), NAME("LINUX")) };
+StaticShaderPropertyId g_propTargetAndroid { ShaderProperty(NAME("TARGET"), NAME("ANDROID")) };
+StaticShaderPropertyId g_propTargetIOS { ShaderProperty(NAME("TARGET"), NAME("IOS")) };
+StaticShaderPropertyId g_propTargetWeb { ShaderProperty(NAME("TARGET"), NAME("WEB")) };
 
 // Target backend properties for cross-compilation
-static StaticShaderPropertyId s_propVulkan { ShaderProperty(NAME("BACKEND"), NAME("VULKAN")) };
-static StaticShaderPropertyId s_propDX12 { ShaderProperty(NAME("BACKEND"), NAME("DX12")) };
-static StaticShaderPropertyId s_propWebGPU { ShaderProperty(NAME("BACKEND"), NAME("WEBGPU")) };
+StaticShaderPropertyId g_propVulkan { ShaderProperty(NAME("BACKEND"), NAME("VULKAN")) };
+StaticShaderPropertyId g_propDX12 { ShaderProperty(NAME("BACKEND"), NAME("DX12")) };
+StaticShaderPropertyId g_propWebGPU { ShaderProperty(NAME("BACKEND"), NAME("WEBGPU")) };
 
-static StaticShaderPropertyId s_propNumGBufferTextures { ShaderProperty(NAME("NUM_GBUFFER_TEXTURES"), int(NumGBufferTargets)) };
+template <class TargetEnum>
+struct ShaderTargetProperty
+{
+    TargetEnum value;
+    const StaticShaderPropertyId* property;
 
-static StaticShaderPropertyId s_propBindlessTextures { ShaderProperty(NAME("HYP_FEATURES_BINDLESS_TEXTURES")) };
+    HYP_FORCE_INLINE Name GetPropertyValue() const
+    {
+        return property->property.currentValue.Get<Name>();
+    }
+};
 
-static StaticShaderPropertyId s_propDebugIrradiance { ShaderProperty(NAME("DEBUG_IRRADIANCE")) };
-static StaticShaderPropertyId s_propDebugVelocity { ShaderProperty(NAME("DEBUG_VELOCITY")) };
-static StaticShaderPropertyId s_propDebugNormals { ShaderProperty(NAME("DEBUG_NORMALS")) };
-static StaticShaderPropertyId s_propDebugAO { ShaderProperty(NAME("DEBUG_AO")) };
+const ShaderTargetProperty<ShaderCompileTargetPlatform> g_targetPlatformProperties[] = {
+    { ShaderCompileTargetPlatform::Windows, &g_propTargetWindows },
+    { ShaderCompileTargetPlatform::Mac, &g_propTargetMac },
+    { ShaderCompileTargetPlatform::Linux, &g_propTargetLinux },
+    { ShaderCompileTargetPlatform::Android, &g_propTargetAndroid },
+    { ShaderCompileTargetPlatform::IOS, &g_propTargetIOS },
+    { ShaderCompileTargetPlatform::Web, &g_propTargetWeb }
+};
+
+const ShaderTargetProperty<ShaderCompileTargetBackend> g_targetBackendProperties[] = {
+    { ShaderCompileTargetBackend::Vulkan, &g_propVulkan },
+    { ShaderCompileTargetBackend::DX12, &g_propDX12 },
+    { ShaderCompileTargetBackend::WebGPU, &g_propWebGPU }
+};
+
+// the (platform, backend) pairs shaders are compiled for, e.g. DX12 only on Windows
+constexpr ShaderCompileTarget ValidShaderCompileTargets[] = {
+    { ShaderCompileTargetPlatform::Windows, ShaderCompileTargetBackend::Vulkan },
+    { ShaderCompileTargetPlatform::Windows, ShaderCompileTargetBackend::DX12 },
+    { ShaderCompileTargetPlatform::Web, ShaderCompileTargetBackend::WebGPU },
+    { ShaderCompileTargetPlatform::Mac, ShaderCompileTargetBackend::Vulkan },
+    { ShaderCompileTargetPlatform::Linux, ShaderCompileTargetBackend::Vulkan },
+    { ShaderCompileTargetPlatform::Android, ShaderCompileTargetBackend::Vulkan },
+    { ShaderCompileTargetPlatform::IOS, ShaderCompileTargetBackend::Vulkan }
+};
+
+template <class TargetEnum, size_t Count>
+const ShaderTargetProperty<TargetEnum>* FindShaderTargetProperty(
+    const ShaderTargetProperty<TargetEnum> (&entries)[Count],
+    TargetEnum value)
+{
+    for (const ShaderTargetProperty<TargetEnum>& entry : entries)
+    {
+        if (entry.value == value)
+        {
+            return &entry;
+        }
+    }
+
+    return nullptr;
+}
+
+template <class TargetEnum, size_t Count>
+TargetEnum FindShaderTargetForValue(
+    const ShaderTargetProperty<TargetEnum> (&entries)[Count],
+    StringHash propertyValue)
+{
+    for (const ShaderTargetProperty<TargetEnum>& entry : entries)
+    {
+        if (StringHash(entry.GetPropertyValue()) == propertyValue)
+        {
+            return entry.value;
+        }
+    }
+
+    return TargetEnum::None;
+}
+
+template <class TargetEnum, size_t Count>
+TargetEnum FindShaderTargetInProperties(
+    const ShaderTargetProperty<TargetEnum> (&entries)[Count],
+    const ShaderPropertySet& properties,
+    TargetEnum fallback)
+{
+    for (const ShaderTargetProperty<TargetEnum>& entry : entries)
+    {
+        if (properties.Test(*entry.property))
+        {
+            return entry.value;
+        }
+    }
+
+    return fallback;
+}
+
+StaticShaderPropertyId g_propNumGBufferTextures { ShaderProperty(NAME("NUM_GBUFFER_TEXTURES"), int(NumGBufferTargets)) };
+
+StaticShaderPropertyId g_propBindlessTextures { ShaderProperty(NAME("HYP_FEATURES_BINDLESS_TEXTURES")) };
+
+StaticShaderPropertyId g_propDebugIrradiance { ShaderProperty(NAME("DEBUG_IRRADIANCE")) };
+StaticShaderPropertyId g_propDebugVelocity { ShaderProperty(NAME("DEBUG_VELOCITY")) };
+StaticShaderPropertyId g_propDebugNormals { ShaderProperty(NAME("DEBUG_NORMALS")) };
+StaticShaderPropertyId g_propDebugAO { ShaderProperty(NAME("DEBUG_AO")) };
 
 String ShaderPropertyValueToString(const ShaderProperty::Value& v)
 {
@@ -258,7 +345,7 @@ bool AreShaderPropertyValuesEquivalent(const ShaderProperty::Value& a, const Sha
 void MergeGlobalShaderProperties(bool isPrecompilingShaders, ShaderPropertySet& out)
 {
     // Num GBuffer textures is always static
-    out.Add(s_propNumGBufferTextures);
+    out.Add(g_propNumGBufferTextures);
 
     if (isPrecompilingShaders)
     {
@@ -266,43 +353,11 @@ void MergeGlobalShaderProperties(bool isPrecompilingShaders, ShaderPropertySet& 
     }
 
     // Current platform + Graphics API, unless the request already names a target
-
-    const bool hasBackend = out.Test(s_propVulkan) || out.Test(s_propDX12) || out.Test(s_propWebGPU);
-
-    const bool hasTarget = out.Test(s_propTargetWindows) || out.Test(s_propTargetMac) || out.Test(s_propTargetLinux)
-        || out.Test(s_propTargetAndroid) || out.Test(s_propTargetIOS) || out.Test(s_propTargetWeb);
-
-    if (!hasBackend)
-    {
-#if defined(HYP_WEBGPU)
-        out.Add(s_propWebGPU);
-#elif defined(HYP_DX12)
-        out.Add(s_propDX12);
-#elif defined(HYP_VULKAN)
-        out.Add(s_propVulkan);
-#endif // HYP_WEBGPU || HYP_DX12 || HYP_VULKAN
-    }
-
-    if (!hasTarget)
-    {
-#if defined(HYP_WEB) || defined(HYP_WEBGPU)
-        out.Add(s_propTargetWeb);
-#elif defined(HYP_WINDOWS)
-        out.Add(s_propTargetWindows);
-#elif defined(HYP_MACOS)
-        out.Add(s_propTargetMac);
-#elif defined(HYP_LINUX)
-        out.Add(s_propTargetLinux);
-#elif defined(HYP_ANDROID)
-        out.Add(s_propTargetAndroid);
-#elif defined(HYP_IOS)
-        out.Add(s_propTargetIOS);
-#endif // HYP_WINDOWS || HYP_MACOS || HYP_LINUX || HYP_ANDROID || HYP_IOS
-    }
+    AddShaderCompileTargetProperties(GetShaderCompileTargetForProperties(out, HostShaderCompileTarget), out);
 
     if (RI.GetRenderConfig().bindlessTextures)
     {
-        out.Add(s_propBindlessTextures);
+        out.Add(g_propBindlessTextures);
     }
 }
 
@@ -318,7 +373,7 @@ void MergeGlobalShaderProperties(bool isPrecompilingShaders, ShaderVariantPerms&
 
         inOutPerm.Set(NAME("HYP_FEATURES_BINDLESS_TEXTURES"), true, ShaderPropertyFlags::Permutation);
 
-        props.Set(s_propBindlessTextures, false);
+        props.Set(g_propBindlessTextures, false);
     }
 
     for (const ShaderPropertyId& propertyId : props.ToArray())
@@ -337,6 +392,80 @@ void MergeGlobalShaderProperties(bool isPrecompilingShaders, ShaderVariantPerms&
     }
 }
 
+} // namespace
+
+Name GetTargetPlatformPropertyValue(ShaderCompileTargetPlatform platform)
+{
+    const ShaderTargetProperty<ShaderCompileTargetPlatform>* entry = FindShaderTargetProperty(g_targetPlatformProperties, platform);
+
+    if (entry == nullptr)
+    {
+        return Name::Invalid();
+    }
+
+    return entry->GetPropertyValue();
+}
+
+Name GetTargetBackendPropertyValue(ShaderCompileTargetBackend backend)
+{
+    const ShaderTargetProperty<ShaderCompileTargetBackend>* entry = FindShaderTargetProperty(g_targetBackendProperties, backend);
+
+    if (entry == nullptr)
+    {
+        return Name::Invalid();
+    }
+
+    return entry->GetPropertyValue();
+}
+
+ShaderCompileTarget GetShaderCompileTargetForProperties(const ShaderPropertySet& properties, const ShaderCompileTarget& fallback)
+{
+    return ShaderCompileTarget {
+        FindShaderTargetInProperties(g_targetPlatformProperties, properties, fallback.platform),
+        FindShaderTargetInProperties(g_targetBackendProperties, properties, fallback.backend)
+    };
+}
+
+void AddShaderCompileTargetProperties(const ShaderCompileTarget& target, ShaderPropertySet& inOutProperties)
+{
+    if (const ShaderTargetProperty<ShaderCompileTargetPlatform>* entry = FindShaderTargetProperty(g_targetPlatformProperties, target.platform))
+    {
+        inOutProperties.Add(*entry->property);
+    }
+
+    if (const ShaderTargetProperty<ShaderCompileTargetBackend>* entry = FindShaderTargetProperty(g_targetBackendProperties, target.backend))
+    {
+        inOutProperties.Add(*entry->property);
+    }
+}
+
+Name GetShaderBundleAssetName(Name baseName, const ShaderCompileTarget& target)
+{
+    return NAME_FMT("{}_{}_{}", baseName, GetTargetPlatformPropertyValue(target.platform), GetTargetBackendPropertyValue(target.backend));
+}
+
+bool IsShaderBundleForTarget(Name bundleAssetName, const ShaderCompileTarget& target)
+{
+    const String suffix = HYP_FORMAT("_{}_{}", GetTargetPlatformPropertyValue(target.platform), GetTargetBackendPropertyValue(target.backend));
+
+    return String(*bundleAssetName).EndsWith(suffix);
+}
+
+namespace {
+
+static void SetShaderCompileTargetPerms(const ShaderCompileTarget& target, ShaderVariantPerms& inOutPerms)
+{
+    if (const ShaderTargetProperty<ShaderCompileTargetPlatform>* entry = FindShaderTargetProperty(g_targetPlatformProperties, target.platform))
+    {
+        inOutPerms.Set(entry->property->property);
+    }
+
+    if (const ShaderTargetProperty<ShaderCompileTargetBackend>* entry = FindShaderTargetProperty(g_targetBackendProperties, target.backend))
+    {
+        inOutPerms.Set(entry->property->property);
+    }
+}
+
 bool SatisfiesRequested(
     const ShaderPropertySet& requestedProperties,
     const VertexInputLayoutDesc& requestedInputLayout,
@@ -346,42 +475,6 @@ bool SatisfiesRequested(
     return candidate.inputLayout == requestedInputLayout
         && (matchAllProperties ? candidate.properties == requestedProperties
                                : (requestedProperties & candidate.properties) == candidate.properties);
-}
-
-Name GetTargetPlatformPropertyValue(ShaderCompileTargetPlatform platform)
-{
-    switch (platform)
-    {
-    case ShaderCompileTargetPlatform::Windows:
-        return NAME("WINDOWS");
-    case ShaderCompileTargetPlatform::Mac:
-        return NAME("MAC");
-    case ShaderCompileTargetPlatform::Linux:
-        return NAME("LINUX");
-    case ShaderCompileTargetPlatform::Android:
-        return NAME("ANDROID");
-    case ShaderCompileTargetPlatform::IOS:
-        return NAME("IOS");
-    case ShaderCompileTargetPlatform::Web:
-        return NAME("WEB");
-    default:
-        return Name::Invalid();
-    }
-}
-
-Name GetTargetBackendPropertyValue(ShaderCompileTargetBackend backend)
-{
-    switch (backend)
-    {
-    case ShaderCompileTargetBackend::Vulkan:
-        return NAME("VULKAN");
-    case ShaderCompileTargetBackend::DX12:
-        return NAME("DX12");
-    case ShaderCompileTargetBackend::WebGPU:
-        return NAME("WEBGPU");
-    default:
-        return Name::Invalid();
-    }
 }
 
 const Map<String, ShaderModuleType> g_shaderTypeNames = {
@@ -465,57 +558,6 @@ Mutex& GetBundleCompileMutex(Name bundleName)
         });
 
     return *mtx;
-}
-
-constexpr ShaderCompileTargetBackend GetShaderBackendForName(StringHash nameHash)
-{
-    constexpr auto VulkanNameHashValue = "VULKAN"_sh.hashCode;
-    constexpr auto DX12NameHashValue = "DX12"_sh.hashCode;
-    constexpr auto WebGPUNameHashValue = "WEBGPU"_sh.hashCode;
-
-    const auto nameHashValue = nameHash.hashCode;
-
-    switch (nameHashValue)
-    {
-    case VulkanNameHashValue:
-        return ShaderCompileTargetBackend::Vulkan;
-    case DX12NameHashValue:
-        return ShaderCompileTargetBackend::DX12;
-    case WebGPUNameHashValue:
-        return ShaderCompileTargetBackend::WebGPU;
-    default:
-        return ShaderCompileTargetBackend::None;
-    }
-}
-
-constexpr ShaderCompileTargetPlatform GetShaderPlatformForName(StringHash nameHash)
-{
-    constexpr auto WindowsNameHashValue = "WINDOWS"_sh.hashCode;
-    constexpr auto MacNameHashValue = "MAC"_sh.hashCode;
-    constexpr auto LinuxNameHashValue = "LINUX"_sh.hashCode;
-    constexpr auto AndroidNameHashValue = "ANDROID"_sh.hashCode;
-    constexpr auto IOSNameHashValue = "IOS"_sh.hashCode;
-    constexpr auto WebNameHashValue = "WEB"_sh.hashCode;
-
-    const auto nameHashValue = nameHash.hashCode;
-
-    switch (nameHashValue)
-    {
-    case WindowsNameHashValue:
-        return ShaderCompileTargetPlatform::Windows;
-    case MacNameHashValue:
-        return ShaderCompileTargetPlatform::Mac;
-    case LinuxNameHashValue:
-        return ShaderCompileTargetPlatform::Linux;
-    case AndroidNameHashValue:
-        return ShaderCompileTargetPlatform::Android;
-    case IOSNameHashValue:
-        return ShaderCompileTargetPlatform::IOS;
-    case WebNameHashValue:
-        return ShaderCompileTargetPlatform::Web;
-    default:
-        return ShaderCompileTargetPlatform::None;
-    }
 }
 
 VertexType FindVertexType(StringHash name)
@@ -2268,6 +2310,7 @@ void ShaderCompiler::ParseShaderBundleDecl(
 
 bool ShaderCompiler::HandleBundle(
     ShaderBundleDecl& decl,
+    const ShaderCompileTarget& target,
     Optional<ShaderRequest> shaderRequest,
     const Time& lastSavedTimestamp,
     Handle<ShaderBundle>& inOutBundle)
@@ -2277,7 +2320,7 @@ bool ShaderCompiler::HandleBundle(
     // To force fresh every time:
     if (m_isPrecompilingShaders)
     {
-        return CompileBundle(decl, shaderRequest, inOutBundle);
+        return CompileBundle(decl, target, shaderRequest, inOutBundle);
     }
 
     Time maxSourceFileLastModified = Time(0);
@@ -2301,7 +2344,7 @@ bool ShaderCompiler::HandleBundle(
                     "last compiled, recompiling...",
                     *decl.name);
 
-            return CompileBundle(decl, shaderRequest, inOutBundle);
+            return CompileBundle(decl, target, shaderRequest, inOutBundle);
         }
     }
 
@@ -2350,7 +2393,7 @@ bool ShaderCompiler::HandleBundle(
                     *decl.name,
                     shaderRequest->properties.GetDebugString());
 
-            return CompileBundle(decl, shaderRequest, inOutBundle);
+            return CompileBundle(decl, target, shaderRequest, inOutBundle);
         }
 
         if (!requestedFound)
@@ -2386,7 +2429,7 @@ bool ShaderCompiler::HandleBundle(
 
             if (CanCompileShaders())
             {
-                return CompileBundle(decl, shaderRequest, inOutBundle);
+                return CompileBundle(decl, target, shaderRequest, inOutBundle);
             }
 
             return false;
@@ -2426,6 +2469,37 @@ bool ShaderCompiler::LoadBundle(
         return false;
     }
 
+    if (shaderRequest.HasValue())
+    {
+        return LoadBundleForTarget(name, GetShaderCompileTargetForProperties(shaderRequest->properties), shaderRequest, outBundle);
+    }
+
+    if (!m_isPrecompilingShaders)
+    {
+        return LoadBundleForTarget(name, HostShaderCompileTarget, shaderRequest, outBundle);
+    }
+
+    bool allLoaded = true;
+
+    for (const ShaderCompileTarget& target : GetPrecompileTargets())
+    {
+        if (!LoadBundleForTarget(name, target, shaderRequest, outBundle))
+        {
+            allLoaded = false;
+        }
+    }
+
+    return allLoaded;
+}
+
+bool ShaderCompiler::LoadBundleForTarget(
+    Name name,
+    const ShaderCompileTarget& target,
+    Optional<ShaderRequest> shaderRequest,
+    Handle<ShaderBundle>& outBundle)
+{
+    outBundle.Reset();
+
     ShaderBundleDecl decl { name };
     MergeGlobalShaderProperties(m_isPrecompilingShaders, decl.variantPerms);
 
@@ -2448,7 +2522,7 @@ bool ShaderCompiler::LoadBundle(
             return false;
         }
 
-        if (!CompileBundle(decl, shaderRequest, outBundle))
+        if (!CompileBundle(decl, target, shaderRequest, outBundle))
         {
             HYP_LOG(ShaderCompiler, Error, "Failed to compile shader bundle {}", name);
 
@@ -2458,9 +2532,14 @@ bool ShaderCompiler::LoadBundle(
         return LoadBundleFromAssetPath(path, outBundle);
     };
 
-    const AssetPath bundleAssetPath = AssetPath(AssetRegistryId::Engine, AssetBuckets::ShaderBundles, name);
+    const AssetPath bundleAssetPath = AssetPath(AssetRegistryId::Engine, AssetBuckets::ShaderBundles, GetShaderBundleAssetName(name, target));
 
     if (!LoadBundleFromAssetPath(bundleAssetPath, outBundle))
+    {
+        SplitLegacyBundle(name);
+    }
+
+    if (!outBundle.IsValid() && !LoadBundleFromAssetPath(bundleAssetPath, outBundle))
     {
         if (!forceRecompile(bundleAssetPath))
         {
@@ -2475,7 +2554,98 @@ bool ShaderCompiler::LoadBundle(
     const FilePath manifestPath = GetEngineAssetRegistry()->FindManifestPath(outBundle->GetPath());
     const Time lastSavedTimestamp = manifestPath.LastModifiedTimestamp();
 
-    return HandleBundle(decl, shaderRequest, lastSavedTimestamp, outBundle);
+    return HandleBundle(decl, target, shaderRequest, lastSavedTimestamp, outBundle);
+}
+
+void ShaderCompiler::SplitLegacyBundle(Name name)
+{
+    Mutex::Guard bundleCompileGuard(GetBundleCompileMutex(name));
+
+    const Handle<AssetRegistry> registry = GetEngineAssetRegistry();
+
+    const AssetPath legacyAssetPath = AssetPath(AssetRegistryId::Engine, AssetBuckets::ShaderBundles, name);
+
+    Handle<ShaderBundle> legacyBundle;
+
+    if (!LoadBundleFromAssetPath(legacyAssetPath, legacyBundle))
+    {
+        return;
+    }
+
+    HYP_LOG(ShaderCompiler, Info, "Splitting shader bundle {} into one bundle per target", name);
+
+    Array<Pair<ShaderCompileTarget, Handle<ShaderBundle>>> targetBundles;
+
+    {
+        Mutex::Guard guard(m_compiledShadersMutex);
+
+        for (const Handle<Shader>& shader : legacyBundle->compiledShaders)
+        {
+            if (!shader.IsValid())
+            {
+                continue;
+            }
+
+            const ShaderCompileTarget target = GetShaderCompileTargetForProperties(shader->properties);
+
+            size_t targetIndex = 0;
+
+            while (targetIndex < targetBundles.Size() && targetBundles[targetIndex].first != target)
+            {
+                ++targetIndex;
+            }
+
+            if (targetIndex == targetBundles.Size())
+            {
+                Handle<ShaderBundle> targetBundle = MakeHandle<ShaderBundle>(GetShaderBundleAssetName(name, target));
+                targetBundle->staticProperties = legacyBundle->staticProperties;
+
+                targetBundles.PushBack({ target, std::move(targetBundle) });
+            }
+
+            targetBundles[targetIndex].second->compiledShaders.PushBack(shader);
+        }
+    }
+
+    for (Pair<ShaderCompileTarget, Handle<ShaderBundle>>& pair : targetBundles)
+    {
+        Handle<ShaderBundle> existingBundle;
+
+        // a bundle already compiled for this target is newer than the legacy one
+        if (LoadBundleFromAssetPath(AssetPath(AssetRegistryId::Engine, AssetBuckets::ShaderBundles, pair.second->GetName()), existingBundle))
+        {
+            continue;
+        }
+
+        registry->PutAssetsDeep(MakeStrongRef(pair.second));
+        pair.second->MarkDirty();
+    }
+
+    registry->SaveDirtyAssets();
+
+    const FilePath legacyManifestPath = registry->FindManifestPath(legacyAssetPath);
+
+    registry->RemoveAsset(AssetBuckets::ShaderBundles, name);
+
+    if (legacyManifestPath.Exists() && !legacyManifestPath.Remove())
+    {
+        HYP_LOG(ShaderCompiler, Warning, "Could not remove split shader bundle manifest {}", legacyManifestPath);
+    }
+}
+
+Array<ShaderCompileTarget> ShaderCompiler::GetPrecompileTargets() const
+{
+    Array<ShaderCompileTarget> targets;
+
+    for (const ShaderCompileTarget& target : ValidShaderCompileTargets)
+    {
+        if (m_compileParams.HasPlatform(target.platform) && m_compileParams.HasBackend(target.backend))
+        {
+            targets.PushBack(target);
+        }
+    }
+
+    return targets;
 }
 
 bool ShaderCompiler::Initialize(bool precompileShaders, const ShaderCompileParams& params)
@@ -3097,6 +3267,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
 
 bool ShaderCompiler::CompileBundle(
     const ShaderBundleDecl& decl,
+    const ShaderCompileTarget& target,
     Optional<ShaderRequest> shaderRequest,
     Handle<ShaderBundle>& outBundle)
 {
@@ -3109,7 +3280,7 @@ bool ShaderCompiler::CompileBundle(
 
     if (!outBundle.IsValid())
     {
-        outBundle = MakeHandle<ShaderBundle>(decl.name);
+        outBundle = MakeHandle<ShaderBundle>(GetShaderBundleAssetName(decl.name, target));
     }
 
     const uint64 sourcesTimestamp = uint64(GetTransitiveSourcesLastModifiedTimestamp(decl));
@@ -3355,7 +3526,7 @@ bool ShaderCompiler::CompileBundle(
     // grab each defined property, and iterate over each combination
     ShaderVariantPerms declaredPerms;
 
-    if (m_variantTargetPlatform.IsValid())
+    if (m_variantTarget.platform != ShaderCompileTargetPlatform::None)
     {
         ShaderPropertySet sharedGlobalProperties;
         MergeGlobalShaderProperties(/* isPrecompilingShaders */ true, sharedGlobalProperties);
@@ -3377,107 +3548,9 @@ bool ShaderCompiler::CompileBundle(
 
     ShaderVariantPerms permsToCompile = declaredPerms;
 
-    // For precompiling shaders, we allow targeting multiple platforms, not just the current (host) platform.
-    // We explicitly list valid (platform, backend) pairs instead of using value groups so that
-    // invalid combinations (e.g. DX12 on Android) are never generated.
-    struct PlatformBackendPair
+    if (!m_isPrecompilingShaders)
     {
-        Name platform;
-        Name backend;
-    };
-    Array<PlatformBackendPair> targetPairs;
-
-    if (m_isPrecompilingShaders)
-    {
-        const bool shouldCompileVulkan = m_compileParams.targetBackends[ShaderCompileTargetBackend::Vulkan];
-        const bool shouldCompileDX12 = m_compileParams.targetBackends[ShaderCompileTargetBackend::DX12];
-        const bool shouldCompileWebGPU = m_compileParams.targetBackends[ShaderCompileTargetBackend::WebGPU];
-
-        auto addForPlatform = [&](Name platformName)
-        {
-            if (shouldCompileVulkan)
-            {
-                targetPairs.PushBack({ platformName, NAME("VULKAN") });
-            }
-        };
-
-        if (m_compileParams.targetPlatforms[ShaderCompileTargetPlatform::Windows])
-        {
-            addForPlatform(NAME("WINDOWS"));
-            if (shouldCompileDX12)
-            {
-                targetPairs.PushBack({ NAME("WINDOWS"), NAME("DX12") });
-            }
-        }
-
-        if (m_compileParams.targetPlatforms[ShaderCompileTargetPlatform::Web] && shouldCompileWebGPU)
-        {
-            targetPairs.PushBack({ NAME("WEB"), NAME("WEBGPU") });
-        }
-
-        if (m_compileParams.targetPlatforms[ShaderCompileTargetPlatform::Mac])
-        {
-            addForPlatform(NAME("MAC"));
-        }
-
-        if (m_compileParams.targetPlatforms[ShaderCompileTargetPlatform::Linux])
-        {
-            addForPlatform(NAME("LINUX"));
-        }
-
-        if (m_compileParams.targetPlatforms[ShaderCompileTargetPlatform::Android])
-        {
-            addForPlatform(NAME("ANDROID"));
-        }
-
-        if (m_compileParams.targetPlatforms[ShaderCompileTargetPlatform::IOS])
-        {
-            addForPlatform(NAME("IOS"));
-        }
-    }
-    else
-    {
-        // Only compile for the active platform/backend when not precompiling.
-
-        Name activePlatform;
-#if HYP_WEB || HYP_WEBGPU
-        activePlatform = NAME("WEB");
-#elif HYP_WINDOWS
-        activePlatform = NAME("WINDOWS");
-#elif HYP_MACOS
-        activePlatform = NAME("MAC");
-#elif HYP_LINUX
-        activePlatform = NAME("LINUX");
-#elif HYP_ANDROID
-        activePlatform = NAME("ANDROID");
-#elif HYP_IOS
-        activePlatform = NAME("IOS");
-#endif
-
-        Name graphicsApi;
-#if HYP_WEBGPU
-        graphicsApi = NAME("WEBGPU");
-#elif HYP_VULKAN
-        graphicsApi = NAME("VULKAN");
-#elif HYP_DX12
-        graphicsApi = NAME("DX12");
-#endif
-
-        if (m_variantTargetPlatform.IsValid())
-        {
-            activePlatform = m_variantTargetPlatform;
-            graphicsApi = m_variantTargetBackend;
-        }
-
-        if (activePlatform.IsValid())
-        {
-            declaredPerms.Set(ShaderProperty(NAME("TARGET"), activePlatform));
-        }
-
-        if (graphicsApi.IsValid())
-        {
-            declaredPerms.Set(ShaderProperty(NAME("BACKEND"), graphicsApi));
-        }
+        SetShaderCompileTargetPerms(target, declaredPerms);
     }
 
     outBundle->staticProperties.Clear();
@@ -3644,7 +3717,7 @@ bool ShaderCompiler::CompileBundle(
         {
             const Name backendName = backendIt->currentValue.Get<Name>();
 
-            return GetShaderBackendForName(backendName);
+            return FindShaderTargetForValue(g_targetBackendProperties, StringHash(backendName));
         }
 
         return {};
@@ -3659,7 +3732,7 @@ bool ShaderCompiler::CompileBundle(
         {
             const Name platformName = platformIt->currentValue.Get<Name>();
 
-            const ShaderCompileTargetPlatform platform = GetShaderPlatformForName(platformName);
+            const ShaderCompileTargetPlatform platform = FindShaderTargetForValue(g_targetPlatformProperties, StringHash(platformName));
 
             if (platform != ShaderCompileTargetPlatform::None)
             {
@@ -3706,6 +3779,13 @@ bool ShaderCompiler::CompileBundle(
         if (isDX12 && targetPlatform.Get() != ShaderCompileTargetPlatform::Windows)
         {
             HYP_LOG(ShaderCompiler, Verbose, "Skipping DX12 shader variant for non-Windows platform: {}", perm.ToString());
+            return;
+        }
+
+        // a cook request can merge the host's TARGET/BACKEND in beside its own; the bundle only holds its target's variants
+        if ((ShaderCompileTarget { targetPlatform.Get(), targetBackend.Get() }) != target)
+        {
+            HYP_LOG(ShaderCompiler, Verbose, "Skipping shader variant for another target than bundle {}: {}", outBundle->GetName(), perm.ToString());
             return;
         }
 
@@ -3988,15 +4068,11 @@ bool ShaderCompiler::CompileBundle(
     };
 
     // compile shader with each permutation of properties
-    if (m_isPrecompilingShaders && targetPairs.Any())
+    if (m_isPrecompilingShaders)
     {
-        for (const PlatformBackendPair& pair : targetPairs)
-        {
-            ShaderVariantPerms perm = permsToCompile;
-            perm.Set(ShaderProperty(NAME("TARGET"), pair.platform));
-            perm.Set(ShaderProperty(NAME("BACKEND"), pair.backend));
-            ForEachPermutation(perm, compilePermFunctor, true);
-        }
+        ShaderVariantPerms perm = permsToCompile;
+        SetShaderCompileTargetPerms(target, perm);
+        ForEachPermutation(perm, compilePermFunctor, true);
     }
     else
     {
@@ -4242,30 +4318,23 @@ bool ShaderCompiler::CompileVariantForTarget(
     Name name,
     const ShaderPropertySet& properties,
     const VertexInputLayoutDesc& inputLayout,
-    ShaderCompileTargetPlatform platform,
-    ShaderCompileTargetBackend backend)
+    const ShaderCompileTarget& target)
 {
-    const Name platformValue = GetTargetPlatformPropertyValue(platform);
-    const Name backendValue = GetTargetBackendPropertyValue(backend);
-
-    if (!platformValue.IsValid() || !backendValue.IsValid())
+    if (!GetTargetPlatformPropertyValue(target.platform).IsValid() || !GetTargetBackendPropertyValue(target.backend).IsValid())
     {
         return false;
     }
 
     ShaderPropertySet targetProperties = properties;
-    targetProperties.Add(s_propNumGBufferTextures);
-    targetProperties.Add(InternShaderProperty(ShaderProperty(NAME("TARGET"), platformValue)));
-    targetProperties.Add(InternShaderProperty(ShaderProperty(NAME("BACKEND"), backendValue)));
+    targetProperties.Add(g_propNumGBufferTextures);
+    AddShaderCompileTargetProperties(target, targetProperties);
 
     Mutex::Guard guard(m_variantTargetMutex);
 
-    m_variantTargetPlatform = platformValue;
-    m_variantTargetBackend = backendValue;
+    m_variantTarget = target;
 
     HYP_DEFER({
-        m_variantTargetPlatform = Name::Invalid();
-        m_variantTargetBackend = Name::Invalid();
+        m_variantTarget = ShaderCompileTarget();
     });
 
     // a cook may not run the task system's own worker threads, so the permutations get a pool like precompiling does
@@ -4332,14 +4401,20 @@ bool ShaderCompiler::IsShaderBundleOutdated(Name name) const
         return false;
     }
 
-    const AssetPath bundleAssetPath = AssetPath(AssetRegistryId::Engine, AssetBuckets::ShaderBundles, name);
-    const FilePath bundleManifestFilePath = GetEngineAssetRegistry()->FindManifestPath(bundleAssetPath);
-
-    const Time bundleManifestModifiedTimestamp = bundleManifestFilePath.LastModifiedTimestamp();
-
     const Time sourceFileModifiedTimestamp = GetTransitiveSourcesLastModifiedTimestamp(*foundDecl);
 
-    return sourceFileModifiedTimestamp > bundleManifestModifiedTimestamp;
+    for (const ShaderCompileTarget& target : GetPrecompileTargets())
+    {
+        const AssetPath bundleAssetPath = AssetPath(AssetRegistryId::Engine, AssetBuckets::ShaderBundles, GetShaderBundleAssetName(name, target));
+        const FilePath bundleManifestFilePath = GetEngineAssetRegistry()->FindManifestPath(bundleAssetPath);
+
+        if (sourceFileModifiedTimestamp > bundleManifestFilePath.LastModifiedTimestamp())
+        {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 bool ShaderCompiler::IsShaderOutdated(const Shader& shader) const

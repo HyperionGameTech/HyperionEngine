@@ -111,23 +111,23 @@ struct BuildFrame
 
 struct BodyShape
 {
-    JPH::RefConst<JPH::Shape> shape;
     JPH::Vec3 centerLocal = JPH::Vec3::sZero();
-    bool isBox = false;
     JPH::Vec3 boxHalfExtent = JPH::Vec3::sZero();
     JPH::Quat boxRotation = JPH::Quat::sIdentity();
+    JPH::RefConst<JPH::Shape> shape;
+    bool isBox = false;
 };
 
 struct BuiltBody
 {
+    BodyShape shape;
     JPH::Vec3 position = JPH::Vec3::sZero();
-    JPH::Quat orientation = JPH::Quat::sIdentity();
     JPH::Vec3 axisLocal = JPH::Vec3::sAxisY();
+    JPH::Vec3 hinge = JPH::Vec3::sZero();
+    JPH::Quat orientation = JPH::Quat::sIdentity();
     float length = 0.0f;
     float radius = 0.0f;
-    BodyShape shape;
     bool isHinge = false;
-    JPH::Vec3 hinge = JPH::Vec3::sZero();
 };
 
 int32 FindParentBody(const SkeletonBindData& bindData, Span<const int32> bodyOfSlot, uint32 slot)
@@ -160,7 +160,11 @@ JPH::Vec3 GetRestForward(const BuildFrame& frame)
     return (forward - bodyUp * forward.Dot(bodyUp)).NormalizedOr(JPH::Vec3::sZero());
 }
 
-BodyShape BuildCapsule(JPH::Vec3Arg axisLocal, float length, float radius, float scale)
+BodyShape BuildCapsule(
+    JPH::Vec3Arg axisLocal,
+    float length,
+    float radius,
+    float scale)
 {
     const float halfHeight = MathUtil::Max(length * 0.5f - radius, 0.01f * scale);
 
@@ -173,7 +177,14 @@ BodyShape BuildCapsule(JPH::Vec3Arg axisLocal, float length, float radius, float
     return shape;
 }
 
-BodyShape BuildFootBox(const BuildFrame& frame, const RagdollBodyDefinition& definition, const JPH::Mat44& rotation, JPH::Vec3Arg position, JPH::Vec3Arg endPosition, JPH::Vec3Arg axisWorld, float radius)
+BodyShape BuildFootBox(
+    const BuildFrame& frame,
+    const RagdollBodyDefinition& definition,
+    const JPH::Mat44& rotation,
+    JPH::Vec3Arg position,
+    JPH::Vec3Arg endPosition,
+    JPH::Vec3Arg axisWorld,
+    float radius)
 {
     const JPH::Vec3 footForward = (axisWorld - frame.up * axisWorld.Dot(frame.up)).NormalizedOr(frame.forward);
     const JPH::Vec3 footSide = frame.up.Cross(footForward);
@@ -204,7 +215,13 @@ BodyShape BuildFootBox(const BuildFrame& frame, const RagdollBodyDefinition& def
     return shape;
 }
 
-bool ApplyHingeLimits(JPH::SwingTwistConstraintSettings& joint, const BuildFrame& frame, const RagdollBodyDefinition& definition, const RagdollResolvedBody& parentBody, JPH::Vec3Arg axisWorld, JPH::Vec3& outHinge)
+bool ApplyHingeLimits(
+    JPH::SwingTwistConstraintSettings& joint,
+    const BuildFrame& frame,
+    const RagdollBodyDefinition& definition,
+    const RagdollResolvedBody& parentBody,
+    JPH::Vec3Arg axisWorld,
+    JPH::Vec3& outHinge)
 {
     const float flex = MathUtil::DegToRad(definition.flex);
     const float slack = MathUtil::DegToRad(HingeSlackDegrees);
@@ -251,7 +268,12 @@ bool ApplyHingeLimits(JPH::SwingTwistConstraintSettings& joint, const BuildFrame
 // an elliptical cone whose centre is turned towards the larger side of each range, so e.g. a hip flexes far forward but
 // barely extends back. Ranges are measured from the anatomical neutral, with upper arms and thighs hanging straight down,
 // so they don't depend on the pose the ragdoll happened to be built in
-bool ApplyAnatomicalLimits(JPH::SwingTwistConstraintSettings& joint, const BuildFrame& frame, const RagdollBodyDefinition& definition, JPH::Vec3Arg position, JPH::Vec3Arg axisWorld)
+bool ApplyAnatomicalLimits(
+    JPH::SwingTwistConstraintSettings& joint,
+    const BuildFrame& frame,
+    const RagdollBodyDefinition& definition,
+    JPH::Vec3Arg position,
+    JPH::Vec3Arg axisWorld)
 {
     if (definition.swingForward + definition.swingBack + definition.swingOut + definition.swingIn <= 0.0f)
     {
@@ -316,7 +338,13 @@ bool ApplyAnatomicalLimits(JPH::SwingTwistConstraintSettings& joint, const Build
     return true;
 }
 
-JPH::SwingTwistConstraintSettings* BuildJoint(const BuildFrame& frame, const RagdollBodyDefinition& definition, const RagdollResolvedBody& parentBody, JPH::Vec3Arg position, JPH::Vec3Arg axisWorld, BuiltBody& outBody)
+JPH::SwingTwistConstraintSettings* BuildJoint(
+    const BuildFrame& frame,
+    const RagdollBodyDefinition& definition,
+    const RagdollResolvedBody& parentBody,
+    JPH::Vec3Arg position,
+    JPH::Vec3Arg axisWorld,
+    BuiltBody& outBody)
 {
     JPH::SwingTwistConstraintSettings* joint = new JPH::SwingTwistConstraintSettings;
 
@@ -344,7 +372,11 @@ JPH::SwingTwistConstraintSettings* BuildJoint(const BuildFrame& frame, const Rag
     return joint;
 }
 
-void ConfigurePart(JPH::RagdollSettings::Part& part, const BuiltBody& body, const RagdollBodyDefinition& definition, float mass)
+void ConfigurePart(
+    JPH::RagdollSettings::Part& part,
+    const BuiltBody& body,
+    const RagdollBodyDefinition& definition,
+    float mass)
 {
     part.SetShape(body.shape.shape);
     part.mPosition = JPH::RVec3(body.position);
@@ -360,7 +392,12 @@ void ConfigurePart(JPH::RagdollSettings::Part& part, const BuiltBody& body, cons
     part.mMassPropertiesOverride.mMass = mass;
 }
 
-bool BuildBody(const BuildFrame& frame, uint32 bodyIndex, int32 parentBody, JPH::RagdollSettings& settings, BuiltBody& outBody)
+bool BuildBody(
+    const BuildFrame& frame,
+    uint32 bodyIndex,
+    int32 parentBody,
+    JPH::RagdollSettings& settings,
+    BuiltBody& outBody)
 {
     const RagdollResolvedBody& resolved = frame.bodies[bodyIndex];
     const RagdollBodyDefinition& definition = *resolved.definition;
