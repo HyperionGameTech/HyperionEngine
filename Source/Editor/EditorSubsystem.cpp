@@ -4132,7 +4132,7 @@ void EditorSubsystem::Update(float delta)
     RenderProxyList& pickRpl = g_editorState->GetPickCache().GetRenderProxyList();
     pickRpl.GetMeshes().Advance();
 
-    if (m_currentProject.IsValid())
+    if (m_currentProject.IsValid() && g_editorState->GetPickCache().IsEnabled())
     {
         for (const Handle<EditorViewport>& vp : m_editorViewports)
         {
