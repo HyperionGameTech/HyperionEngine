@@ -135,6 +135,7 @@ float3 GlimmerSphericalFibonacci(uint index, uint count)
 #define GLIMMER_INSTANCE_FLAG_MIRRORED 0x2u
 #define GLIMMER_INSTANCE_FLAG_ALPHA_TESTED 0x4u
 #define GLIMMER_INSTANCE_FLAG_FOLIAGE 0x8u
+#define GLIMMER_INSTANCE_FLAG_EMITTER 0x10u
 // }
 
 //////////SPAN////////////

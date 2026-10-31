@@ -11,6 +11,7 @@
 #include <Rendering/Glimmer/GlimmerSpanCache.hpp>
 #include <Rendering/Glimmer/GlimmerHelpers.hpp>
 #include <Rendering/Glimmer/GlimmerCVars.hpp>
+#include <Rendering/Glimmer/Probes/GlimmerProbeCVars.hpp>
 
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/RenderProxy.hpp>
@@ -285,6 +286,26 @@ void GlimmerSceneInstances::Gather(RenderProxyList& rpl, const BoundingBox& regi
 
     uint64 materialHash = 0;
 
+    struct EmitterCandidate
+    {
+        Float16 distance;
+        // @TODO Replace with Vec4h when we have one
+        Float16 sphere[4];
+        Float16 radiance[4];
+    };
+
+    FatArray<EmitterCandidate, InlineAllocator<8, GlimmerTempAllocator>> emitterCandidates;
+    emitterCandidates.Reserve(8);
+
+    m_emitterRadiusAtGather = g_cvGlimmerProbesEmitterRadius.Get();
+
+    const Vec3f emitterOrigin = Vec3f(
+        tracedCenter.x,
+        float(MathUtil::Floor(viewerPosition.y / tracedCellSize + 0.5f)) * tracedCellSize,
+        tracedCenter.y);
+
+    const float emitterSphereRadius = MathUtil::Max(m_emitterRadiusAtGather, 0.0f);
+
     // the rect offset is 0 for a mesh that isn't lit by a lightmap
     const auto addInstance = [&](
             const RenderProxyMesh& proxy,
@@ -390,7 +411,17 @@ void GlimmerSceneInstances::Gather(RenderProxyList& rpl, const BoundingBox& regi
             return;
         }
 
-        const uint32 instanceFlags = flags | (objectToWorld.Determinant() < 0.0f ? GIF_MIRRORED : GIF_NONE);
+        const Vec3f emitterExtent = worldBounds.GetExtent() * 0.5f;
+        const float emitterRadius = (emitterExtent.x + emitterExtent.y + emitterExtent.z) / 3.0f;
+
+        const bool isEmitter = !isFoliage
+            && emitterSphereRadius > 0.0f
+            && MathUtil::Max(emitterExtent.x, MathUtil::Max(emitterExtent.y, emitterExtent.z)) < emitterSphereRadius
+            && RenderHelpers::IsEmissive(proxy.material->GetParameters());
+
+        const uint32 instanceFlags = flags
+            | (objectToWorld.Determinant() < 0.0f ? GIF_MIRRORED : GIF_NONE)
+            | (isEmitter ? GIF_EMITTER : GIF_NONE);
 
         const Mat4f gridToWorld = objectToWorld * Mat4f::Translation(triangleRef.gridOrigin) * Mat4f::Scaling(triangleRef.gridScale);
 
@@ -455,6 +486,31 @@ void GlimmerSceneInstances::Gather(RenderProxyList& rpl, const BoundingBox& regi
                 traced.flags = instanceFlags;
 
                 outInput.tracedBounds.PushBack(objectToWorld * tracedRef.localBounds);
+
+                if (isEmitter)
+                {
+                    const MaterialParameters& materialParameters = proxy.material->GetParameters();
+                    const Vec3f emissive = Vec3f(
+                        materialParameters.emissiveColor.GetRed(),
+                        materialParameters.emissiveColor.GetGreen(),
+                        materialParameters.emissiveColor.GetBlue()) * MathUtil::Max(materialParameters.emissiveIntensity, 0.0f);
+
+                    const float areaRatio = (emitterRadius * emitterRadius) / (emitterSphereRadius * emitterSphereRadius);
+                    const Vec3f center = worldBounds.GetCenter();
+
+                    EmitterCandidate& candidate = emitterCandidates.EmplaceBack();
+                    candidate.distance = viewerPosition.Distance(center);
+
+                    candidate.sphere[0] = center.x - emitterOrigin.x;
+                    candidate.sphere[1] = center.y - emitterOrigin.y;
+                    candidate.sphere[2] = center.z - emitterOrigin.z;
+                    candidate.sphere[3] = emitterSphereRadius;
+
+                    candidate.radiance[0] = emissive.x * areaRatio;
+                    candidate.radiance[1] = emissive.y * areaRatio;
+                    candidate.radiance[2] = emissive.z * areaRatio;
+                    candidate.radiance[3] = emitterRadius;
+                }
 
                 if (tracedRef.key != triangleRef.key && meshKeysSeen.Insert(tracedRef.key).second)
                 {
@@ -594,6 +650,36 @@ void GlimmerSceneInstances::Gather(RenderProxyList& rpl, const BoundingBox& regi
         }
     }
 
+    std::sort(emitterCandidates.Begin(), emitterCandidates.End(), [](const EmitterCandidate& lhs, const EmitterCandidate& rhs)
+        {
+            return lhs.distance < rhs.distance;
+        });
+
+    const uint32 numEmitters = MathUtil::Min(uint32(emitterCandidates.Size()), GlimmerMaxEmitters);
+
+    std::sort(emitterCandidates.Begin(), emitterCandidates.Begin() + numEmitters, [](const EmitterCandidate& lhs, const EmitterCandidate& rhs)
+        {
+            if (lhs.sphere[0] != rhs.sphere[0]) return lhs.sphere[0] < rhs.sphere[0];
+            if (lhs.sphere[1] != rhs.sphere[1]) return lhs.sphere[1] < rhs.sphere[1];
+            return lhs.sphere[2] < rhs.sphere[2];
+        });
+
+    outInput.emitters.info = Vec4u(numEmitters, 0, 0, 0);
+    outInput.emitters.origin = Vec4f(emitterOrigin.x, emitterOrigin.y, emitterOrigin.z, 0.0f);
+
+    for (uint32 emitterIndex = 0; emitterIndex < numEmitters; emitterIndex++)
+    {
+        Memory::Copy(
+            &outInput.emitters.spheres[emitterIndex * 4],
+            emitterCandidates[emitterIndex].sphere,
+            sizeof(EmitterCandidate::sphere));
+
+        Memory::Copy(
+            &outInput.emitters.radiance[emitterIndex * 4],
+            emitterCandidates[emitterIndex].radiance,
+            sizeof(EmitterCandidate::radiance));
+    }
+
     m_instanceLods = std::move(instanceLods);
 }
 
@@ -610,6 +696,9 @@ GlimmerSceneInstances::BuildResult GlimmerSceneInstances::Build(BuildInput&& inp
     result.inputHash = FNV1::DoHashWords(input.spanInstances.Data(), input.spanInstances.ByteSize(), 0);
     result.inputHash = FNV1::DoHashWords(input.tracedInstances.Data(), input.tracedInstances.ByteSize(), result.inputHash);
     result.inputHash = FNV1::DoHashWords(input.spanMaterialHashes.Data(), input.spanMaterialHashes.ByteSize(), result.inputHash);
+    result.inputHash = FNV1::DoHashWords(&input.emitters, sizeof(input.emitters), result.inputHash);
+
+    result.emitters = input.emitters;
 
     result.meshKeys = std::move(input.meshKeys);
 
@@ -920,6 +1009,11 @@ void GlimmerSceneInstances::Update(
         m_dirty = true;
     }
 
+    if (g_cvGlimmerProbesEmitterRadius.Get() != m_emitterRadiusAtGather)
+    {
+        m_dirty = true;
+    }
+
     if (m_waitingForTriangles && triangleCache.GetResidentGeneration() != m_triangleGenerationAtGather)
     {
         m_dirty = true;
@@ -959,6 +1053,7 @@ void GlimmerSceneInstances::Update(
             m_spanKeys = std::move(result.spanKeys);
             m_spanDirtyBounds = std::move(result.spanDirtyBounds);
             m_spanFullyDirty = result.spanFullyDirty;
+            m_emitters = result.emitters;
 
             Upload(frame, result);
 

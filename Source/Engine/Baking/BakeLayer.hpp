@@ -29,6 +29,7 @@ struct BakeLayerHashes
     {
         StaticMeshEntities,
         StaticLights,
+        StaticLocalLights,
 
         Max
     };

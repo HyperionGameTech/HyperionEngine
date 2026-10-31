@@ -49,7 +49,7 @@ float4 EvaluateGlimmer(GlimmerApply glimmer, float3 P, float3 N)
     return irradiance;
 }
 
-float4 EvaluateGlimmer(GlimmerApply glimmer, float3 P, float3 N, float3 R, out float2 outSpecular, out float3 outReflection)
+float4 EvaluateGlimmer(GlimmerApply glimmer, float3 P, float3 Ng, float3 N, float3 R, out float2 outSpecular, out float3 outReflection)
 {
     outSpecular = (float2)0.0;
     outReflection = (float3)0.0;
@@ -60,11 +60,11 @@ float4 EvaluateGlimmer(GlimmerApply glimmer, float3 P, float3 N, float3 R, out f
     }
 
     float3 nearFieldR;
-    const float4 nearField = EvaluateGlimmerProbes(glimmer.probes, P, N, R, nearFieldR);
+    const float4 nearField = EvaluateGlimmerProbes(glimmer.probes, P, Ng, N, R, nearFieldR);
 
     float4 visibility;
     GlimmerSHRadiance radiance;
-    const float shCoverage = GlimmerSHSampleVolume(glimmer.sh, P, N, visibility, radiance);
+    const float shCoverage = GlimmerSHSampleVolume(glimmer.sh, P, Ng, visibility, radiance);
 
     float4 farField = (float4)0.0;
     float3 farFieldR = (float3)0.0;

@@ -41,6 +41,29 @@ DECLARE_SRV(GlimmerProbeTrace, GlimmerBrickMaterialBuffer) StructuredBuffer<uint
 #include "../Bricks/GlimmerBricks.hlsli"
 #endif
 
+#define GLIMMER_MAX_EMITTERS 64
+
+/// halves, two emitters to an element (xy, then zw)
+struct GlimmerEmitters
+{
+    uint4 info;                                 // x = number of emitters
+    float4 origin;                              // xyz = what the centers are relative to
+    uint4 spheres[GLIMMER_MAX_EMITTERS / 2];    // xyz = center, w = radius of the sphere rays hit
+    uint4 radiance[GLIMMER_MAX_EMITTERS / 2];   // rgb = radiance over that sphere, w = radius of the emitter itself
+};
+
+float4 GlimmerUnpackEmitterHalves(uint4 pair, uint emitterIndex)
+{
+    uint2 packed = pair.xy;
+
+    if ((emitterIndex & 1u) != 0u)
+    {
+        packed = pair.zw;
+    }
+
+    return float4(GlimmerUnpackHalf2(packed.x), GlimmerUnpackHalf2(packed.y));
+}
+
 struct GlimmerProbeTraceConstants
 {
     GlimmerProbeVolume volume;
@@ -75,6 +98,7 @@ struct GlimmerProbeTraceConstants
     uint4 bvh;
     
     GlimmerLocalLights localLights;
+    GlimmerEmitters emitters;
 };
 
 #include "../../Include/Clouds.hlsli"
@@ -202,6 +226,43 @@ bool GlimmerProbeLocalLightVisible(float3 origin, float3 direction, float tMax)
 #define GLIMMER_LOCAL_LIGHT_VISIBLE GlimmerProbeLocalLightVisible
 #include "../GlimmerLocalLights.hlsli"
 #undef GLIMMER_LOCAL_LIGHT_VISIBLE
+
+void GlimmerAddEmitters(float3 origin, float3 direction, float hitT, float tMax, inout GlimmerLight ioInscatter)
+{
+    for (uint emitterIndex = 0; emitterIndex < constants.emitters.info.x; emitterIndex++)
+    {
+        const float4 sphere = GlimmerUnpackEmitterHalves(constants.emitters.spheres[emitterIndex >> 1u], emitterIndex);
+        const float4 radiance = GlimmerUnpackEmitterHalves(constants.emitters.radiance[emitterIndex >> 1u], emitterIndex);
+
+        const float centerError = max(abs(sphere.x), max(abs(sphere.y), abs(sphere.z))) * (1.0 / 1024.0);
+
+        const float3 toCenter = constants.emitters.origin.xyz + sphere.xyz - origin;
+        const float tCenter = dot(toCenter, direction);
+
+        if (tCenter <= 0.0 || tCenter > tMax || dot(toCenter, toCenter) <= sphere.w * sphere.w)
+        {
+            continue;
+        }
+
+        const float3 offCenter = toCenter - direction * tCenter;
+
+        if (dot(offCenter, offCenter) > sphere.w * sphere.w || hitT < tCenter - radiance.w * 1.1 - centerError)
+        {
+            continue;
+        }
+
+        float3 emitted = radiance.rgb;
+
+        const float emittedLuminance = GlimmerLuminance(emitted);
+
+        if (emittedLuminance > constants.volume.params.z)
+        {
+            emitted *= constants.volume.params.z / emittedLuminance;
+        }
+
+        GlimmerAddLight(ioInscatter, GlimmerRestLight(emitted), (float3)1.0);
+    }
+}
 
 GlimmerLight GlimmerReceivedAt(float3 P, float3 N)
 {
@@ -471,6 +532,13 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
             true,
             heightfieldHit);
 
+#if defined(TRACER_BVH)
+        if (solidsFromT > 0.0)
+        {
+            GlimmerAddEmitters(origin, direction, hitHeightfield ? heightfieldHit.t : hitT, solidsFromT, heightfieldHit.inscatter);
+        }
+#endif
+
         if (hitHeightfield)
         {
             hitT = heightfieldHit.t;
@@ -509,7 +577,12 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
                 const float3 P = origin + direction * hitT;
                 const float3 N = GlimmerGetHitNormal(bvhHit, direction);
 
-                float3 emissive = GlimmerGetMaterialEmissive(instance.data.z);
+                float3 emissive = (float3)0.0;
+
+                if ((instance.data.w & GLIMMER_INSTANCE_FLAG_EMITTER) == 0u)
+                {
+                    emissive = GlimmerGetMaterialEmissive(instance.data.z);
+                }
 
                 const float emissiveLuminance = GlimmerLuminance(emissive);
 

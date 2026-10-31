@@ -18,6 +18,7 @@ CVar<int> g_cvGlimmerProbesRaysPerFrame("Rendering.Glimmer.Probes.RaysPerFrame",
 CVar<int> g_cvGlimmerProbesPoolBlocks("Rendering.Glimmer.Probes.PoolBlocks", 512);
 CVar<bool> g_cvGlimmerProbesLogStats("Rendering.Glimmer.Probes.LogStats", false);
 CVar<bool> g_cvGlimmerProbesSleep("Rendering.Glimmer.Probes.Sleep", true);
+CVar<float> g_cvGlimmerProbesEmitterRadius("Rendering.Glimmer.Probes.EmitterRadius", 0.5f);
 
 CVar<int> g_cvGlimmerProbesDebug("Rendering.Glimmer.Probes.Debug", 0);
 CVar<int> g_cvGlimmerProbesDebugLevel("Rendering.Glimmer.Probes.Debug.Level", -1);
