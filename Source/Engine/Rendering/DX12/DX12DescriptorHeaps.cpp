@@ -347,6 +347,11 @@ void DX12DescriptorHeapManager::Initialize()
 
 void DX12DescriptorHeapManager::Shutdown()
 {
+    {
+        TUniqueLock guard(m_samplerTablesMutex);
+        m_samplerTables.Clear();
+    }
+
     for (uint8 heapIndex = 0; heapIndex < MaxDescriptorHeapType; heapIndex++)
     {
         delete m_descriptorAllocators[heapIndex];
@@ -379,6 +384,88 @@ bool DX12DescriptorHeapManager::CheckIsValidDescriptor(DX12DescriptorHeapType he
 ID3D12DescriptorHeap* DX12DescriptorHeapManager::GetDescriptorHeap(DX12DescriptorHeapType heapType) const
 {
     return m_descriptorAllocators[uint32(heapType)]->heap.Get();
+}
+
+DX12DescriptorHandle DX12DescriptorHeapManager::AcquireSamplerTable(Span<const D3D12_SAMPLER_DESC> descs)
+{
+    AssertDebug(descs.Size() != 0);
+
+    const size_t byteSize = descs.Size() * sizeof(D3D12_SAMPLER_DESC);
+    const ubyte* bytes = reinterpret_cast<const ubyte*>(descs.Data());
+    const uint64 hash = HashCode::GetHashCode(bytes, bytes + byteSize).Value();
+
+    TUniqueLock guard(m_samplerTablesMutex);
+
+    for (SamplerTable& table : m_samplerTables)
+    {
+        if (table.hash == hash
+            && table.descs.Size() == descs.Size()
+            && std::memcmp(table.descs.Data(), descs.Data(), byteSize) == 0)
+        {
+            table.refCount++;
+
+            return table.handle;
+        }
+    }
+
+    DX12DescriptorHandle handle = Allocate(DX12DescriptorHeapType::SAMPLER, uint32(descs.Size()));
+
+    if (!handle.IsValid())
+    {
+        return handle;
+    }
+
+    ID3D12Device* device = RI.GetDevice();
+
+    const uint32 incrementSize = m_descriptorAllocators[uint32(DX12DescriptorHeapType::SAMPLER)]->incrementSize;
+    const D3D12_SAMPLER_DESC unboundDesc {};
+
+    for (size_t i = 0; i < descs.Size(); i++)
+    {
+        if (std::memcmp(&descs[i], &unboundDesc, sizeof(D3D12_SAMPLER_DESC)) == 0)
+        {
+            continue;
+        }
+
+        device->CreateSampler(&descs[i], { handle.cpuHandle.ptr + incrementSize * i });
+    }
+
+    SamplerTable& table = m_samplerTables.EmplaceBack();
+    table.descs.Resize(descs.Size());
+    std::memcpy(table.descs.Data(), descs.Data(), byteSize);
+    table.handle = handle;
+    table.hash = hash;
+    table.refCount = 1;
+
+    return handle;
+}
+
+void DX12DescriptorHeapManager::ReleaseSamplerTable(const DX12DescriptorHandle& handle)
+{
+    if (!handle.IsValid())
+    {
+        return;
+    }
+
+    TUniqueLock guard(m_samplerTablesMutex);
+
+    for (auto it = m_samplerTables.Begin(); it != m_samplerTables.End(); ++it)
+    {
+        if (it->handle.cpuHandle.ptr != handle.cpuHandle.ptr)
+        {
+            continue;
+        }
+
+        AssertDebug(it->refCount != 0);
+
+        if (--it->refCount == 0)
+        {
+            Free(DX12DescriptorHeapType::SAMPLER, std::move(it->handle));
+            m_samplerTables.Erase(it);
+        }
+
+        return;
+    }
 }
 
 #pragma endregion DX12DescriptorHeapManager

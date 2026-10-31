@@ -202,11 +202,11 @@ bool CanSimulateEntityPhysics(const Entity& entity)
         && !entity.HasTag<EntityTag::Replicated>();
 }
 
-const CharacterControllerComponent* FindCharacterControllerComponent(Entity& entity)
+const CharacterControllerComponent* FindCharacterControllerComponent(const Entity& entity)
 {
-    for (Node* node = &entity; node != nullptr; node = node->GetParent())
+    for (const Node* node = &entity; node != nullptr; node = node->GetParent())
     {
-        if (Entity* nodeEntity = TryCast<Entity>(node))
+        if (const Entity* nodeEntity = TryCast<Entity>(node))
         {
             if (const CharacterControllerComponent* controller = nodeEntity->TryGetComponent<CharacterControllerComponent>())
             {
