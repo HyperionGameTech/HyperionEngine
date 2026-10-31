@@ -28,20 +28,6 @@ namespace rendering {
 
 namespace {
 
-/// Platform the test binary is running on, used as the TARGET for compiles
-ShaderCompileTargetPlatform GetHostPlatform()
-{
-#if HYP_WINDOWS
-    return ShaderCompileTargetPlatform::Windows;
-#elif HYP_MACOS
-    return ShaderCompileTargetPlatform::Mac;
-#elif HYP_LINUX
-    return ShaderCompileTargetPlatform::Linux;
-#else
-    return ShaderCompileTargetPlatform::None;
-#endif
-}
-
 /// Worker thread for the generic pool the tests start
 class ShaderCompilerTestThread final : public TaskThread
 {
@@ -96,46 +82,11 @@ ShaderCompiler& GetShaderCompiler()
     return s_compiler;
 }
 
-/// The TARGET property value the compiler matches permutations on
-Name GetPlatformPropertyValue(ShaderCompileTargetPlatform platform)
-{
-    switch (platform)
-    {
-    case ShaderCompileTargetPlatform::Windows:
-        return NAME("WINDOWS");
-    case ShaderCompileTargetPlatform::Mac:
-        return NAME("MAC");
-    case ShaderCompileTargetPlatform::Linux:
-        return NAME("LINUX");
-    case ShaderCompileTargetPlatform::Web:
-        return NAME("WEB");
-    default:
-        return Name::Invalid();
-    }
-}
-
-/// The BACKEND property value the compiler matches permutations on
-Name GetBackendPropertyValue(ShaderCompileTargetBackend backend)
-{
-    switch (backend)
-    {
-    case ShaderCompileTargetBackend::Vulkan:
-        return NAME("VULKAN");
-    case ShaderCompileTargetBackend::DX12:
-        return NAME("DX12");
-    case ShaderCompileTargetBackend::WebGPU:
-        return NAME("WEBGPU");
-    default:
-        return Name::Invalid();
-    }
-}
-
 /// Requests the compiled Fallback shader for one target, or nullptr if the compiler couldn't produce one
 Shader* RequestCompiledFallback(ShaderCompiler& compiler, ShaderCompileTargetPlatform platform, ShaderCompileTargetBackend backend)
 {
     ShaderPropertySet properties;
-    properties.Add(InternShaderProperty(ShaderProperty(NAME("TARGET"), GetPlatformPropertyValue(platform))));
-    properties.Add(InternShaderProperty(ShaderProperty(NAME("BACKEND"), GetBackendPropertyValue(backend))));
+    AddShaderCompileTargetProperties(ShaderCompileTarget { platform, backend }, properties);
 
     Shader* shader = nullptr;
 
@@ -223,8 +174,7 @@ HYP_ENGINE_TEST(ShaderCompiler, CompilesFallbackForHostVulkan)
         NAME("Fallback"),
         ShaderPropertySet(),
         VertexInputLayoutDesc(),
-        GetHostPlatform(),
-        ShaderCompileTargetBackend::Vulkan));
+        ShaderCompileTarget { HostShaderCompilePlatform, ShaderCompileTargetBackend::Vulkan }));
 }
 
 // Compiling the same permutation twice must succeed both times (the second call is served from the compile cache)
@@ -239,8 +189,7 @@ HYP_ENGINE_TEST(ShaderCompiler, RepeatedCompileOfSameVariantSucceeds)
             NAME("Fallback"),
             ShaderPropertySet(),
             VertexInputLayoutDesc(),
-            GetHostPlatform(),
-            ShaderCompileTargetBackend::Vulkan));
+            ShaderCompileTarget { HostShaderCompilePlatform, ShaderCompileTargetBackend::Vulkan }));
     }
 }
 
@@ -255,8 +204,7 @@ HYP_ENGINE_TEST(ShaderCompiler, CompilesFallbackForHostDX12)
         NAME("Fallback"),
         ShaderPropertySet(),
         VertexInputLayoutDesc(),
-        ShaderCompileTargetPlatform::Windows,
-        ShaderCompileTargetBackend::DX12));
+        ShaderCompileTarget { ShaderCompileTargetPlatform::Windows, ShaderCompileTargetBackend::DX12 }));
 #endif
 }
 
@@ -270,8 +218,7 @@ HYP_ENGINE_TEST(ShaderCompiler, CompilesDescriptorHeavyProductionShaders)
         NAME("Tonemap"),
         ShaderPropertySet(),
         VertexInputLayoutDesc { VT_Simple },
-        GetHostPlatform(),
-        ShaderCompileTargetBackend::Vulkan));
+        ShaderCompileTarget { HostShaderCompilePlatform, ShaderCompileTargetBackend::Vulkan }));
 
     // DeferredDirect is a set of light-type permutations, so one has to be requested explicitly
     ShaderPropertySet lightProperties;
@@ -281,8 +228,7 @@ HYP_ENGINE_TEST(ShaderCompiler, CompilesDescriptorHeavyProductionShaders)
         NAME("DeferredDirect"),
         lightProperties,
         VertexInputLayoutDesc { VT_Simple },
-        GetHostPlatform(),
-        ShaderCompileTargetBackend::Vulkan));
+        ShaderCompileTarget { HostShaderCompilePlatform, ShaderCompileTargetBackend::Vulkan }));
 }
 
 // The Vulkan output for the host must be SPIR-V in every module, with both a vertex and a pixel stage
@@ -291,7 +237,7 @@ HYP_ENGINE_TEST(ShaderCompiler, VulkanOutputIsSpirvForEveryStage)
     ShaderCompiler& compiler = GetShaderCompiler();
     HYP_TEST_REQUIRE(compiler.HasShaderBundle(NAME("Fallback")));
 
-    Shader* shader = RequestCompiledFallback(compiler, GetHostPlatform(), ShaderCompileTargetBackend::Vulkan);
+    Shader* shader = RequestCompiledFallback(compiler, HostShaderCompilePlatform, ShaderCompileTargetBackend::Vulkan);
     HYP_TEST_REQUIRE(shader != nullptr);
 
     HYP_TEST_CHECK(HasVertexAndPixelModules(*shader));
@@ -338,8 +284,7 @@ HYP_ENGINE_TEST(ShaderCompiler, CompilesFallbackForWebGPU)
         NAME("Fallback"),
         ShaderPropertySet(),
         VertexInputLayoutDesc(),
-        ShaderCompileTargetPlatform::Web,
-        ShaderCompileTargetBackend::WebGPU));
+        ShaderCompileTarget { ShaderCompileTargetPlatform::Web, ShaderCompileTargetBackend::WebGPU }));
 
     Shader* shader = RequestCompiledFallback(compiler, ShaderCompileTargetPlatform::Web, ShaderCompileTargetBackend::WebGPU);
     HYP_TEST_REQUIRE(shader != nullptr);
@@ -358,8 +303,7 @@ HYP_ENGINE_TEST(ShaderCompiler, RejectsNonePlatform)
         NAME("Fallback"),
         ShaderPropertySet(),
         VertexInputLayoutDesc(),
-        ShaderCompileTargetPlatform::None,
-        ShaderCompileTargetBackend::Vulkan));
+        ShaderCompileTarget { ShaderCompileTargetPlatform::None, ShaderCompileTargetBackend::Vulkan }));
 }
 
 // A BACKEND value that isn't a known backend must never produce a compile
@@ -372,8 +316,7 @@ HYP_ENGINE_TEST(ShaderCompiler, RejectsNoneBackend)
         NAME("Fallback"),
         ShaderPropertySet(),
         VertexInputLayoutDesc(),
-        GetHostPlatform(),
-        ShaderCompileTargetBackend::None));
+        ShaderCompileTarget { HostShaderCompilePlatform, ShaderCompileTargetBackend::None }));
 }
 
 // A bundle name missing from Config/Shaders.hmf must fail cleanly rather than crash
@@ -386,8 +329,7 @@ HYP_ENGINE_TEST(ShaderCompiler, RejectsUnknownBundle)
         NAME("NoSuchShaderBundle"),
         ShaderPropertySet(),
         VertexInputLayoutDesc(),
-        GetHostPlatform(),
-        ShaderCompileTargetBackend::Vulkan));
+        ShaderCompileTarget { HostShaderCompilePlatform, ShaderCompileTargetBackend::Vulkan }));
 }
 
 // The DECLARE_* markers in DescriptorSets.inl register into the static descriptor table at startup

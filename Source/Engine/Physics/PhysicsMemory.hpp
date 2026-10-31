@@ -12,8 +12,8 @@
 
 namespace Hyperion {
 
-extern Pool* g_physicsPool;
-extern Arena* g_physicsArena;
+ENGINE_API extern Pool* g_physicsPool;
+ENGINE_API extern Arena* g_physicsArena;
 
 using PhysicsAllocator = AllocatorInstance<Pool, &g_physicsPool>;
 using PhysicsTempAllocator = AllocatorInstance<Arena, &g_physicsArena>;

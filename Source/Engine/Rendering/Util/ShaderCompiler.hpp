@@ -113,6 +113,51 @@ enum class ShaderCompileTargetBackend : uint32
 
 HYP_MAKE_ENUM_FLAGS(ShaderCompileTargetBackend);
 
+// one (platform, backend) pair - the TARGET and BACKEND shader properties; each has its own shader bundle assets
+struct ShaderCompileTarget
+{
+    ShaderCompileTargetPlatform platform = ShaderCompileTargetPlatform::None;
+    ShaderCompileTargetBackend backend = ShaderCompileTargetBackend::None;
+
+    HYP_FORCE_INLINE constexpr bool operator==(const ShaderCompileTarget& other) const
+    {
+        return platform == other.platform && backend == other.backend;
+    }
+
+    HYP_FORCE_INLINE constexpr bool operator!=(const ShaderCompileTarget& other) const
+    {
+        return !(*this == other);
+    }
+};
+
+#if defined(HYP_WEB) || defined(HYP_WEBGPU)
+inline constexpr ShaderCompileTargetPlatform HostShaderCompilePlatform = ShaderCompileTargetPlatform::Web;
+#elif defined(HYP_WINDOWS)
+inline constexpr ShaderCompileTargetPlatform HostShaderCompilePlatform = ShaderCompileTargetPlatform::Windows;
+#elif defined(HYP_MACOS)
+inline constexpr ShaderCompileTargetPlatform HostShaderCompilePlatform = ShaderCompileTargetPlatform::Mac;
+#elif defined(HYP_LINUX)
+inline constexpr ShaderCompileTargetPlatform HostShaderCompilePlatform = ShaderCompileTargetPlatform::Linux;
+#elif defined(HYP_ANDROID)
+inline constexpr ShaderCompileTargetPlatform HostShaderCompilePlatform = ShaderCompileTargetPlatform::Android;
+#elif defined(HYP_IOS)
+inline constexpr ShaderCompileTargetPlatform HostShaderCompilePlatform = ShaderCompileTargetPlatform::IOS;
+#else
+inline constexpr ShaderCompileTargetPlatform HostShaderCompilePlatform = ShaderCompileTargetPlatform::None;
+#endif
+
+#if defined(HYP_WEBGPU)
+inline constexpr ShaderCompileTargetBackend HostShaderCompileBackend = ShaderCompileTargetBackend::WebGPU;
+#elif defined(HYP_DX12)
+inline constexpr ShaderCompileTargetBackend HostShaderCompileBackend = ShaderCompileTargetBackend::DX12;
+#elif defined(HYP_VULKAN)
+inline constexpr ShaderCompileTargetBackend HostShaderCompileBackend = ShaderCompileTargetBackend::Vulkan;
+#else
+inline constexpr ShaderCompileTargetBackend HostShaderCompileBackend = ShaderCompileTargetBackend::None;
+#endif
+
+inline constexpr ShaderCompileTarget HostShaderCompileTarget { HostShaderCompilePlatform, HostShaderCompileBackend };
+
 /*! \brief Combined bit mask type for shader compile targets (platforms + backends). */
 using ShaderCompileTargetMask = uint32;
 
@@ -681,6 +726,16 @@ public:
 
 void MergeGlobalShaderProperties(ShaderPropertySet& out);
 
+ENGINE_API Name GetTargetPlatformPropertyValue(ShaderCompileTargetPlatform platform);
+ENGINE_API Name GetTargetBackendPropertyValue(ShaderCompileTargetBackend backend);
+
+// a property set without TARGET or BACKEND gets that part from fallback
+ENGINE_API ShaderCompileTarget GetShaderCompileTargetForProperties(const ShaderPropertySet& properties, const ShaderCompileTarget& fallback = {});
+ENGINE_API void AddShaderCompileTargetProperties(const ShaderCompileTarget& target, ShaderPropertySet& inOutProperties);
+
+ENGINE_API Name GetShaderBundleAssetName(Name baseName, const ShaderCompileTarget& target);
+ENGINE_API bool IsShaderBundleForTarget(Name bundleAssetName, const ShaderCompileTarget& target);
+
 class ENGINE_API ShaderCompiler
 {
     struct ProcessError
@@ -738,8 +793,7 @@ public:
         Name name,
         const ShaderPropertySet& properties,
         const VertexInputLayoutDesc& inputLayout,
-        ShaderCompileTargetPlatform platform,
-        ShaderCompileTargetBackend backend);
+        const ShaderCompileTarget& target);
 
     bool HasShaderBundle(Name name) const;
     bool IsGraphicsShaderBundle(Name name) const;
@@ -785,12 +839,14 @@ private:
 
     bool HandleBundle(
         ShaderBundleDecl& decl,
+        const ShaderCompileTarget& target,
         Optional<ShaderRequest> shaderRequest,
         const Time& lastSavedTimestamp,
         Handle<ShaderBundle>& inOutBundle);
 
     bool CompileBundle(
         const ShaderBundleDecl& decl,
+        const ShaderCompileTarget& target,
         Optional<ShaderRequest> shaderRequest,
         Handle<ShaderBundle>& outBundle);
 
@@ -798,6 +854,16 @@ private:
         Name name,
         Optional<ShaderRequest> shaderRequest,
         Handle<ShaderBundle>& outBundle);
+
+    bool LoadBundleForTarget(
+        Name name,
+        const ShaderCompileTarget& target,
+        Optional<ShaderRequest> shaderRequest,
+        Handle<ShaderBundle>& outBundle);
+
+    void SplitLegacyBundle(Name name);
+
+    Array<ShaderCompileTarget> GetPrecompileTargets() const;
 
     ShaderDefinitions* m_definitions;
     Array<ShaderBundleDecl> m_shaderBundleDecls;
@@ -807,8 +873,7 @@ private:
     Mutex m_initMutex;
 
     Mutex m_variantTargetMutex;
-    Name m_variantTargetPlatform;
-    Name m_variantTargetBackend;
+    ShaderCompileTarget m_variantTarget;
     
     Mutex m_compiledShadersMutex;
 };

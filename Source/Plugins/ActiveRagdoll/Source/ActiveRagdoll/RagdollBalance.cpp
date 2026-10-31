@@ -111,7 +111,7 @@ bool RagdollBalance::Init(Ragdoll& ragdoll)
 
 bool RagdollBalance::InitRestPose(const Ragdoll& ragdoll)
 {
-    const Array<Ragdoll::BodyInfo>& bodies = ragdoll.m_bodies;
+    const Array<Ragdoll::BodyInfo, PhysicsAllocator>& bodies = ragdoll.m_bodies;
     const Ragdoll::BodyInfo& pelvis = bodies[0];
 
     m_restPelvis = pelvis.restOrientation;

@@ -202,6 +202,22 @@ bool CanSimulateEntityPhysics(const Entity& entity)
         && !entity.HasTag<EntityTag::Replicated>();
 }
 
+const CharacterControllerComponent* FindCharacterControllerComponent(Entity& entity)
+{
+    for (Node* node = &entity; node != nullptr; node = node->GetParent())
+    {
+        if (Entity* nodeEntity = TryCast<Entity>(node))
+        {
+            if (const CharacterControllerComponent* controller = nodeEntity->TryGetComponent<CharacterControllerComponent>())
+            {
+                return controller;
+            }
+        }
+    }
+
+    return nullptr;
+}
+
 float GetCapsuleHeightOffset(const CharacterControllerComponent& component)
 {
     if (CapsulePhysicsShape* capsuleShape = TryCast<CapsulePhysicsShape>(component.shape.Get()))

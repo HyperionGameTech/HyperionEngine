@@ -73,6 +73,11 @@ void RagdollContacts::QueueImpact(const JPH::Body& inBody1, const JPH::Body& inB
     impact.isOtherStatic = otherBody->IsStatic();
     impact.serial = RagdollUserData::GetSerial(ragdollBody->GetUserData());
 
+    if (RagdollUserData::Matches(otherBody->GetUserData()))
+    {
+        impact.otherSerial = RagdollUserData::GetSerial(otherBody->GetUserData());
+    }
+
     if (otherBody->IsDynamic())
     {
         const float inverseMass = otherBody->GetMotionProperties()->GetInverseMass();
@@ -97,6 +102,72 @@ void RagdollContacts::DrainImpacts(Array<RagdollImpact>& outImpacts)
 
     outImpacts = std::move(m_impacts);
     m_impacts.Clear();
+}
+
+void RagdollContacts::DrainBumps(Array<RagdollBump>& outBumps)
+{
+    Mutex::Guard guard(m_mutex);
+
+    outBumps.Clear();
+
+    for (const auto& it : m_bumps)
+    {
+        outBumps.PushBack(it.second);
+    }
+
+    m_bumps.Clear();
+}
+
+void RagdollContacts::OnContactAdded(const JPH::CharacterVirtual* inCharacter, const JPH::CharacterContact& inContact, JPH::CharacterContactSettings& ioSettings)
+{
+    RecordBump(*inCharacter, inContact, ioSettings);
+}
+
+void RagdollContacts::OnContactPersisted(const JPH::CharacterVirtual* inCharacter, const JPH::CharacterContact& inContact, JPH::CharacterContactSettings& ioSettings)
+{
+    RecordBump(*inCharacter, inContact, ioSettings);
+}
+
+void RagdollContacts::RecordBump(
+    const JPH::CharacterVirtual& character,
+    const JPH::CharacterContact& contact,
+    JPH::CharacterContactSettings& ioSettings)
+{
+    if (!RagdollUserData::Matches(contact.mUserData))
+    {
+        return;
+    }
+
+    ioSettings.mCanPushCharacter = false;
+    ioSettings.mCanReceiveImpulses = false;
+
+    const JPH::Vec3 normal = -contact.mContactNormal;
+    const float speed = (character.GetLinearVelocity() - contact.mLinearVelocity).Dot(normal);
+
+    if (speed <= 0.0f)
+    {
+        return;
+    }
+
+    const uint32 serial = RagdollUserData::GetSerial(contact.mUserData);
+
+    Mutex::Guard guard(m_mutex);
+
+    const auto it = m_bumps.Find(serial);
+
+    if (it != m_bumps.End() && it->second.speed >= speed)
+    {
+        return;
+    }
+
+    RagdollBump bump;
+    bump.point = JPH::Vec3(contact.mPosition);
+    bump.normal = normal;
+    bump.speed = speed;
+    bump.characterMass = character.GetMass();
+    bump.serial = serial;
+
+    m_bumps.Set(serial, bump);
 }
 
 void RagdollContacts::OnContactPersisted(const JPH::Body& inBody1, const JPH::Body& inBody2, const JPH::ContactManifold& inManifold, JPH::ContactSettings& ioSettings)

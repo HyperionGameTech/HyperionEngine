@@ -23,6 +23,7 @@ class ObjectVsBroadPhaseLayerFilter;
 class BodyFilter;
 class CharacterVsCharacterCollisionSimple;
 class ContactListener;
+class CharacterContactListener;
 }
 
 namespace Hyperion {
@@ -94,6 +95,13 @@ public:
     ENGINE_API void AddContactListener(JPH::ContactListener* listener);
     ENGINE_API void RemoveContactListener(JPH::ContactListener* listener);
 
+    // called during character updates; add and remove between them
+    ENGINE_API void AddCharacterContactListener(JPH::CharacterContactListener* listener);
+    ENGINE_API void RemoveCharacterContactListener(JPH::CharacterContactListener* listener);
+
+    // bodies in this Jolt collision group don't block the character, e.g. its own ragdoll
+    ENGINE_API void SetCharacterIgnoredCollisionGroup(const SharedPtr<void>& physicsHandle, uint32 groupId);
+
 private:
     JPH::PhysicsSystem* m_physicsSystem;
     JPH::JobSystem* m_jobSystem;
@@ -101,9 +109,9 @@ private:
     JPH::BroadPhaseLayerInterface* m_broadPhaseLayerInterface;
     JPH::ObjectLayerPairFilter* m_objectLayerPairFilter;
     JPH::ObjectVsBroadPhaseLayerFilter* m_objectVsBroadPhaseLayerFilter;
-    JPH::BodyFilter* m_characterBodyFilter;
     JPH::CharacterVsCharacterCollisionSimple* m_characterVsCharacterCollision;
     JPH::ContactListener* m_contactListeners;
+    JPH::CharacterContactListener* m_characterContactListeners;
     uint32 m_numCollisionSteps;
     Array<SharedPtr<void>, PhysicsAllocator> m_characterControllers;
     Set<uint32, PhysicsAllocator> m_ghostNonCollidableBodyIds;
