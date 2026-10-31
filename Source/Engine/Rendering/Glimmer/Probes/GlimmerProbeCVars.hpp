@@ -18,6 +18,7 @@ extern CVar<int> g_cvGlimmerProbesRaysPerFrame; // probes traced a frame = this 
 extern CVar<int> g_cvGlimmerProbesPoolBlocks;   // blocks of 64 probes the pool holds at most (up to GlimmerProbePoolBlocks)
 extern CVar<bool> g_cvGlimmerProbesLogStats;    // logs how many probes there are (per level, by state, and on screen) once a second
 extern CVar<bool> g_cvGlimmerProbesSleep;
+extern CVar<float> g_cvGlimmerProbesEmitterRadius; // small emitters are enlarged by this much to ensure they contribute their fair share.
 
 enum class GlimmerProbeDebugMode : int
 {

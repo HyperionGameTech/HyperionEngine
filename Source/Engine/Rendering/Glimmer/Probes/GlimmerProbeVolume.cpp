@@ -175,6 +175,7 @@ struct GlimmerProbeTraceConstants
     GlimmerBrickShaderData bricks;
     Vec4u bvh; // x = traced instances in the TLAS
     GlimmerLocalLightsShaderData localLights;
+    GlimmerEmittersShaderData emitters;
 };
 
 struct GlimmerProbeBlendConstants
@@ -728,6 +729,7 @@ void GlimmerProbeVolume::Update(Frame* frame, const GlimmerProbeUpdateInputs& in
         if (hasBVH)
         {
             constants.bvh = Vec4u(inputs.sceneInstances->GetNumTracedInstances(), 0u, 0u, 0u);
+            constants.emitters = inputs.sceneInstances->GetEmittersShaderData();
         }
 
         if (inputs.localLights)

@@ -88,9 +88,60 @@ struct GlimmerSurface
 {
     float3 P;
     float3 N;
+    float3 Ng;
     bool isValid;
     bool isDynamic;
 };
+
+float3 GlimmerLoadPosition(int2 pixel, uint2 dimensions)
+{
+    pixel = clamp(pixel, int2(0, 0), int2(dimensions) - 1);
+
+    const float depth = GBufferDepthTexture.Load(int3(pixel, 0)).r;
+    const float2 texcoord = (float2(pixel) + 0.5) / float2(dimensions);
+    const float2 unjitteredTexcoord = texcoord - float2(camera.jitter.x, -camera.jitter.y) * 0.5;
+
+    float4 positionWS = mul(camera.invViewMat, ReconstructViewSpacePositionFromDepth(camera.invProjMat, unjitteredTexcoord, depth));
+
+    return positionWS.xyz / positionWS.w;
+}
+
+float3 GlimmerGeometricNormal(int2 pixel, uint2 dimensions, float3 P, float3 shadingN)
+{
+    const float3 toRight = GlimmerLoadPosition(pixel + int2(1, 0), dimensions) - P;
+    const float3 fromLeft = P - GlimmerLoadPosition(pixel - int2(1, 0), dimensions);
+    const float3 toDown = GlimmerLoadPosition(pixel + int2(0, 1), dimensions) - P;
+    const float3 fromUp = P - GlimmerLoadPosition(pixel - int2(0, 1), dimensions);
+
+    float3 dx = toRight;
+    float3 dy = toDown;
+
+    if (dot(fromLeft, fromLeft) < dot(toRight, toRight))
+    {
+        dx = fromLeft;
+    }
+
+    if (dot(fromUp, fromUp) < dot(toDown, toDown))
+    {
+        dy = fromUp;
+    }
+
+    float3 N = cross(dy, dx);
+
+    if (dot(N, N) < 1e-12)
+    {
+        return shadingN;
+    }
+
+    N = normalize(N);
+
+    if (dot(N, shadingN) < 0.0)
+    {
+        N = -N;
+    }
+
+    return N;
+}
 
 GlimmerSurface GlimmerLoadSurface(int2 pixel, uint2 dimensions)
 {
@@ -107,6 +158,7 @@ GlimmerSurface GlimmerLoadSurface(int2 pixel, uint2 dimensions)
 
     surface.P = positionWS.xyz;
     surface.N = normalize(GBufferUnpackNormal(GBufferNormalsTexture.Load(int3(pixel, 0))));
+    surface.Ng = GlimmerGeometricNormal(pixel, dimensions, surface.P, surface.N);
     surface.isValid = depth < 1.0;
     surface.isDynamic = (GBufferUnpackObjectMask(GBufferMaterialTexture.Load(int3(pixel, 0))) & OBJECT_MASK_DYNAMIC) != 0u;
 
@@ -127,7 +179,7 @@ PSOutput GlimmerEvaluateSurface(GlimmerSurface surface)
     const float3 V = normalize(camera.position.xyz - surface.P);
     const float3 R = reflect(-V, surface.N);
 
-    output.irradiance = EvaluateGlimmer(glimmer, surface.P, surface.N, R, output.specular, output.reflection);
+    output.irradiance = EvaluateGlimmer(glimmer, surface.P, surface.Ng, surface.N, R, output.specular, output.reflection);
 
     return output;
 }
@@ -202,12 +254,12 @@ PSOutput PSMain(PSInput input)
         const GlimmerSurface sampleSurface = GlimmerLoadSurface(min(texel * 2 + pick, int2(dimensions) - 1), dimensions);
 
         const float2 bilinear = lerp(1.0 - fraction, fraction, float2(offset));
-        const float planeDistance = abs(dot(sampleSurface.P - surface.P, surface.N)) / planeTolerance;
+        const float planeDistance = abs(dot(sampleSurface.P - surface.P, surface.Ng)) / planeTolerance;
 
         const float bilinearWeight = bilinear.x * bilinear.y;
         const float weight = bilinearWeight
             * exp2(-planeDistance * planeDistance)
-            * pow(saturate(dot(sampleSurface.N, surface.N)), GLIMMER_UPSAMPLE_NORMAL_POWER);
+            * pow(saturate(dot(sampleSurface.Ng, surface.Ng)), GLIMMER_UPSAMPLE_NORMAL_POWER);
 
         const float2 specular = GlimmerHalfSpecularTexture.Load(int3(texel, 0)).rg;
         const float3 reflection = GlimmerHalfReflectionTexture.Load(int3(texel, 0)).rgb;
@@ -249,13 +301,13 @@ PSOutput PSMain(PSInput input)
 
     if (glimmer.params.z != 0u)
     {
-        output.irradiance = float4(EvaluateGlimmerSHDebug(glimmer, surface.P, surface.N), 1.0);
+        output.irradiance = float4(EvaluateGlimmerSHDebug(glimmer, surface.P, surface.Ng), 1.0);
     }
     else if (glimmer.params.x == GLIMMER_DEBUG_VIS_COVERAGE)
     {
         GlimmerSetSurfaceBehindFade(surface);
 
-        output.irradiance = float4(EvaluateGlimmerCoverage(glimmer, surface.P, surface.N), 1.0);
+        output.irradiance = float4(EvaluateGlimmerCoverage(glimmer, surface.P, surface.Ng), 1.0);
     }
     else
     {

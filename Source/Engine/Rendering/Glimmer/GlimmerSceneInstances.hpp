@@ -18,6 +18,9 @@
 #include <Core/Threading/Task.hpp>
 
 #include <Core/Math/BoundingBox.hpp>
+#include <Core/Math/Vector4.hpp>
+
+#include <Core/Utilities/Float16.hpp>
 
 namespace Hyperion {
 
@@ -30,8 +33,21 @@ enum GlimmerInstanceFlags : uint32
     GIF_DOUBLE_SIDED = 0x1,
     GIF_MIRRORED = 0x2,         //!< negative determinant
     GIF_ALPHA_TESTED = 0x4,
-    GIF_FOLIAGE = 0x8           //!< span instances only: splatted as canopy rather than solid
+    GIF_FOLIAGE = 0x8,          //!< span instances only: splatted as canopy rather than solid
+    GIF_EMITTER = 0x10          //!< small emitter whose light probe rays take from its enlarged sphere instead
 };
+
+static constexpr uint32 GlimmerMaxEmitters = 64; // GLIMMER_MAX_EMITTERS
+
+struct GlimmerEmittersShaderData
+{
+    Vec4u info;                                 // x = number of emitters
+    Vec4f origin;                               // xyz = what the centers are relative to, so they keep their precision as halves
+    Float16 spheres[GlimmerMaxEmitters * 4];    // xyz = center, w = radius of the sphere rays hit
+    Float16 radiance[GlimmerMaxEmitters * 4];   // rgb = radiance over that sphere, w = radius of the emitter itself
+};
+
+static_assert(GlimmerMaxEmitters % 2 == 0 && sizeof(GlimmerEmittersShaderData) == 32 + GlimmerMaxEmitters * 16);
 
 struct GlimmerSpanInstanceShaderData
 {
@@ -233,6 +249,11 @@ public:
         uint32 seenGeneration,
         GlimmerSceneChanges& outChanges) const;
 
+    HYP_FORCE_INLINE const GlimmerEmittersShaderData& GetEmittersShaderData() const
+    {
+        return m_emitters;
+    }
+
     HYP_FORCE_INLINE const BoundingBox& GetActiveRegion() const
     {
         return m_activeRegion;
@@ -287,6 +308,8 @@ private:
         uint64 previousTLASHash = ~0ull;
 
         Array<uint64, GlimmerAllocator> meshKeys; // unique
+
+        GlimmerEmittersShaderData emitters {};
     };
 
     struct BuildResult
@@ -322,6 +345,8 @@ private:
         uint32 tlasDepth = 0;
         uint64 tlasHash = 0;        // of the traced instances as gathered
         bool isTLASUnchanged = false; // the uploaded TLAS is already this one, so nothing above was built
+
+        GlimmerEmittersShaderData emitters {};
     };
 
     void Gather(
@@ -350,6 +375,8 @@ private:
 
     Array<uint64, GlimmerAllocator> m_activeMeshKeys;
 
+    GlimmerEmittersShaderData m_emitters {};
+
     Task<BuildResult> m_buildTask;
     Array<uint64, GlimmerAllocator> m_pendingMeshKeys; // referenced while the build is in flight so their triangles stay resident
 
@@ -359,6 +386,7 @@ private:
     uint32 m_triangleGenerationAtGather;
     uint32 m_triangleEvictionGenerationAtGather;
     Vec3f m_viewerPositionAtGather;
+    float m_emitterRadiusAtGather = -1.0f;
 
     Map<uint64, uint8, GlimmerAllocator> m_instanceLods; // the LOD each instance (entity id << 32 | a hash of its transform within the entity) was given at the last gather
     bool m_dirty;

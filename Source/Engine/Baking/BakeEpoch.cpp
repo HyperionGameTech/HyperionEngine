@@ -36,20 +36,37 @@ void ComputeStaticLightHashes(const Scene& scene, BakeLayerHashes& inOutResult)
 {
     HashCode hcUUID;
     HashCode hcLighting;
+    HashCode hcLocalUUID;
+    HashCode hcLocalLighting;
 
     if (scene.GetEntityManager().IsValid())
     {
         for (auto [light, _] : scene.GetEntityManager()->GetEntitySet<EntityType<Light>, TagComponent<EntityTag::MobStatic>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
+            const HashCode lightingHash = light->GetLightingHashCode();
+
             hcUUID.Add(light->GetUUID());
 
             hcLighting.Add(light->GetUUID());
-            hcLighting.Add(light->GetLightingHashCode());
+            hcLighting.Add(lightingHash);
+
+            if (light->GetLightType() == LightType::Directional)
+            {
+                continue;
+            }
+
+            hcLocalUUID.Add(light->GetUUID());
+
+            hcLocalLighting.Add(light->GetUUID());
+            hcLocalLighting.Add(lightingHash);
         }
     }
 
     inOutResult.uuidHashes[BakeLayerHashes::StaticLights] = hcUUID.Value();
     inOutResult.transformHashes[BakeLayerHashes::StaticLights] = hcLighting.Value();
+
+    inOutResult.uuidHashes[BakeLayerHashes::StaticLocalLights] = hcLocalUUID.Value();
+    inOutResult.transformHashes[BakeLayerHashes::StaticLocalLights] = hcLocalLighting.Value();
 }
 
 void ComputeStaticMeshHashes(const Scene& scene, BakeLayerHashes& inOutResult)
@@ -183,7 +200,7 @@ uint64 ComputeEpoch(const FogVolume& volume, BakeLayer& bakeLayer)
     ComputeSceneHashes(*scene, hashes);
 
     return HashCode(hashes.transformHashes[BakeLayerHashes::StaticMeshEntities])
-        .Combine(hashes.transformHashes[BakeLayerHashes::StaticLights])
+        .Combine(hashes.transformHashes[BakeLayerHashes::StaticLocalLights])
         .Value();
 }
 
