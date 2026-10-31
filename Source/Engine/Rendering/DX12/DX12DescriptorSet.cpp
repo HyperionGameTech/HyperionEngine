@@ -67,6 +67,7 @@ static uint32 GetDynamicElementOffset(const Name& elementName, const DescriptorS
 
 DX12DescriptorSet::DX12DescriptorSet(const DescriptorSetLayout& layout)
     : DescriptorSetBase(layout),
+      m_numSamplerDescriptors(0),
       m_updateVersion(0),
       m_isCreated(false)
 {
@@ -131,9 +132,9 @@ DX12DescriptorSet::~DX12DescriptorSet()
 
     if (m_samplerDescriptorHandle.IsValid())
     {
-        EnqueueDeletion(FunctionWrapper<Proc<void()>>([samplerDescriptorHandle = std::move(m_samplerDescriptorHandle)]() mutable
+        EnqueueDeletion(FunctionWrapper<Proc<void()>>([samplerDescriptorHandle = m_samplerDescriptorHandle]()
             {
-                RI.descriptorHeapManager->Free(DX12DescriptorHeapType::SAMPLER, std::move(samplerDescriptorHandle));
+                RI.descriptorHeapManager->ReleaseSamplerTable(samplerDescriptorHandle);
             }));
     }
 }
@@ -268,28 +269,14 @@ RendererResult DX12DescriptorSet::Create()
         }
     }
 
-    if (samplerCount > 0)
-    {
-        m_samplerDescriptorHandle = RI.descriptorHeapManager->Allocate(DX12DescriptorHeapType::SAMPLER, samplerCount);
-
-        if (!m_samplerDescriptorHandle.IsValid())
-        {
-            // Free already allocated views
-            if (m_viewDescriptorHandle.IsValid())
-            {
-                RI.descriptorHeapManager->Free(DX12DescriptorHeapType::CBV_SRV_UAV, std::move(m_viewDescriptorHandle));
-            }
-
-            return HYP_MAKE_ERROR(RendererError, "Failed to allocate {} sampler descriptors for descriptor set: {}", 0, samplerCount, m_layout.GetName());
-        }
-    }
+    m_numSamplerDescriptors = samplerCount;
 
     for (const auto& it : m_elements)
     {
         const Name name = it.first;
         const DescriptorSetElement& element = it.second;
 
-        m_cachedElements.Emplace(name, Array<DX12CachedDescriptor, RHIAllocator>(element.values.Size()));
+        m_cachedElements.Emplace(name, Array<DX12CachedDescriptor, DX12Allocator>(element.values.Size()));
     }
 
     m_isCreated = true;
@@ -297,7 +284,72 @@ RendererResult DX12DescriptorSet::Create()
     UpdateDirtyState();
     Update();
 
+    if (m_numSamplerDescriptors != 0 && !m_samplerDescriptorHandle.IsValid() && !UpdateSamplerTable())
+    {
+        return HYP_MAKE_ERROR(RendererError, "Failed to allocate {} sampler descriptors for descriptor set: {}", 0, samplerCount, m_layout.GetName());
+    }
+
     return {};
+}
+
+bool DX12DescriptorSet::UpdateSamplerTable()
+{
+    if (m_numSamplerDescriptors == 0)
+    {
+        return true;
+    }
+
+    Array<D3D12_SAMPLER_DESC, DX12Allocator> descs;
+    descs.ResizeZeroed(m_numSamplerDescriptors);
+
+    for (const auto& it : m_elements)
+    {
+        const ShaderInputWithBinding* shaderInput = m_layout.GetElement(it.first);
+
+        if (shaderInput == nullptr || shaderInput->type != ShaderInputType::Sampler)
+        {
+            continue;
+        }
+
+        if (shaderInput->binding >= m_samplerBindingToHeapOffset.Size())
+        {
+            continue;
+        }
+
+        const uint32 baseOffset = m_samplerBindingToHeapOffset[shaderInput->binding];
+        const DescriptorSetElement& element = it.second;
+
+        for (uint32 index : element.occupiedArrayElems)
+        {
+            const DX12Sampler* sampler = Cast<DX12Sampler>(element.values[index]);
+
+            if (sampler == nullptr || !sampler->IsCreated() || baseOffset + index >= m_numSamplerDescriptors)
+            {
+                continue;
+            }
+
+            descs[baseOffset + index] = sampler->GetD3D12SamplerDesc();
+        }
+    }
+
+    DX12DescriptorHandle handle = RI.descriptorHeapManager->AcquireSamplerTable(descs.ToSpan());
+
+    if (!handle.IsValid())
+    {
+        return false;
+    }
+
+    if (m_samplerDescriptorHandle.IsValid())
+    {
+        EnqueueDeletion(FunctionWrapper<Proc<void()>>([samplerDescriptorHandle = m_samplerDescriptorHandle]()
+            {
+                RI.descriptorHeapManager->ReleaseSamplerTable(samplerDescriptorHandle);
+            }));
+    }
+
+    m_samplerDescriptorHandle = handle;
+
+    return true;
 }
 
 void DX12DescriptorSet::UpdateDirtyState(bool* outIsDirty)
@@ -317,7 +369,7 @@ void DX12DescriptorSet::UpdateDirtyState(bool* outIsDirty)
             cachedIt = m_cachedElements.Emplace(name).first;
         }
 
-        Array<DX12CachedDescriptor, RHIAllocator>& cachedElementValues = cachedIt->second;
+        Array<DX12CachedDescriptor, DX12Allocator>& cachedElementValues = cachedIt->second;
 
         if (cachedElementValues.Size() != element.values.Size())
         {
@@ -325,7 +377,7 @@ void DX12DescriptorSet::UpdateDirtyState(bool* outIsDirty)
         }
     }
 
-    Array<DX12CachedDescriptor, RHIAllocator> localDescriptors;
+    Array<DX12CachedDescriptor, DX12Allocator> localDescriptors;
 
     // detect changes from cachedValues
     for (auto& it : m_elements)
@@ -339,7 +391,7 @@ void DX12DescriptorSet::UpdateDirtyState(bool* outIsDirty)
         auto cachedIt = m_cachedElements.Find(name);
         AssertDebug(cachedIt != m_cachedElements.End());
 
-        Array<DX12CachedDescriptor, RHIAllocator>& cachedValues = cachedIt->second;
+        Array<DX12CachedDescriptor, DX12Allocator>& cachedValues = cachedIt->second;
         localDescriptors.Clear();
         localDescriptors.Reserve(element.values.Size());
 
@@ -474,11 +526,18 @@ void DX12DescriptorSet::Update(bool force)
     ID3D12Device* device = RI.GetDevice();
 
     const uint32 incrementSize = RI.GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-    const uint32 samplerIncrementSize = RI.GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+
+    bool samplersChanged = false;
 
     for (size_t i = 0; i < m_pendingDescriptors.Size(); i++)
     {
         const DX12CachedDescriptor& descriptor = m_pendingDescriptors[i];
+
+        if (descriptor.heapType == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER)
+        {
+            samplersChanged = true;
+            continue;
+        }
 
         DescriptorSetElement* element = nullptr;
         const ShaderInput* foundShaderInput = nullptr;
@@ -519,19 +578,13 @@ void DX12DescriptorSet::Update(bool force)
         D3D12_CPU_DESCRIPTOR_HANDLE destHandle {};
         destHandle.ptr = 0;
 
-        switch (descriptor.heapType)
+        if (descriptor.heapType != D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)
         {
-        case D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV:
-            destHandle = GetViewCpuHandle(descriptor.binding);
-            destHandle.ptr += incrementSize * descriptor.index;
-            break;
-        case D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER:
-            destHandle = GetSamplerCpuHandle(descriptor.binding);
-            destHandle.ptr += samplerIncrementSize * descriptor.index;
-            break;
-        default:
             continue;
         }
+
+        destHandle = GetViewCpuHandle(descriptor.binding);
+        destHandle.ptr += incrementSize * descriptor.index;
 
         switch (foundShaderInput->type)
         {
@@ -683,19 +736,13 @@ void DX12DescriptorSet::Update(bool force)
             break;
         }
         case ShaderInputType::Sampler:
-        {
-            DX12Sampler* sampler = Cast<DX12Sampler>(ptr);
-            if (!sampler->IsCreated())
-            {
-                continue;
-            }
-
-            const D3D12_SAMPLER_DESC& samplerDesc = sampler->GetD3D12SamplerDesc();
-
-            device->CreateSampler(&samplerDesc, destHandle);
             break;
         }
-        }
+    }
+
+    if (samplersChanged && !UpdateSamplerTable())
+    {
+        HYP_LOG_ONCE(RenderingBackend, Error, "Failed to allocate {} sampler descriptors for descriptor set: {}", m_numSamplerDescriptors, m_layout.GetName());
     }
 
     for (auto& it : m_elements)
@@ -717,19 +764,6 @@ D3D12_CPU_DESCRIPTOR_HANDLE DX12DescriptorSet::GetViewCpuHandle(uint32 binding) 
     const uint32 incrementSize = RI.GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
     D3D12_CPU_DESCRIPTOR_HANDLE handle = m_viewDescriptorHandle.cpuHandle;
-    handle.ptr += incrementSize * offset;
-
-    return handle;
-}
-
-D3D12_CPU_DESCRIPTOR_HANDLE DX12DescriptorSet::GetSamplerCpuHandle(uint32 binding) const
-{
-    AssertDebug(binding < m_samplerBindingToHeapOffset.Size());
-
-    const uint32 offset = m_samplerBindingToHeapOffset[binding];
-    const uint32 incrementSize = RI.GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-
-    D3D12_CPU_DESCRIPTOR_HANDLE handle = m_samplerDescriptorHandle.cpuHandle;
     handle.ptr += incrementSize * offset;
 
     return handle;

@@ -79,25 +79,28 @@ public:
     DX12DescriptorSetRef Clone() const override;
 
     D3D12_CPU_DESCRIPTOR_HANDLE GetViewCpuHandle(uint32 binding) const;
-    D3D12_CPU_DESCRIPTOR_HANDLE GetSamplerCpuHandle(uint32 binding) const;
 
 #ifdef HYP_RHI_DEBUG_NAMES
     void SetDebugName(Name name) override;
 #endif
 
 private:
+    bool UpdateSamplerTable();
+
     ElementCache m_cachedElements;
-    Array<DX12CachedDescriptor, RHIAllocator> m_pendingDescriptors;
+    Array<DX12CachedDescriptor, DX12Allocator> m_pendingDescriptors;
 
     // Below two are 'maps' just arrays where each index corresponds to a binding.
     //  - Binding -> heap offset for views (CBV/SRV/UAV)
-    Array<uint32, RHIAllocator> m_viewBindingToHeapOffset;
+    Array<uint32, DX12Allocator> m_viewBindingToHeapOffset;
     //  - Binding -> heap offset for samplers
-    Array<uint32, RHIAllocator> m_samplerBindingToHeapOffset;
+    Array<uint32, DX12Allocator> m_samplerBindingToHeapOffset;
 
     // Allocated descriptor handles
     DX12DescriptorHandle m_viewDescriptorHandle;
+
     DX12DescriptorHandle m_samplerDescriptorHandle;
+    uint32 m_numSamplerDescriptors;
 
     uint16 m_updateVersion;
 

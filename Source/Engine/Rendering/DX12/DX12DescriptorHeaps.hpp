@@ -11,6 +11,10 @@
 
 #include <Core/Threading/SharedMutex.hpp>
 
+#include <Core/Containers/Array.hpp>
+
+#include <Core/Utilities/Span.hpp>
+
 #include <Rendering/RenderMemory.hpp>
 
 #include <Rendering/DX12/DX12Shared.hpp>
@@ -66,8 +70,22 @@ public:
 
     ID3D12DescriptorHeap* GetDescriptorHeap(DX12DescriptorHeapType heapType) const;
 
+    HYP_NODISCARD DX12DescriptorHandle AcquireSamplerTable(Span<const D3D12_SAMPLER_DESC> descs);
+    void ReleaseSamplerTable(const DX12DescriptorHandle& handle);
+
 private:
+    struct SamplerTable
+    {
+        Array<D3D12_SAMPLER_DESC, DX12Allocator> descs;
+        DX12DescriptorHandle handle;
+        uint64 hash = 0;
+        uint32 refCount = 0;
+    };
+
     FixedArray<DX12DescriptorAllocator*, MaxDescriptorHeapType> m_descriptorAllocators;
+
+    Array<SamplerTable, DX12Allocator> m_samplerTables;
+    SharedMutex m_samplerTablesMutex;
 };
 
 } // namespace Hyperion

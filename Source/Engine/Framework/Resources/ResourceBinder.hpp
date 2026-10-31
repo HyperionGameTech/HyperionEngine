@@ -338,7 +338,7 @@ class ResourceBinder : public ResourceBinderBase
                 const uint32 binding = allocator->AllocateIndex();
                 if (binding == InvalidBinding)
                 {
-                    HYP_LOG(Rendering, Warning, "ResourceBinder<{}>: Maximum size of {} reached, cannot bind more objects!",
+                    HYP_LOG_ONCE(Rendering, Warning, "ResourceBinder<{}>: Maximum size of {} reached, cannot bind more objects!",
                         TypeName<T>().Data(),
                         allocator->maxSize);
 
