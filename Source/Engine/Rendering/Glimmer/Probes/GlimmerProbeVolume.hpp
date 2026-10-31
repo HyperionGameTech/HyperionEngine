@@ -12,6 +12,13 @@
 
 #include <Core/Reflection/Handle.hpp>
 
+#include <Rendering/Glimmer/GlimmerMemory.hpp>
+
+#include <Core/Containers/Array.hpp>
+#include <Core/Containers/FixedArray.hpp>
+
+#include <Core/Constants.hpp>
+
 #include <Core/Utilities/Time.hpp>
 
 #include <Core/Math/Vector2.hpp>
@@ -136,6 +143,8 @@ private:
     void CreateResources(Frame* frame);
     void ReleaseResources();
     void UpdateWindows(const Vec3f& viewerPosition, const Vec3f& lookAhead);
+    void ReadCounters(Frame* frame);
+    void CopyCounters(Frame* frame, uint32 probesPerFrame);
 
     const GpuBufferRef& GetBufferOrPlaceholder(const GpuBufferRef& buffer) const;
 
@@ -149,6 +158,15 @@ private:
     GpuBufferRef m_visibilityBuffer; // GlimmerProbeVisibilityTexels per probe
     GpuBufferRef m_trendBuffer;
     GpuBufferRef m_countersBuffer;   // NumProbeCounters, then the list of probes this frame updates
+
+    FixedArray<GpuBufferRef, NumFramesInFlight> m_countersReadbackBuffers;
+    FixedArray<bool, NumFramesInFlight> m_isCountersReadbackPending {};
+
+    /// probes a frame that copy was made with
+    FixedArray<uint32, NumFramesInFlight> m_countersReadbackBudgets {};
+
+    /// per emitter world center and sphere radius, then its radiance and own radius
+    Array<Vec4f, GlimmerAllocator> m_seenEmitters;
 
     GpuBufferRef m_placeholderBuffer;
 

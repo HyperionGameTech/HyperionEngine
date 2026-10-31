@@ -16,6 +16,11 @@
 // counters ahead of the update list in one buffer (NOTE must match NumProbeCounters in GlimmerProbeVolume.cpp)
 #define GLIMMER_PROBE_COUNTERS 16u
 
+#define GLIMMER_PROBE_COUNTER_WOKEN_BY_CHANGE 9u
+#define GLIMMER_PROBE_COUNTER_WOKEN_BY_BLOCK 10u
+#define GLIMMER_PROBE_COUNTER_INSIDE_RETRIES 11u
+#define GLIMMER_PROBE_COUNTER_WOKEN_BY_LIGHT 12u
+
 // a ray's GLIMMER_RAY_UINTS, then room for its hit until the shade pass (NOTE must match RayRecordSize in GlimmerProbeVolume.cpp)
 #define GLIMMER_PROBE_RAY_RECORD_UINTS (GLIMMER_RAY_UINTS + 10u)
 

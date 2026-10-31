@@ -5,7 +5,7 @@ TierProfile "DeviceTiers" {
             Set = {
                 "Rendering.Glimmer.Probes.NearField.Cascades" = 3
                 "Rendering.Glimmer.Probes.RaysPerFrame" = 32768
-                "Rendering.Glimmer.Probes.PoolBlocks" = 384
+                "Rendering.Glimmer.Probes.PoolBlocks" = 768
             }
         }
         TierRule "Glimmer.Medium" {

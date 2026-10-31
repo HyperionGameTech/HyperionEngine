@@ -10,7 +10,7 @@ PERMUTE(MODE, CLASSIFY, ALLOC, LIST)
 #include "../SH/GlimmerSHOccupancy.hlsli"
 #undef GLIMMER_SH_OCCUPANCY_NO_TRACE
 
-#define GLIMMER_PROBE_MAX_CHANGED_BOXES (16 + 4 + 2 * GLIMMER_GROUND_LEVELS)
+#define GLIMMER_PROBE_MAX_CHANGED_BOXES (16 + 4 + 4 + 2 * GLIMMER_GROUND_LEVELS)
 #define GLIMMER_PROBE_CHANGED_HISTORY 2.0
 
 #define GLIMMER_PROBE_CHANGE_NONE 0u
@@ -389,6 +389,10 @@ void CSMain(uint groupIndex : SV_GroupIndex)
         OutCounters[8] = OutCounters[7];
         OutCounters[5] = 0u;
         OutCounters[7] = 0u;
+        OutCounters[GLIMMER_PROBE_COUNTER_WOKEN_BY_CHANGE] = 0u;
+        OutCounters[GLIMMER_PROBE_COUNTER_WOKEN_BY_BLOCK] = 0u;
+        OutCounters[GLIMMER_PROBE_COUNTER_INSIDE_RETRIES] = 0u;
+        OutCounters[GLIMMER_PROBE_COUNTER_WOKEN_BY_LIGHT] = 0u;
 
         gsFreeCount = 0u;
     }
@@ -798,6 +802,11 @@ void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
 
         if (change != GLIMMER_PROBE_CHANGE_NONE)
         {
+            if (sleepInterval != 0u)
+            {
+                InterlockedAdd(OutCounters[GLIMMER_PROBE_COUNTER_WOKEN_BY_CHANGE], 1u);
+            }
+
             sleepInterval = 0u;
         }
 
@@ -818,6 +827,8 @@ void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
         }
         else if (sleepInterval != 0u && GlimmerIsProbeBlockWoken(probeIndex))
         {
+            InterlockedAdd(OutCounters[GLIMMER_PROBE_COUNTER_WOKEN_BY_BLOCK], 1u);
+
             sleepInterval = 0u;
         }
 
@@ -895,6 +906,8 @@ void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
         state.y = GlimmerPackProbeOffset(retryOffset);
 
         OutStates[probeIndex] = state;
+
+        InterlockedAdd(OutCounters[GLIMMER_PROBE_COUNTER_INSIDE_RETRIES], 1u);
     }
 
     uint listIndex;

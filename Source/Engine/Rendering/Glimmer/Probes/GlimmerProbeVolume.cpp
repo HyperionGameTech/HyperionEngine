@@ -67,6 +67,16 @@ static EngineStatCounter<uint32> s_statGlimmerProbeWakes("Rendering/Glimmer/Prob
 static EngineStatCounter<uint32> s_statGlimmerProbeComposes("Rendering/Glimmer/ProbeComposes");
 static EngineStatCounter<uint32> s_statGlimmerProbeChangedBoxes("Rendering/Glimmer/ProbeChangedBoxes");
 
+// read back from the GPU counters
+static EngineStatCounter<uint32> s_statGlimmerProbesActive("Rendering/Glimmer/Probes/Active", false);
+static EngineStatCounter<uint32> s_statGlimmerProbesSleeping("Rendering/Glimmer/Probes/Sleeping", false);
+static EngineStatCounter<uint32> s_statGlimmerProbesDue("Rendering/Glimmer/Probes/Due", false);
+static EngineStatCounter<uint32> s_statGlimmerProbesTraced("Rendering/Glimmer/Probes/Traced", false);
+static EngineStatCounter<uint32> s_statGlimmerProbesWokenByChange("Rendering/Glimmer/Probes/WokenByChange", false);
+static EngineStatCounter<uint32> s_statGlimmerProbesWokenByBlock("Rendering/Glimmer/Probes/WokenByBlock", false);
+static EngineStatCounter<uint32> s_statGlimmerProbesWokenByLight("Rendering/Glimmer/Probes/WokenByLight", false);
+static EngineStatCounter<uint32> s_statGlimmerProbesInsideRetries("Rendering/Glimmer/Probes/InsideRetries", false);
+
 static StaticShaderPropertyId s_propAllocModeClassify { ShaderProperty(NAME("MODE"), NAME("CLASSIFY")) };
 static StaticShaderPropertyId s_propAllocModeAlloc { ShaderProperty(NAME("MODE"), NAME("ALLOC")) };
 static StaticShaderPropertyId s_propAllocModeList { ShaderProperty(NAME("MODE"), NAME("LIST")) };
@@ -97,9 +107,21 @@ static constexpr uint32 ComposeGroupSize = 64;
 
 static constexpr uint32 NumProbeCounters = 16; // NOTE must match GLIMMER_PROBE_COUNTERS
 
+// indices into the counters (NOTE must match GlimmerProbeAlloc.hlsl and GLIMMER_PROBE_COUNTER_* in GlimmerProbeTypes.hlsli)
+static constexpr uint32 ProbeCounterDue = 0;
+static constexpr uint32 ProbeCounterActive = 1;
+static constexpr uint32 ProbeCounterSleeping = 7;
+static constexpr uint32 ProbeCounterWokenByChange = 9;
+static constexpr uint32 ProbeCounterWokenByBlock = 10;
+static constexpr uint32 ProbeCounterInsideRetries = 11;
+static constexpr uint32 ProbeCounterWokenByLight = 12;
+
 static constexpr uint32 MaxInstanceBoxes = 16;
 static constexpr uint32 MaxLightBoxes = 4;
-static constexpr uint32 MaxChangedBoxes = MaxInstanceBoxes + MaxLightBoxes + 2 * GlimmerGroundLevels; // GLIMMER_PROBE_MAX_CHANGED_BOXES
+static constexpr uint32 MaxEmitterBoxes = 4;
+static constexpr uint32 MaxChangedBoxes = MaxInstanceBoxes + MaxLightBoxes + MaxEmitterBoxes + 2 * GlimmerGroundLevels; // GLIMMER_PROBE_MAX_CHANGED_BOXES
+
+static constexpr float EmitterMatchDistance = 0.05f;
 
 static constexpr uint32 MaxRelocations = 2;
 
@@ -233,7 +255,15 @@ void GlimmerProbeVolume::ReleaseResources()
         EnqueueDeletion(std::move(*buffer));
     }
 
+    for (uint32 slot = 0; slot < NumFramesInFlight; slot++)
+    {
+        EnqueueDeletion(std::move(m_countersReadbackBuffers[slot]));
+
+        m_isCountersReadbackPending[slot] = false;
+    }
+
     m_seenInstancesGeneration = ~0u;
+    m_seenEmitters.Clear();
     m_shaderData.info.w = 0;
     m_hasComposedLight = false;
 }
@@ -304,6 +334,13 @@ void GlimmerProbeVolume::CreateResources(Frame* frame)
     m_trendBuffer = CreateProbeBuffer(sizeof(Vec4f), poolProbes);
     m_countersBuffer = CreateProbeBuffer(sizeof(uint32), NumProbeCounters + m_maxProbesPerFrame);
 
+    for (GpuBufferRef& readbackBuffer : m_countersReadbackBuffers)
+    {
+        readbackBuffer = RI.MakeGpuBuffer(GpuBufferType::ReadbackBuffer, NumProbeCounters * sizeof(uint32));
+        readbackBuffer->SetIsCpuAccessible(true);
+        Check(readbackBuffer->Create());
+    }
+
     // every slot free, no block with a slot or classified, every counter zero
     Array<uint32, GlimmerAllocator> blockTable;
     blockTable.Resize(GlimmerProbeLevels * GlimmerProbeWindowBlocks);
@@ -369,6 +406,53 @@ void GlimmerProbeVolume::CreateResources(Frame* frame)
     upload(m_countersBuffer, zeros.Data(), NumProbeCounters * sizeof(uint32));
 }
 
+void GlimmerProbeVolume::ReadCounters(Frame* frame)
+{
+    const uint32 slot = frame->GetFrameIndex() % NumFramesInFlight;
+
+    if (!m_isCountersReadbackPending[slot] || !m_countersReadbackBuffers[slot].IsValid())
+    {
+        return;
+    }
+
+    uint32 counters[NumProbeCounters];
+
+    m_countersReadbackBuffers[slot]->Invalidate();
+    m_countersReadbackBuffers[slot]->Read(sizeof(counters), counters);
+
+    m_isCountersReadbackPending[slot] = false;
+
+    s_statGlimmerProbesActive = counters[ProbeCounterActive];
+    s_statGlimmerProbesSleeping = counters[ProbeCounterSleeping];
+    s_statGlimmerProbesDue = counters[ProbeCounterDue];
+    s_statGlimmerProbesTraced = MathUtil::Min(counters[ProbeCounterDue], m_countersReadbackBudgets[slot]);
+    s_statGlimmerProbesWokenByChange = counters[ProbeCounterWokenByChange];
+    s_statGlimmerProbesWokenByBlock = counters[ProbeCounterWokenByBlock];
+    s_statGlimmerProbesWokenByLight = counters[ProbeCounterWokenByLight];
+    s_statGlimmerProbesInsideRetries = counters[ProbeCounterInsideRetries];
+}
+
+void GlimmerProbeVolume::CopyCounters(Frame* frame, uint32 probesPerFrame)
+{
+    const uint32 slot = frame->GetFrameIndex() % NumFramesInFlight;
+    GpuBufferRef& readbackBuffer = m_countersReadbackBuffers[slot];
+
+    if (!readbackBuffer.IsValid())
+    {
+        return;
+    }
+
+    CommandRecorder& cr = frame->cr;
+
+    cr << InsertBarrier(m_countersBuffer.Get(), ResourceState::CopySrc, ShaderModuleType::Compute);
+    cr << InsertBarrier(readbackBuffer.Get(), ResourceState::CopyDst, ShaderModuleType::Compute);
+
+    cr << CopyBuffer(m_countersBuffer.Get(), readbackBuffer.Get(), uint32(NumProbeCounters * sizeof(uint32)));
+
+    m_isCountersReadbackPending[slot] = true;
+    m_countersReadbackBudgets[slot] = probesPerFrame;
+}
+
 void GlimmerProbeVolume::UpdateWindows(const Vec3f& viewerPosition, const Vec3f& lookAhead)
 {
     for (uint32 levelIndex = 0; levelIndex < GlimmerProbeLevels; levelIndex++)
@@ -414,6 +498,8 @@ void GlimmerProbeVolume::Update(Frame* frame, const GlimmerProbeUpdateInputs& in
     {
         CreateResources(frame);
     }
+
+    ReadCounters(frame);
 
     Check(inputs.scratchBuffer->EnsureCapacity(
         RayRecordSize * m_maxProbesPerFrame * GlimmerProbeRays,
@@ -588,6 +674,76 @@ void GlimmerProbeVolume::Update(Frame* frame, const GlimmerProbeUpdateInputs& in
             }
 
             m_seenLightsGeneration = inputs.localLights->GetGeneration();
+        }
+
+        if (hasBVH)
+        {
+            const GlimmerEmittersShaderData& emitters = inputs.sceneInstances->GetEmittersShaderData();
+
+            Array<Vec4f, GlimmerAllocator> currentEmitters;
+            currentEmitters.Resize(size_t(emitters.info.x) * 2);
+
+            for (uint32 emitterIndex = 0; emitterIndex < emitters.info.x; emitterIndex++)
+            {
+                const Float16* sphere = &emitters.spheres[emitterIndex * 4];
+                const Float16* radiance = &emitters.radiance[emitterIndex * 4];
+
+                currentEmitters[emitterIndex * 2] = Vec4f(
+                    emitters.origin.x + float(sphere[0]),
+                    emitters.origin.y + float(sphere[1]),
+                    emitters.origin.z + float(sphere[2]),
+                    float(sphere[3]));
+
+                currentEmitters[emitterIndex * 2 + 1] = Vec4f(float(radiance[0]), float(radiance[1]), float(radiance[2]), float(radiance[3]));
+            }
+
+            const auto contains = [](const Array<Vec4f, GlimmerAllocator>& list, const Vec4f& sphere, const Vec4f& radiance)
+            {
+                for (size_t index = 0; index < list.Size(); index += 2)
+                {
+                    if (list[index].GetXYZ().Distance(sphere.GetXYZ()) < EmitterMatchDistance && list[index].w == sphere.w && list[index + 1] == radiance)
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            };
+
+            Array<BoundingBox, GlimmerAllocator> changedEmitters;
+
+            const auto addMissing = [&contains, &changedEmitters](const Array<Vec4f, GlimmerAllocator>& list, const Array<Vec4f, GlimmerAllocator>& other)
+            {
+                for (size_t index = 0; index < list.Size(); index += 2)
+                {
+                    const Vec4f& sphere = list[index];
+
+                    if (!contains(other, sphere, list[index + 1]))
+                    {
+                        changedEmitters.PushBack(BoundingBox(sphere.GetXYZ() - Vec3f(sphere.w), sphere.GetXYZ() + Vec3f(sphere.w)));
+                    }
+                }
+            };
+
+            addMissing(currentEmitters, m_seenEmitters);
+            addMissing(m_seenEmitters, currentEmitters);
+
+            if (changedEmitters.Size() > MaxEmitterBoxes)
+            {
+                shouldAwaken = true;
+            }
+            else
+            {
+                for (const BoundingBox& bounds : changedEmitters)
+                {
+                    constants.changedMin[numChangedBoxes] = Vec4f(bounds.min, 0.0f);
+                    constants.changedMax[numChangedBoxes] = Vec4f(bounds.max, 0.0f);
+
+                    numChangedBoxes++;
+                }
+            }
+
+            m_seenEmitters = std::move(currentEmitters);
         }
 
         for (uint32 levelIndex = 0; levelIndex < GlimmerGroundLevels; levelIndex++)
@@ -911,7 +1067,7 @@ void GlimmerProbeVolume::Update(Frame* frame, const GlimmerProbeUpdateInputs& in
 
         cr << InsertBarrier(raysBuffer, ResourceState::ShaderResource, ShaderModuleType::Compute);
 
-        for (const GpuBufferRef* buffer : { &m_shBuffer, &m_lightBuffer, &m_statesBuffer, &m_visibilityBuffer, &m_trendBuffer, &m_slotTimesBuffer })
+        for (const GpuBufferRef* buffer : { &m_shBuffer, &m_lightBuffer, &m_statesBuffer, &m_visibilityBuffer, &m_trendBuffer, &m_slotTimesBuffer, &m_countersBuffer })
         {
             cr << InsertBarrier(buffer->Get(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
         }
@@ -938,6 +1094,8 @@ void GlimmerProbeVolume::Update(Frame* frame, const GlimmerProbeUpdateInputs& in
 
         // group per probe
         cr << DispatchCompute(Vec3u { probesPerFrame, 1, 1 });
+
+        CopyCounters(frame, probesPerFrame);
 
         if (!m_hasComposedLight || memcmp(&m_composedLight, &inputs.light, sizeof(GlimmerLightShaderData)) != 0)
         {

@@ -76,7 +76,7 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
 #else
 
 DECLARE_SRV(GlimmerProbeBlend, Rays) StructuredBuffer<uint> rays;
-DECLARE_SRV(GlimmerProbeBlend, GlimmerProbeCountersBuffer) StructuredBuffer<uint> glimmerProbeCounters;
+DECLARE_UAV(GlimmerProbeBlend, GlimmerProbeCountersBuffer) RWStructuredBuffer<uint> glimmerProbeCounters;
 DECLARE_SRV(GlimmerProbeBlend, GlimmerProbeSlotsBuffer) StructuredBuffer<int4> glimmerProbeSlots;
 
 DECLARE_UAV(GlimmerProbeBlend, OutStates) RWStructuredBuffer<uint4> OutStates;
@@ -282,7 +282,7 @@ void GlimmerBlendProbe(uint probeIndex, int4 slot, uint4 state, uint numRays, fl
     uint updates = GlimmerProbeUpdates(state);
     float3 offset = GlimmerUnpackProbeOffset(state.y);
 
-    const bool isSealed = any(offset != 0.0) && farthestFrontface * invSpacing < GLIMMER_PROBE_SEALED_REACH;
+    const bool isSealed = any(offset != 0.0) && farthestFrontface < GLIMMER_PROBE_SEALED_DISTANCE;
 
     const float time = constants.volume.params.x;
 
@@ -515,6 +515,11 @@ void GlimmerBlendProbe(uint probeIndex, int4 slot, uint4 state, uint numRays, fl
     const uint sleepInterval = idle && relocations == 0u && !moved
         ? min(GlimmerProbeSleepInterval(state) + 1u, uint(constants.params.w))
         : 0u;
+
+    if (sleepInterval == 0u && GlimmerProbeSleepInterval(state) != 0u)
+    {
+        InterlockedAdd(glimmerProbeCounters[GLIMMER_PROBE_COUNTER_WOKEN_BY_LIGHT], 1u);
+    }
 
     OutTrend[probeIndex] = trend;
     OutStates[probeIndex] = uint4(
