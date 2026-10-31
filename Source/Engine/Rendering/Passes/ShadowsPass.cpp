@@ -49,20 +49,11 @@ namespace Hyperion {
 
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(Rendering);
 
-static constexpr uint32 BucketMask = RenderBucketMask<RenderBucket::Opaque, RenderBucket::Translucent, RenderBucket::Lightmapped>;
-
+constexpr uint32 BucketMask = RenderBucketMask<RenderBucket::Opaque, RenderBucket::Lightmapped>;
 /// # frames until we free up a shadow map slot
-static constexpr uint32 MaxFramesBeforeDiscard = MathUtil::Max(NumFramesInFlight, RingBufferDepth);
+constexpr uint32 MaxFramesBeforeDiscard = MathUtil::Max(NumFramesInFlight, RingBufferDepth);
 
 EngineStatGpuTimer g_statShadowMaps("Rendering/GPU/ShadowMaps");
-
-CVar<bool> g_cvCacheShadowMaps("Rendering.CacheShadowMaps", true);
-CVar<bool> g_cvShadowsEnabled("Rendering.Shadows.Enabled", true);
-
-static CVar<bool> s_cvShadowsAsyncDrawCalls("Rendering.Shadows.AsyncDrawCalls", true);
-static CVar<bool> s_cvShadowsForceStaticRedraw("Rendering.Shadows.ForceStaticRedraw", false);
-static CVar<bool> s_cvDebugCSMUpdates("Rendering.Shadows.DebugCSMUpdates", false);
-static CVar<int> s_cvOmniShadowMaxNewFacesPerFrame("Rendering.Shadows.OmniMaxNewFacesPerFrame", 1);
 
 extern CVar<bool> g_cvCSMTimeSlicingEnabled;
 extern CVar<int> g_cvCSMMaxUpdatesPerFrame;
@@ -71,7 +62,17 @@ extern CVar<float> g_cvCSMStaleFramesBackoff;
 extern CVar<int> g_cvCSMPriorityCascades;
 extern CVar<int> g_cvCSMAnimatedCascades;
 
-static bool HasRenderGroups(const RenderCollector& renderCollector, uint32 bucketBits)
+CVar<bool> g_cvCacheShadowMaps("Rendering.CacheShadowMaps", true);
+CVar<bool> g_cvShadowsEnabled("Rendering.Shadows.Enabled", true);
+
+CVar<bool> g_cvShadowsAsyncDrawCalls("Rendering.Shadows.AsyncDrawCalls", true);
+CVar<bool> g_cvShadowsForceStaticRedraw("Rendering.Shadows.ForceStaticRedraw", false);
+CVar<bool> g_cvDebugCSMUpdates("Rendering.Shadows.DebugCSMUpdates", false);
+CVar<int> g_cvOmniShadowMaxNewFacesPerFrame("Rendering.Shadows.OmniMaxNewFacesPerFrame", 1);
+
+namespace {
+
+bool HasRenderGroups(const RenderCollector& renderCollector, uint32 bucketBits)
 {
     for (uint32 bucketIndex = 0; bucketIndex < NumRenderBuckets; bucketIndex++)
     {
@@ -84,13 +85,7 @@ static bool HasRenderGroups(const RenderCollector& renderCollector, uint32 bucke
     return false;
 }
 
-#pragma region ShadowsPassData
-
-ShadowsPassData::~ShadowsPassData()
-{
-}
-
-#pragma endregion ShadowsPassData
+} // namespace
 
 #pragma region ShadowMapCapture
 
@@ -380,7 +375,7 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
     // # of never-before-rendered omni cube faces allowed to warm up this frame
     uint32 numOmniFacesWarmedThisFrame = 0;
-    const uint32 maxOmniFacesWarmedPerFrame = uint32(MathUtil::Max(s_cvOmniShadowMaxNewFacesPerFrame.Get(), 1));
+    const uint32 maxOmniFacesWarmedPerFrame = uint32(MathUtil::Max(g_cvOmniShadowMaxNewFacesPerFrame.Get(), 1));
 
     for (uint32 cascadeIndex = 0; cascadeIndex < numCascades; cascadeIndex++)
     {
@@ -536,7 +531,7 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                 }
             }
 
-            if (s_cvDebugCSMUpdates.Get())
+            if (g_cvDebugCSMUpdates.Get())
             {
                 HYP_LOG(Rendering, Info,
                     "[CSM] frame={} light={} cascade={} dynView={} stale={}({}f) viewProjChanged={} listDirty={} rplDirty={} staticRplDirty={} animated={} pending={} budget={}/{} hash={}/{} -> draw={}",
@@ -797,7 +792,7 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                     dynamicRpl.EndRead();
                 }
 
-                if (!s_cvShadowsForceStaticRedraw.Get()
+                if (!g_cvShadowsForceStaticRedraw.Get()
                     && !isMatrixDirty
                     && !isStaticCacheLatchedDirty
                     && !isDesyncedFromDynamic
@@ -943,7 +938,7 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                 pendingDraw.isOmni = isOmni;
                 pendingDraw.viewIndex = viewIndex;
 
-                if (!s_cvShadowsAsyncDrawCalls.Get())
+                if (!g_cvShadowsAsyncDrawCalls.Get())
                 {
                     flushPendingDraw();
                 }

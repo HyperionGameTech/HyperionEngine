@@ -28,8 +28,6 @@ class ShadowsPassData : public PassData
     HYP_OBJECT_BODY(ShadowsPassData);
 
 public:
-    virtual ~ShadowsPassData() override;
-
     FixedArray<Mat4f, 6> prevCameraMatrices {};
     BitField<6> staticCacheNeedsRerender {};
 };
