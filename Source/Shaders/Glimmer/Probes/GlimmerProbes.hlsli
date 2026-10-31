@@ -4,9 +4,10 @@
 #include "GlimmerProbeTypes.hlsli"
 
 #define GLIMMER_PROBE_FADE_IN_UPDATES 8.0
-#define GLIMMER_PROBE_BEHIND_FADE 0.05
+#define GLIMMER_PROBE_BEHIND_FADE 0.25
 #define GLIMMER_PROBE_DYNAMIC_BEHIND_FADE 0.5
 #define GLIMMER_PROBE_MIN_ACCEPTED_WEIGHT 0.05
+#define GLIMMER_PROBE_MIN_ACCEPTANCE 0.1
 
 float3 GlimmerProbePosition(GlimmerProbeVolume volume, uint probeIndex, int4 slot, uint4 state)
 {
@@ -96,6 +97,7 @@ float GlimmerGatherProbeTaps(GlimmerProbeVolume volume, uint levelIndex, float3 
     const float3 visibilityPoint = P + N * (0.2 * spacing);
 
     float presentCoverage = 0.0;
+    float acceptedWeightSum = 0.0;
 
     float excludedTrilinear = 0.0;
 
@@ -148,10 +150,16 @@ float GlimmerGatherProbeTaps(GlimmerProbeVolume volume, uint levelIndex, float3 
         const float visibility = lerp(1.0, GlimmerProbeVisibility(probeIndex, probeToPoint, length(probeToPoint) / spacing), volume.params.y);
 
         const float fadeIn = GlimmerProbeSleepInterval(state) != 0u ? 1.0 : saturate(float(GlimmerProbeUpdates(state)) / GLIMMER_PROBE_FADE_IN_UPDATES);
-        const float inFront = max(saturate(1.0 + dot(toProbe, N) / (g_glimmerProbeBehindFade * spacing)), 1e-3);
-        const float weight = trilinearWeight * (backface * backface + 0.2) * visibility * fadeIn * inFront;
+        const float inFront = saturate(1.0 + dot(toProbe, N) / (g_glimmerProbeBehindFade * spacing));
+
+        const float clear = saturate(1.0 - 4.0 * float(GlimmerProbeBackfaces(state)) / float(max(volume.info.y, 1u)));
+        const float accepted = visibility * inFront * clear;
+        const float baseWeight = trilinearWeight * (backface * backface + 0.2) * fadeIn;
+
+        const float weight = baseWeight * max(accepted, GLIMMER_PROBE_MIN_ACCEPTANCE);
 
         presentCoverage += trilinearWeight * fadeIn;
+        acceptedWeightSum += baseWeight * accepted;
 
         outTaps.indices[corner] = probeIndex;
         outTaps.weights[corner] = weight;
@@ -165,7 +173,7 @@ float GlimmerGatherProbeTaps(GlimmerProbeVolume volume, uint levelIndex, float3 
 
     const float invIncluded = 1.0 / max(1.0 - excludedTrilinear, 1e-3);
 
-    return smoothstep(0.3, 0.7, presentCoverage * invIncluded) * saturate(outTaps.weightSum * invIncluded / GLIMMER_PROBE_MIN_ACCEPTED_WEIGHT) * windowFade;
+    return smoothstep(0.3, 0.7, presentCoverage * invIncluded) * saturate(acceptedWeightSum * invIncluded / GLIMMER_PROBE_MIN_ACCEPTED_WEIGHT) * windowFade;
 }
 
 #ifdef GLIMMER_PROBES_SPLIT
@@ -298,13 +306,13 @@ bool SampleGlimmerNearestProbeLight(GlimmerProbeVolume volume, float3 P, float3 
 
 #else
 
-float GlimmerSampleProbeLevel(GlimmerProbeVolume volume, uint levelIndex, float3 P, float3 Ng, float3 N, float3 R, out float3 outIrradiance, out float3 outIrradianceR)
+float GlimmerSampleProbeLevel(GlimmerProbeVolume volume, uint levelIndex, float3 P, float3 N, float3 R, out float3 outIrradiance, out float3 outIrradianceR)
 {
     outIrradiance = (float3)0.0;
     outIrradianceR = (float3)0.0;
 
     GlimmerProbeTaps taps;
-    const float levelWeight = GlimmerGatherProbeTaps(volume, levelIndex, P, Ng, taps);
+    const float levelWeight = GlimmerGatherProbeTaps(volume, levelIndex, P, N, taps);
 
     if (levelWeight <= 0.0)
     {
@@ -337,10 +345,10 @@ float GlimmerSampleProbeLevel(GlimmerProbeVolume volume, uint levelIndex, float3
 {
     float3 irradianceR;
 
-    return GlimmerSampleProbeLevel(volume, levelIndex, P, N, N, N, outIrradiance, irradianceR);
+    return GlimmerSampleProbeLevel(volume, levelIndex, P, N, N, outIrradiance, irradianceR);
 }
 
-float4 SampleGlimmerProbes(GlimmerProbeVolume volume, float3 P, float3 Ng, float3 N, float3 R, out float3 outIrradianceR)
+float4 SampleGlimmerProbes(GlimmerProbeVolume volume, float3 P, float3 N, float3 R, out float3 outIrradianceR)
 {
     outIrradianceR = (float3)0.0;
 
@@ -358,7 +366,7 @@ float4 SampleGlimmerProbes(GlimmerProbeVolume volume, float3 P, float3 Ng, float
     {
         float3 levelIrradiance;
         float3 levelIrradianceR;
-        const float levelWeight = GlimmerSampleProbeLevel(volume, levelIndex, P, Ng, N, R, levelIrradiance, levelIrradianceR);
+        const float levelWeight = GlimmerSampleProbeLevel(volume, levelIndex, P, N, R, levelIrradiance, levelIrradianceR);
 
         if (levelWeight <= 0.0)
         {
@@ -386,7 +394,7 @@ float4 SampleGlimmerProbes(GlimmerProbeVolume volume, float3 P, float3 N)
 {
     float3 irradianceR;
 
-    return SampleGlimmerProbes(volume, P, N, N, N, irradianceR);
+    return SampleGlimmerProbes(volume, P, N, N, irradianceR);
 }
 
 #endif // GLIMMER_PROBES_SPLIT

@@ -206,6 +206,7 @@ void GlimmerBlendProbe(uint probeIndex, int4 slot, uint4 state, uint numRays, fl
     float3 nearestBackfaceDirection = (float3)0.0;
 
     float nearestFrontface = 1e30;
+    float farthestFrontface = 0.0;
     float3 nearestFrontfaceDirection = (float3)0.0;
 
     float3 freeDirectionSum = (float3)0.0;
@@ -273,11 +274,15 @@ void GlimmerBlendProbe(uint probeIndex, int4 slot, uint4 state, uint numRays, fl
             nearestFrontface = rayDistance;
             nearestFrontfaceDirection = direction;
         }
+
+        farthestFrontface = max(farthestFrontface, rayDistance);
     }
 
     uint relocations = GlimmerProbeRelocations(state);
     uint updates = GlimmerProbeUpdates(state);
     float3 offset = GlimmerUnpackProbeOffset(state.y);
+
+    const bool isSealed = any(offset != 0.0) && farthestFrontface * invSpacing < GLIMMER_PROBE_SEALED_REACH;
 
     const float time = constants.volume.params.x;
 
@@ -288,7 +293,7 @@ void GlimmerBlendProbe(uint probeIndex, int4 slot, uint4 state, uint numRays, fl
 
     // inside a solid.
     // move out and start over, a few times before giving up.
-    if (float(numBackfaces + numStartsInside) >= insideFraction * float(numRays))
+    if (isSealed || float(numBackfaces + numStartsInside) >= insideFraction * float(numRays))
     {
         const uint insideStreak = GlimmerProbeInsideStreak(state) + 1u;
 
