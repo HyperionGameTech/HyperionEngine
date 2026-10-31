@@ -53,6 +53,8 @@ public:
 
     RenderProxyList& GetRenderProxyList() const;
 
+    bool IsEnabled() const;
+
     bool HasEntry(const Mesh* mesh) const;
     void PutEntry(const Mesh* mesh, bool invalidate = false);
     void RemoveEntry(const Mesh* mesh);
@@ -62,7 +64,7 @@ public:
     void Update(float delta);
 
 private:
-    bool EvictEntries(size_t bytesNeeded);
+    bool EvictEntries(size_t bytesNeeded, int belowResidency);
     bool HasFreeSpace(size_t bytes);
     void RemoveEntryAtIndex(uint32 index);
 

@@ -18,14 +18,19 @@
 
 #include <Core/Utilities/ClockTimer.hpp>
 
+#include <Framework/CVarManager.hpp>
+
 namespace Hyperion {
 
 EDITOR_API HYP_DECLARE_LOG_CHANNEL(Editor);
 
 extern uint32 GetFrameCounter();
 
+static CVar<bool> s_cvPickCacheEnabled { "Editor.PickCache", true };
+
 static constexpr int MinResidency = 1;
 static constexpr int MaxResidency = 10;
+static constexpr int VisibleResidency = MinResidency + 5;
 
 constexpr size_t IdealHeadroom = 1 * 1024 * 1024;
 constexpr size_t MaxMemoryUsageBytes = 256 * 1024 * 1024;
@@ -46,6 +51,7 @@ struct EditorPickCacheImpl
 
     Cache cache;
     FixedArray<ResidencySet, MaxResidency + 1> residencyMap;
+    TBitset<EditorAllocator> rejected;
     RenderProxyList renderProxyList { /* isShared */ false, /* useRefCounting */ false };
 
     ClockTimer timer { 1.0 }; // 1 tick per second
@@ -68,7 +74,7 @@ static int ComputeResidency(const EditorPickCacheEntry& entry)
 
     if (framesSinceVisible < 60) // visible within last second (assuming 60fps)
     {
-        residency += 5;
+        residency = VisibleResidency;
     }
     else if (framesSinceVisible < 300) // visible within last 5 seconds
     {
@@ -99,6 +105,11 @@ RenderProxyList& EditorPickCache::GetRenderProxyList() const
     return m_impl->renderProxyList;
 }
 
+bool EditorPickCache::IsEnabled() const
+{
+    return s_cvPickCacheEnabled.Get();
+}
+
 bool EditorPickCache::HasEntry(const Mesh* mesh) const
 {
     if (!mesh)
@@ -118,6 +129,11 @@ void EditorPickCache::PutEntry(const Mesh* mesh, bool invalidate)
     {
         HYP_LOG(Editor, Error, "Cannot add null mesh to editor pick cache");
 
+        return;
+    }
+
+    if (!IsEnabled())
+    {
         return;
     }
 
@@ -160,6 +176,10 @@ void EditorPickCache::PutEntry(const Mesh* mesh, bool invalidate)
             return; // already exists and we aren't invalidating.
         }
     }
+    else if (!invalidate && m_impl->rejected.Test(mesh->Id().ToIndex()))
+    {
+        return;
+    }
 
     auto resGuard = mesh->GetReadScope();
 
@@ -180,12 +200,16 @@ void EditorPickCache::PutEntry(const Mesh* mesh, bool invalidate)
 
     const size_t bytesNeeded = (vertexData.vertexCount * sizeof(Vec3f)) + numIndices * indexSize;
 
-    if (!HasFreeSpace(bytesNeeded) && !EvictEntries(bytesNeeded))
+    if (!HasFreeSpace(bytesNeeded) && !EvictEntries(bytesNeeded, VisibleResidency))
     {
-        HYP_LOG_ONCE(Editor, Error, "Not enough headroom in editor pick cache; cannot add mesh {} (id: {}) to editor pick cache", mesh->GetName(), mesh->Id());
+        HYP_LOG_ONCE(Editor, Warning, "Not enough headroom in editor pick cache; cannot add mesh {} (id: {}) to editor pick cache", mesh->GetName(), mesh->Id());
+
+        m_impl->rejected.Set(mesh->Id().ToIndex(), true);
 
         return;
     }
+
+    m_impl->rejected.Set(mesh->Id().ToIndex(), false);
 
     EditorPickCacheEntry& entry = m_impl->cache[mesh->Id().ToIndex()];
     entry.mesh = MakeWeakRef(mesh);
@@ -269,6 +293,11 @@ EditorPickCacheEntry* EditorPickCache::GetEntry(const Mesh* mesh)
         return nullptr;
     }
 
+    if (!IsEnabled())
+    {
+        return nullptr;
+    }
+
     if (m_impl->cache.HasIndex(mesh->Id().ToIndex()))
     {
         EditorPickCacheEntry& entry = m_impl->cache.Get(mesh->Id().ToIndex());
@@ -299,9 +328,11 @@ void EditorPickCache::Clear()
     {
         it.Clear();
     }
+
+    m_impl->rejected.Clear();
 }
 
-bool EditorPickCache::EvictEntries(size_t bytesNeeded)
+bool EditorPickCache::EvictEntries(size_t bytesNeeded, int belowResidency)
 {
     const MemoryMetrics metrics = g_editorPickCachePool->GetMemoryMetrics();
 
@@ -317,7 +348,7 @@ bool EditorPickCache::EvictEntries(size_t bytesNeeded)
         ? MaxMemoryUsageBytes - bytesNeeded
         : 0;
 
-    for (int residency = MinResidency; residency <= MaxResidency; ++residency)
+    for (int residency = MinResidency; residency < belowResidency; ++residency)
     {
         if (currentMemoryUsageBytes <= targetMemoryUsageBytes)
         {
@@ -383,6 +414,18 @@ void EditorPickCache::Update(float delta)
 
     m_impl->timer.NextTick();
 
+    if (!IsEnabled())
+    {
+        if (m_impl->cache.Any())
+        {
+            Clear();
+        }
+
+        return;
+    }
+
+    m_impl->rejected.Clear();
+
     for (int residency = MinResidency; residency <= MaxResidency; ++residency)
     {
         auto& entrySet = m_impl->residencyMap[residency];
@@ -421,9 +464,9 @@ void EditorPickCache::Update(float delta)
         return;
     }
 
-    if (!EvictEntries(IdealHeadroom))
+    if (!EvictEntries(IdealHeadroom, VisibleResidency))
     {
-        HYP_LOG(Editor, Warning, "Failed to evict enough entries to maintain ideal headroom in editor pick cache (used: {} bytes, ideal: {} bytes)",
+        HYP_LOG_ONCE(Editor, Warning, "Failed to evict enough entries to maintain ideal headroom in editor pick cache (used: {} bytes, ideal: {} bytes)",
             g_editorPickCachePool->GetMemoryMetrics()[MemoryMetrics::MM_BYTES_USED],
             MaxMemoryUsageBytes - IdealHeadroom);
     }
