@@ -289,6 +289,21 @@ void ApplicationWindow::SetSwapchain(const SwapchainRef& swapchain)
     m_swapchain = swapchain;
 }
 
+void ApplicationWindow::ReleaseSwapchain()
+{
+    TUniqueLock lock(m_mtx);
+
+    if (!m_swapchain.IsValid())
+        return;
+
+#if HYP_VULKAN
+    m_swapchain->TakeOwnershipOfSurface();
+    m_vkSurface = VK_NULL_HANDLE;
+#endif
+
+    EnqueueDeletion(std::move(m_swapchain));
+}
+
 #pragma endregion ApplicationWindow
 
 #pragma region AppContextBase

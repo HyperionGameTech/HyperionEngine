@@ -124,6 +124,7 @@ public:
 
     Swapchain* GetSwapchain() const;
     void SetSwapchain(const SwapchainRef& swapchain);
+    void ReleaseSwapchain();
 
 #if HYP_VULKAN
     HYP_FORCE_INLINE VkSurfaceKHR GetVkSurface() const

@@ -19,6 +19,7 @@
 #include <Core/Utilities/ClockTimer.hpp>
 
 #include <Framework/CVarManager.hpp>
+#include <Framework/EngineStats.hpp>
 
 namespace Hyperion {
 
@@ -28,14 +29,17 @@ extern uint32 GetFrameCounter();
 
 static CVar<bool> s_cvPickCacheEnabled { "Editor.PickCache", true };
 
-static constexpr int MinResidency = 1;
-static constexpr int MaxResidency = 10;
-static constexpr int VisibleResidency = MinResidency + 5;
+static EngineStatTimer s_statPickCache("Editor/PickCache");
+
+constexpr int MinResidency = 1;
+constexpr int MaxResidency = 10;
+constexpr int VisibleResidency = MinResidency + 5;
 
 constexpr size_t IdealHeadroom = 1 * 1024 * 1024;
 constexpr size_t MaxMemoryUsageBytes = 256 * 1024 * 1024;
+constexpr size_t MaxBytesAddedPerFrame = 16 * 1024 * 1024;
 
-static constexpr size_t BlockSize = (16 * 1024 * 1024);
+constexpr size_t BlockSize = (16 * 1024 * 1024);
 
 Pool s_editorPickCachePool { BlockSize, PF_FALLBACK };
 HYP_EXPORT Pool* g_editorPickCachePool = &s_editorPickCachePool;
@@ -55,6 +59,9 @@ struct EditorPickCacheImpl
     RenderProxyList renderProxyList { /* isShared */ false, /* useRefCounting */ false };
 
     ClockTimer timer { 1.0 }; // 1 tick per second
+
+    uint32 budgetFrame = 0;
+    size_t bytesAddedThisFrame = 0;
 
     EditorPickCacheImpl()
     {
@@ -123,6 +130,7 @@ bool EditorPickCache::HasEntry(const Mesh* mesh) const
 void EditorPickCache::PutEntry(const Mesh* mesh, bool invalidate)
 {
     HYP_SCOPE;
+    ENGINE_STAT_SCOPE(&s_statPickCache);
     AssertOnThread(g_simThread);
 
     if (!mesh)
@@ -181,24 +189,21 @@ void EditorPickCache::PutEntry(const Mesh* mesh, bool invalidate)
         return;
     }
 
-    auto resGuard = mesh->GetReadScope();
-
-    if (!resGuard)
-    {
-        HYP_LOG(Editor, Error, "Failed to get resource handle for mesh asset {} (id: {}), cannot add to editor pick cache", mesh->GetName(), mesh->Id());
-
-        return;
-    }
-
     const MeshDesc& meshDesc = mesh->GetMeshDesc();
 
-    const VertexArrayView vertexData = mesh->GetVertexData(0);
-    const Span<const ubyte> indexData = mesh->GetIndexData(0);
-
     const uint32 indexSize = GpuElemTypeSize(meshDesc.meshAttributes.indexBufferElemType);
-    const size_t numIndices = indexData.Size() / indexSize;
+    const size_t bytesNeeded = (size_t(meshDesc.lods[0].numVertices) * sizeof(Vec3f)) + size_t(meshDesc.lods[0].numIndices) * indexSize;
 
-    const size_t bytesNeeded = (vertexData.vertexCount * sizeof(Vec3f)) + numIndices * indexSize;
+    if (m_impl->budgetFrame != fc)
+    {
+        m_impl->budgetFrame = fc;
+        m_impl->bytesAddedThisFrame = 0;
+    }
+
+    if (!invalidate && m_impl->bytesAddedThisFrame != 0 && m_impl->bytesAddedThisFrame + bytesNeeded > MaxBytesAddedPerFrame)
+    {
+        return;
+    }
 
     if (!HasFreeSpace(bytesNeeded) && !EvictEntries(bytesNeeded, VisibleResidency))
     {
@@ -210,6 +215,22 @@ void EditorPickCache::PutEntry(const Mesh* mesh, bool invalidate)
     }
 
     m_impl->rejected.Set(mesh->Id().ToIndex(), false);
+
+    auto resGuard = mesh->GetReadScope();
+
+    if (!resGuard)
+    {
+        HYP_LOG(Editor, Error, "Failed to get resource handle for mesh asset {} (id: {}), cannot add to editor pick cache", mesh->GetName(), mesh->Id());
+
+        return;
+    }
+
+    const VertexArrayView vertexData = mesh->GetVertexData(0);
+    const Span<const ubyte> indexData = mesh->GetIndexData(0);
+
+    const size_t numIndices = indexData.Size() / indexSize;
+
+    m_impl->bytesAddedThisFrame += bytesNeeded;
 
     EditorPickCacheEntry& entry = m_impl->cache[mesh->Id().ToIndex()];
     entry.mesh = MakeWeakRef(mesh);
@@ -348,6 +369,23 @@ bool EditorPickCache::EvictEntries(size_t bytesNeeded, int belowResidency)
         ? MaxMemoryUsageBytes - bytesNeeded
         : 0;
 
+    size_t evictableBytes = 0;
+
+    for (int residency = MinResidency; residency < belowResidency; ++residency)
+    {
+        for (Bitset::BitIndex bit : m_impl->residencyMap[residency])
+        {
+            const EditorPickCacheEntry& entry = m_impl->cache.Get(bit);
+
+            evictableBytes += entry.positions.ByteSize() + entry.indices.ByteSize();
+        }
+    }
+
+    if (currentMemoryUsageBytes > targetMemoryUsageBytes + evictableBytes)
+    {
+        return false;
+    }
+
     for (int residency = MinResidency; residency < belowResidency; ++residency)
     {
         if (currentMemoryUsageBytes <= targetMemoryUsageBytes)
@@ -405,6 +443,7 @@ bool EditorPickCache::HasFreeSpace(size_t bytes)
 void EditorPickCache::Update(float delta)
 {
     HYP_SCOPE;
+    ENGINE_STAT_SCOPE(&s_statPickCache);
     AssertOnThread(g_simThread);
 
     if (m_impl->timer.Waiting())
