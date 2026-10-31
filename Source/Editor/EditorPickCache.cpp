@@ -32,7 +32,7 @@ constexpr size_t MaxMemoryUsageBytes = 256 * 1024 * 1024;
 
 static constexpr size_t BlockSize = (16 * 1024 * 1024);
 
-Pool s_editorPickCachePool { BlockSize, PF_NONE };
+Pool s_editorPickCachePool { BlockSize, PF_FALLBACK };
 HYP_EXPORT Pool* g_editorPickCachePool = &s_editorPickCachePool;
 
 // @TOOD Would be nice to compute screenspace size for each object using viewport camera and use that as part of residency computation?
