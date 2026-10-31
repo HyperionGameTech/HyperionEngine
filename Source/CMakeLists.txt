@@ -1806,6 +1806,10 @@ function(hyp_collect_static_link_items rootTarget outVar)
       foreach(dependency ${dependencies})
         string(REGEX REPLACE "^\\$<LINK_ONLY:(.*)>$" "\\1" dependency "${dependency}")
 
+        if(dependency MATCHES "^\\$<COMPILE_ONLY:")
+          continue()
+        endif()
+
         if(TARGET ${dependency})
           list(APPEND pending ${dependency})
         elseif(dependency MATCHES "^[A-Za-z0-9_.+-]+::[A-Za-z0-9_.+-]+$")

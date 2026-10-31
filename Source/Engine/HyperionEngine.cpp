@@ -829,6 +829,14 @@ extern "C"
 #endif // HYP_EDITOR
         }
 
+        if (g_appContext.IsValid())
+        {
+            for (const Handle<ApplicationWindow>& window : g_appContext->GetWindows())
+            {
+                window->ReleaseSwapchain();
+            }
+        }
+
         // Needs to be destroyed before render thread is stopped!
         delete g_shaderManager;
         g_shaderManager = nullptr;
