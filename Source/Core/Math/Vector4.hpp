@@ -17,7 +17,9 @@
 #include <Core/Types.hpp>
 
 #include <cmath>
+#include <cstddef>
 #include <cstdio>
+#include <cstring>
 
 #if !HYP_ARM && (defined(__SSE4_1__) || (HYP_MSVC && defined(_M_X64)))
 #include <immintrin.h>
@@ -756,15 +758,7 @@ struct alignas(alignof(Float16) * 4) Vec4<Float16>
 
     static constexpr uint32 size = 4;
 
-    union
-    {
-        struct
-        {
-            Type x, y, z, w;
-        };
-
-        Type values[4];
-    };
+    Type x, y, z, w;
 
     constexpr Vec4()
         : x(Float16::FromRaw(0)),
@@ -811,7 +805,9 @@ struct alignas(alignof(Float16) * 4) Vec4<Float16>
             return;
         }
 
-        Float16::FromFloat4(other.values, values);
+        Float16 halves[4];
+        Float16::FromFloat4(other.values, halves);
+        std::memcpy(this, halves, sizeof(halves));
     }
 
     constexpr Vec4(const Vec4& other) = default;
@@ -828,7 +824,8 @@ struct alignas(alignof(Float16) * 4) Vec4<Float16>
         }
 
         Vec4<float> result;
-        Float16::ToFloat4(values, result.values);
+        const Float16 halves[4] { x, y, z, w };
+        Float16::ToFloat4(halves, result.values);
 
         return result;
     }
@@ -840,12 +837,39 @@ struct alignas(alignof(Float16) * 4) Vec4<Float16>
 
     constexpr Type& operator[](size_t index)
     {
-        return values[index];
+        switch (index)
+        {
+        case 0:
+            return x;
+        case 1:
+            return y;
+        case 2:
+            return z;
+        default:
+            return w;
+        }
     }
 
     constexpr Type operator[](size_t index) const
     {
-        return values[index];
+        if (!std::is_constant_evaluated())
+        {
+            Type result;
+            std::memcpy(&result, reinterpret_cast<const unsigned char*>(this) + index * sizeof(Type), sizeof(Type));
+            return result;
+        }
+
+        switch (index)
+        {
+        case 0:
+            return x;
+        case 1:
+            return y;
+        case 2:
+            return z;
+        default:
+            return w;
+        }
     }
 
     HYP_FORCE_INLINE Vec4 operator+(const Vec4& other) const
@@ -942,6 +966,7 @@ static_assert(sizeof(Vec4f) == sizeof(float) * 4, "sizeof(Vec4f) must be equal t
 static_assert(sizeof(Vec4i) == sizeof(int) * 4, "sizeof(Vec4i) must be equal to sizeof(int) * 4");
 static_assert(sizeof(Vec4u) == sizeof(uint32) * 4, "sizeof(Vec4u) must be equal to sizeof(uint32) * 4");
 static_assert(sizeof(Vec4h) == sizeof(Float16) * 4, "sizeof(Vec4h) must be equal to sizeof(Float16) * 4");
+static_assert(std::is_standard_layout_v<Vec4h> && offsetof(Vec4h, y) == 2 && offsetof(Vec4h, z) == 4 && offsetof(Vec4h, w) == 6, "Vec4h is copied and indexed as a Float16[4] via memcpy");
 
 template <class T>
 inline constexpr bool isVec4 = false;
