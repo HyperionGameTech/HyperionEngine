@@ -171,7 +171,7 @@ Click a section header below to expand it:
 Currently, we are focusing our efforts on developing the engine for *Windows*,  *Linux*, *macOS*, *Android*, *iOS*, *Web* (WebAssembly + WebGPU), and Steam Deck (via Proton). The editor is supported on all desktop platforms. (Windows, Linux, macOS)
 
 ## Status
-Hyperion is in active development. APIs, editor workflows, and asset formats can still change between versions.
+Hyperion is in active development. Project and asset formats will remain backward compatible with today's state.
 
 ## Getting started
 Clone with `--recursive` to pull in submodules, then run `build.bat Release` on Windows or `./build.sh Release` on macOS. You'll need CMake and the .NET 10 SDK, plus vcpkg (`VCPKG_ROOT` set) on Windows or the Vulkan SDK on macOS and Android. See [Compiling the Engine](Documentation/CompilingTheEngine.md) for the full list and per-platform notes.
