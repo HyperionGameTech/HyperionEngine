@@ -11,6 +11,8 @@ namespace Hyperion.Editor.Services
     {
         private static string EditorDirectory => Path.GetDirectoryName(Environment.ProcessPath) ?? AppContext.BaseDirectory;
 
+        private static readonly string[] EngineSourceExtensions = { ".cpp", ".hpp", ".h", ".inl", ".c" };
+
         public static string ExpectedDirectory => Path.Combine(EditorDirectory, "Sdk");
 
         public static string ExpectedShippingDirectory => Path.Combine(ExpectedDirectory, "Shipping");
@@ -119,6 +121,66 @@ namespace Hyperion.Editor.Services
             }
 
             return (libraries, linkOptions);
+        }
+
+        public string? FindNewerEngineSource()
+        {
+            string devPathsFile = Path.Combine(Directory, "CMake", "HyperionSdkDevPaths.cmake");
+
+            if (!IsShipping || !File.Exists(devPathsFile))
+            {
+                return null;
+            }
+
+            Match baseDirectoryMatch = Regex.Match(File.ReadAllText(devPathsFile), "set\\(HYPERION_SDK_BASE_DIR \"([^\"]*)\"\\)");
+
+            if (!baseDirectoryMatch.Success)
+            {
+                return null;
+            }
+
+            List<string> engineLibraries = GetStaticLinkInputs().Libraries.Where(Path.IsPathRooted).ToList();
+
+            if (engineLibraries.Count == 0)
+            {
+                return null;
+            }
+
+            DateTime builtTime = engineLibraries.Max(File.GetLastWriteTimeUtc);
+
+            string sourceDirectory = Path.GetFullPath(Path.Combine(baseDirectoryMatch.Groups[1].Value, "Source"));
+            string pluginsDirectory = Path.Combine(sourceDirectory, "Plugins");
+
+            List<string> engineSourceDirectories = new List<string>
+            {
+                Path.Combine(sourceDirectory, "Core"),
+                Path.Combine(sourceDirectory, "Engine")
+            };
+
+            if (System.IO.Directory.Exists(pluginsDirectory))
+            {
+                engineSourceDirectories.AddRange(System.IO.Directory.GetDirectories(pluginsDirectory)
+                    .Select(pluginDirectory => Path.Combine(pluginDirectory, "Source"))
+                    .Where(System.IO.Directory.Exists)
+                    .SelectMany(System.IO.Directory.GetDirectories)
+                    .Where(moduleDirectory => !Path.GetFileName(moduleDirectory).EndsWith("Editor", StringComparison.Ordinal)));
+            }
+
+            string bakingDirectory = Path.Combine(sourceDirectory, "Engine", "Baking") + Path.DirectorySeparatorChar;
+
+            foreach (string engineSourceDirectory in engineSourceDirectories.Where(System.IO.Directory.Exists))
+            {
+                string? newerSource = System.IO.Directory.EnumerateFiles(engineSourceDirectory, "*", SearchOption.AllDirectories)
+                    .Where(path => EngineSourceExtensions.Contains(Path.GetExtension(path)) && !path.StartsWith(bakingDirectory, StringComparison.OrdinalIgnoreCase))
+                    .FirstOrDefault(path => File.GetLastWriteTimeUtc(path) > builtTime);
+
+                if (newerSource != null)
+                {
+                    return newerSource;
+                }
+            }
+
+            return null;
         }
 
         /// The registration objects of these built-in plugin modules (Sdk/PluginModuleObjects.txt); linking one into the executable adds its module.

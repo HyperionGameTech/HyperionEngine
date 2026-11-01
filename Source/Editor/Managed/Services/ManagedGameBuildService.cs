@@ -118,6 +118,20 @@ namespace Hyperion.Editor.Services
 
         public bool BuildPackage(string projectFilePath, string binariesDirectory, string outputDirectory)
         {
+            HyperionSdk? shippingSdk = HyperionSdk.Find(shipping: true);
+            string? newerEngineSource = shippingSdk?.FindNewerEngineSource();
+
+            if (shippingSdk != null && newerEngineSource != null)
+            {
+                string message = $"The shipping SDK at {shippingSdk.Directory} is older than {newerEngineSource}, so the game wouldn't match the content the editor cooks. Rebuild it with BuildHyperion sdk.";
+
+                Logger.Log(BuildLogChannel, LogLevel.Error, "{0}", message);
+
+                ShowMessage(MessageBox.Critical("Shipping SDK out of date", message).Button("OK", () => { }));
+
+                return false;
+            }
+
             if (!CookPackage(projectFilePath, outputDirectory))
             {
                 return false;
