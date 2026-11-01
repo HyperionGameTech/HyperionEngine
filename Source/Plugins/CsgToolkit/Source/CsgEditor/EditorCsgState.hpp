@@ -25,6 +25,7 @@
 #include <Core/Functional/Delegate.hpp>
 
 #include <Core/Utilities/Optional.hpp>
+#include <Core/Utilities/Traits.hpp>
 
 #include <Editor/EditorMemory.hpp>
 #include <Editor/EditorAction.hpp>
@@ -72,6 +73,7 @@ enum class CsgOperation : uint8
 static constexpr uint32 NumCsgOperations = uint32(CsgOperation::Max);
 
 enum class CsgSessionId : uint32;
+static constexpr CsgSessionId InvalidCsgSession = Invalid<CsgSessionId>;
 
 static constexpr const char* CsgOperationNames[NumCsgOperations] = {
     "Union",
@@ -324,7 +326,8 @@ private:
     Mat4f m_gatheredBrushMatrix;
     uint32 m_framesSinceGather = 0;
 
-    CsgSessionId m_sessionId = CsgSessionId(0);
+    CsgSessionId m_sessionId = InvalidCsgSession;
+    uint32 m_nextSessionId = 0;
 
     Array<Handle<EditorActionBase>, EditorAllocator> m_brushActions;
     Array<Handle<EditorActionBase>, EditorAllocator> m_applyActions;

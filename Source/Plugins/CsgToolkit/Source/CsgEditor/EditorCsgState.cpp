@@ -605,7 +605,7 @@ void EditorCsgState::Enter()
     m_subsystem->GetTerrainState()->SetEnabled(false);
     m_subsystem->DisableSurfacePainters();
 
-    m_sessionId = CsgSessionId(uint32(m_sessionId) + 1);
+    m_sessionId = CsgSessionId(m_nextSessionId++);
     m_brushActions.Clear();
     m_applyActions.Clear();
 
@@ -712,6 +712,7 @@ void EditorCsgState::Exit(bool saveEdits)
     }
 
     m_enabled = false;
+    m_sessionId = InvalidCsgSession;
 
     m_targets.Clear();
     m_listedTargets.Clear();
