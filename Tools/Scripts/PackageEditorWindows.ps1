@@ -485,10 +485,10 @@ if ($IsMonolithic -and (Test-Path $SdkCMakeFile) -and (Test-Path $SdkImportLibra
     if ($sdkCMakeText -notmatch 'set\(HYPERION_SDK_THIRD_PARTY_DIRS "([^"]*)"\)') { throw "HYPERION_SDK_THIRD_PARTY_DIRS not found in $SdkCMakeFile" }
     foreach ($thirdPartyDir in ($Matches[1] -split ";" | Where-Object { $_ }))
     {
-        # External/ThirdParty/Source, or a submodule (tracy/public)
         $thirdPartySource = Join-Path $RootDir "External/ThirdParty/Source/$thirdPartyDir"
         if (-not (Test-Path $thirdPartySource)) { $thirdPartySource = Join-Path $RootDir "External/Submodules/$thirdPartyDir" }
-        if (-not (Test-Path $thirdPartySource)) { throw "SDK include folder $thirdPartyDir not found under External/ThirdParty/Source or External/Submodules" }
+        if (-not (Test-Path $thirdPartySource)) { $thirdPartySource = Join-Path $BinDir "Sdk/ThirdParty/$thirdPartyDir" }
+        if (-not (Test-Path $thirdPartySource)) { throw "SDK include folder $thirdPartyDir not found under External/ThirdParty/Source, External/Submodules or $BinDir/Sdk/ThirdParty" }
         Copy-Directory $thirdPartySource (Join-Path $SdkStageDir "ThirdParty/$thirdPartyDir")
     }
 

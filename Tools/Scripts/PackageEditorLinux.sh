@@ -222,9 +222,9 @@ if [[ -f "$SDK_CMAKE_FILE" ]]; then
 
     third_party_dirs="$(sed -nE 's/^set\(HYPERION_SDK_THIRD_PARTY_DIRS "([^"]*)"\)/\1/p' "$SDK_CMAKE_FILE")"
     for third_party_dir in ${third_party_dirs//;/ }; do
-        # External/ThirdParty/Source, or a submodule (tracy/public)
         third_party_source="$ROOT_DIR/External/ThirdParty/Source/$third_party_dir"
         [[ -d "$third_party_source" ]] || third_party_source="$ROOT_DIR/External/Submodules/$third_party_dir"
+        [[ -d "$third_party_source" ]] || third_party_source="$BIN_DIR/Sdk/ThirdParty/$third_party_dir"
         mkdir -p "$SDK_STAGE_DIR/ThirdParty/$third_party_dir"
         cp -R "$third_party_source/." "$SDK_STAGE_DIR/ThirdParty/$third_party_dir/"
     done
