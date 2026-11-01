@@ -31,6 +31,13 @@ namespace Hyperion {
 
 static CVar<float> s_cvEditorCameraMouseSensitivity { "Editor.Camera.MouseSensitivity", 50.0f };
 static CVar<float> s_cvEditorCameraMovementSpeed { "Editor.Camera.MovementSpeed", 0.5f };
+static CVar<float> s_cvEditorCameraMoveSpeed { "Editor.Camera.MoveSpeed", 1.0f };
+
+static constexpr float BaseMoveSpeed = 15.0f;
+static constexpr float BoostMoveSpeedScale = 3.0f;
+static constexpr float MoveSpeedScrollStep = 1.25f;
+static constexpr float MinMoveSpeed = 0.05f;
+static constexpr float MaxMoveSpeed = 50.0f;
 
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(Camera);
 
@@ -41,6 +48,8 @@ static constexpr BitField<NumKeyboardKeys> GetMovementKeys(bool includeArrowKeys
     bits.Set(uint32(KeyCode::KEY_A), true);
     bits.Set(uint32(KeyCode::KEY_S), true);
     bits.Set(uint32(KeyCode::KEY_D), true);
+    bits.Set(uint32(KeyCode::KEY_Q), true);
+    bits.Set(uint32(KeyCode::KEY_E), true);
 
     if (includeArrowKeys)
     {
@@ -149,7 +158,7 @@ bool EditorCameraInputHandler::OnMouseDrag(const MouseEvent& evt)
     Assert(camera != nullptr);
 
     const double lookMultiplier = s_cvEditorCameraMouseSensitivity.Get();
-    const double moveMultiplier = s_cvEditorCameraMovementSpeed.Get();
+    const double moveMultiplier = s_cvEditorCameraMovementSpeed.Get() * EditorCameraController::GetMoveSpeed();
 
     const double mouseDeltaX = double(evt.relativePos.x) - double(evt.relativePrevPos.x);
     const double mouseDeltaY = double(evt.relativePos.y) - double(evt.relativePrevPos.y);
@@ -197,6 +206,20 @@ bool EditorCameraInputHandler::OnMouseDrag(const MouseEvent& evt)
             MathUtil::DegToRad(mouseDeltaY * lookMultiplier),
             0.98f);
     }
+
+    return true;
+}
+
+bool EditorCameraInputHandler::OnMouseScroll(const MouseEvent& evt)
+{
+    if (!m_controller || evt.wheel.y == 0)
+    {
+        return false;
+    }
+
+    const float wheelSteps = float(evt.wheel.y) / 120.0f;
+
+    EditorCameraController::SetMoveSpeed(EditorCameraController::GetMoveSpeed() * MathUtil::Pow(MoveSpeedScrollStep, wheelSteps));
 
     return true;
 }
@@ -279,6 +302,63 @@ void EditorCameraController::SetMode(EditorCameraControllerMode mode)
     }
 
     m_mode = mode;
+}
+
+float EditorCameraController::GetMoveSpeed()
+{
+    return s_cvEditorCameraMoveSpeed.Get();
+}
+
+void EditorCameraController::SetMoveSpeed(float moveSpeed)
+{
+    s_cvEditorCameraMoveSpeed.Set(MathUtil::Clamp(moveSpeed, MinMoveSpeed, MaxMoveSpeed));
+}
+
+void EditorCameraController::ResetMoveSpeed()
+{
+    SetMoveSpeed(1.0f);
+}
+
+Vec3f EditorCameraController::GetKeyboardMovement(double delta) const
+{
+    const Vec3f direction = m_camera->GetDirection();
+    const Vec3f dirCrossY = m_camera->GetSideVector();
+
+    Vec3f movement;
+
+    if (m_inputHandler->IsKeyDown(KeyCode::KEY_W))
+    {
+        movement += direction;
+    }
+    if (m_inputHandler->IsKeyDown(KeyCode::KEY_S))
+    {
+        movement -= direction;
+    }
+    if (m_inputHandler->IsKeyDown(KeyCode::KEY_A))
+    {
+        movement -= dirCrossY;
+    }
+    if (m_inputHandler->IsKeyDown(KeyCode::KEY_D))
+    {
+        movement += dirCrossY;
+    }
+    if (m_inputHandler->IsKeyDown(KeyCode::KEY_E))
+    {
+        movement += Vec3f::UnitY();
+    }
+    if (m_inputHandler->IsKeyDown(KeyCode::KEY_Q))
+    {
+        movement -= Vec3f::UnitY();
+    }
+
+    float speed = BaseMoveSpeed * GetMoveSpeed();
+
+    if (m_inputHandler->IsKeyDown(KeyCode::KEY_LSHIFT) || m_inputHandler->IsKeyDown(KeyCode::KEY_RSHIFT))
+    {
+        speed *= BoostMoveSpeedScale;
+    }
+
+    return movement.Normalized() * float(delta) * speed;
 }
 
 void EditorCameraController::UpdateLogic(double delta)

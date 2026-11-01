@@ -1458,6 +1458,7 @@ namespace Hyperion.Editor
             if (DataContext is MainWindowViewModel vm)
             {
                 vm.RefreshDebugOverlayToggleStates();
+                vm.RefreshCameraMoveSpeed();
             }
 
             if (sender is not ContextMenu menu)

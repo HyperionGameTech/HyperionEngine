@@ -19,11 +19,13 @@
 
 namespace Hyperion {
 
-static constexpr float mouseSensitivity = 120.0f;
-static constexpr float mouseBlending = 0.0f;
-static constexpr float movementSpeed = 1.0f;
-static constexpr float movementSpeed2 = movementSpeed * 2.0f;
-static constexpr float movementBlending = 0.01f;
+constexpr float MouseSensitivity = 120.0f;
+constexpr float MovementSpeed = 15.0f;
+
+constexpr float TouchSensitivity = 80.0f;
+
+constexpr float ControllerLookSensitivity = 8.0f;
+constexpr float ControllerMovementSpeed = 15.0f;
 
 #pragma region FirstPersonCameraInputHandler
 
@@ -85,7 +87,7 @@ bool FirstPersonCameraInputHandler::OnMouseMove(const MouseEvent& evt)
         return false;
     }
 
-    const Vec2f mouseDelta = (evt.relativePos - evt.relativePrevPos) * mouseSensitivity;
+    const Vec2f mouseDelta = (evt.relativePos - evt.relativePrevPos) * MouseSensitivity;
 
     CameraUtils::ApplyYawPitch(*camera, MathUtil::DegToRad(mouseDelta.x), MathUtil::DegToRad(mouseDelta.y), 0.98f);
 
@@ -133,7 +135,6 @@ bool FirstPersonCameraInputHandler::OnTouchMove(const TouchEvent& evt)
         return false;
     }
 
-    static constexpr float TouchSensitivity = 80.0f;
     Vec2f touchDelta = evt.relativeDelta * TouchSensitivity;
 
     CameraUtils::ApplyYawPitch(*camera, MathUtil::DegToRad(touchDelta.x), MathUtil::DegToRad(touchDelta.y), 0.98f);
@@ -288,12 +289,37 @@ void FirstPersonCameraController::Init()
     InitObject(m_inputHandler);
 }
 
+Vec3f FirstPersonCameraController::GetKeyboardMovement(double delta) const
+{
+    const Vec3f direction = m_camera->GetDirection();
+    const Vec3f dirCrossY = m_camera->GetSideVector();
+
+    Vec3f movement;
+
+    if (m_inputHandler->IsKeyDown(KeyCode::KEY_W))
+    {
+        movement += direction;
+    }
+    if (m_inputHandler->IsKeyDown(KeyCode::KEY_S))
+    {
+        movement -= direction;
+    }
+    if (m_inputHandler->IsKeyDown(KeyCode::KEY_A))
+    {
+        movement -= dirCrossY;
+    }
+    if (m_inputHandler->IsKeyDown(KeyCode::KEY_D))
+    {
+        movement += dirCrossY;
+    }
+
+    return movement * float(delta) * MovementSpeed;
+}
+
 void FirstPersonCameraController::UpdateLogic(double delta)
 {
     HYP_SCOPE;
 
-    static constexpr float MovementSpeed = 15.0f;
-    static constexpr float ControllerLookSensitivity = 8.0f;
 
     m_inputHandler->SetDeltaTime(delta);
 
@@ -315,23 +341,7 @@ void FirstPersonCameraController::UpdateLogic(double delta)
     const Vec3f direction = m_camera->GetDirection();
     const Vec3f dirCrossY = m_camera->GetSideVector();
 
-    // Keyboard movement (WASD)
-    if (m_inputHandler->IsKeyDown(KeyCode::KEY_W))
-    {
-        translation += direction * delta * MovementSpeed;
-    }
-    if (m_inputHandler->IsKeyDown(KeyCode::KEY_S))
-    {
-        translation -= direction * delta * MovementSpeed;
-    }
-    if (m_inputHandler->IsKeyDown(KeyCode::KEY_A))
-    {
-        translation -= dirCrossY * delta * MovementSpeed;
-    }
-    if (m_inputHandler->IsKeyDown(KeyCode::KEY_D))
-    {
-        translation += dirCrossY * delta * MovementSpeed;
-    }
+    translation += GetKeyboardMovement(delta);
 
     const Vec2f& touchDelta = m_inputHandler->GetTouchMovementDelta();
     if (!touchDelta.IsZero())
@@ -344,7 +354,6 @@ void FirstPersonCameraController::UpdateLogic(double delta)
     const Vec2f& controllerMove = m_inputHandler->GetControllerMoveDelta();
     if (!controllerMove.IsZero())
     {
-        static constexpr float ControllerMovementSpeed = 15.0f;
         translation += direction * controllerMove.y * delta * ControllerMovementSpeed;
         translation += dirCrossY * controllerMove.x * delta * ControllerMovementSpeed;
     }

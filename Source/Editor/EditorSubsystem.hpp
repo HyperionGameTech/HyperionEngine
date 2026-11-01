@@ -708,6 +708,15 @@ public:
     HYP_METHOD()
     void SetViewportForcedLod(int32 lodIndex);
 
+    HYP_METHOD()
+    float GetCameraMoveSpeed() const;
+
+    HYP_METHOD()
+    void SetCameraMoveSpeed(float moveSpeed);
+
+    HYP_METHOD()
+    void ResetCameraMoveSpeed();
+
     ///Volumes
 
     /*! \brief True if \p volume is a bounded volume and the selection holds at least one other node with finite bounds. */

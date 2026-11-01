@@ -36,6 +36,7 @@ public:
     virtual bool OnMouseUp(const MouseEvent& evt) override;
     virtual bool OnMouseMove(const MouseEvent& evt) override;
     virtual bool OnMouseDrag(const MouseEvent& evt) override;
+    virtual bool OnMouseScroll(const MouseEvent& evt) override;
     virtual bool OnMouseLeave(const MouseEvent& evt) override;
     virtual bool OnClick(const MouseEvent& evt) override;
     virtual bool OnGainFocus(const MouseEvent& evt) override;
@@ -61,10 +62,16 @@ public:
 
     void SetMode(EditorCameraControllerMode mode);
 
+    static float GetMoveSpeed();
+    static void SetMoveSpeed(float moveSpeed);
+    static void ResetMoveSpeed();
+
     virtual void UpdateLogic(double delta) override;
 
 protected:
     virtual void OnActivated() override;
+
+    virtual Vec3f GetKeyboardMovement(double delta) const override;
 
     EditorCameraControllerMode m_mode;
 };

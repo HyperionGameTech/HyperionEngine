@@ -1385,6 +1385,36 @@
                                             CommandParameter="3"
                                             Header="Force LOD 3" />
                                     </MenuItem>
+                                    <MenuItem Header="{Binding CameraMoveSpeedText}" ToolTip.Tip="Editor camera move speed. Scroll in the viewport to change it, hold Shift to move faster">
+                                        <MenuItem
+                                            Command="{Binding ResetCameraMoveSpeed}"
+                                            Header="Reset Move Speed" />
+                                        <Separator />
+                                        <MenuItem
+                                            Command="{Binding SetCameraMoveSpeed}"
+                                            CommandParameter="0.25"
+                                            Header="0.25x" />
+                                        <MenuItem
+                                            Command="{Binding SetCameraMoveSpeed}"
+                                            CommandParameter="0.5"
+                                            Header="0.5x" />
+                                        <MenuItem
+                                            Command="{Binding SetCameraMoveSpeed}"
+                                            CommandParameter="1"
+                                            Header="1x" />
+                                        <MenuItem
+                                            Command="{Binding SetCameraMoveSpeed}"
+                                            CommandParameter="2"
+                                            Header="2x" />
+                                        <MenuItem
+                                            Command="{Binding SetCameraMoveSpeed}"
+                                            CommandParameter="4"
+                                            Header="4x" />
+                                        <MenuItem
+                                            Command="{Binding SetCameraMoveSpeed}"
+                                            CommandParameter="8"
+                                            Header="8x" />
+                                    </MenuItem>
 
                                     <Separator />
                                     <MenuItem

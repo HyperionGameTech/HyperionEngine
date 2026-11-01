@@ -104,6 +104,8 @@ protected:
     virtual void OnActivated() override;
     virtual void OnDeactivated() override;
 
+    virtual Vec3f GetKeyboardMovement(double delta) const;
+
     FirstPersonCameraControllerMode m_mode;
 
     HYP_FIELD(Property = "MovementEnabled", Serialize, Editor, Title = "Movement Enabled", Description = "Fly the camera with movement input. Disable when something else moves the camera, e.g. a character controller parent")

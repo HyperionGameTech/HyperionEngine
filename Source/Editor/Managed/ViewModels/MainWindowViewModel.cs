@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -832,6 +833,15 @@ namespace Hyperion.Editor.ViewModels
         public bool IsViewportLodAutomatic => _viewportForcedLod < 0;
         public string ViewportLodText => _viewportForcedLod < 0 ? "Viewport LOD: Auto" : $"Viewport LOD: {_viewportForcedLod}";
 
+        public ICommand SetCameraMoveSpeed { get; private set; }
+        public ICommand ResetCameraMoveSpeed { get; private set; }
+        public string CameraMoveSpeedText => $"Move Speed: {(_editorSubsystem?.GetCameraMoveSpeed() ?? 1.0f).ToString("0.##", CultureInfo.InvariantCulture)}x";
+
+        public void RefreshCameraMoveSpeed()
+        {
+            OnPropertyChanged(nameof(CameraMoveSpeedText));
+        }
+
         public ICommand SetMeshEditLod { get; private set; }
         public int MeshEditLod => _meshEditState.LodIndex;
         public int MeshEditNumLods => _meshEditState.NumLods;
@@ -1342,6 +1352,28 @@ namespace Hyperion.Editor.ViewModels
                         OnPropertyChanged(nameof(ViewportLodText));
                         OnPropertyChanged(nameof(IsViewportLodAutomatic));
                     });
+                });
+            });
+
+            SetCameraMoveSpeed = new RelayCommand<object?>(moveSpeed =>
+            {
+                float speed = ParseCommandFloat(moveSpeed, 1.0f);
+
+                _ = EngineManager.PostToSimThread(() =>
+                {
+                    _editorSubsystem.SetCameraMoveSpeed(speed);
+
+                    Dispatcher.UIThread.Post(RefreshCameraMoveSpeed);
+                });
+            });
+
+            ResetCameraMoveSpeed = new RelayCommand(() =>
+            {
+                _ = EngineManager.PostToSimThread(() =>
+                {
+                    _editorSubsystem.ResetCameraMoveSpeed();
+
+                    Dispatcher.UIThread.Post(RefreshCameraMoveSpeed);
                 });
             });
 
@@ -2936,6 +2968,16 @@ namespace Hyperion.Editor.ViewModels
             {
                 int value => value,
                 string text when int.TryParse(text, out int parsed) => parsed,
+                _ => fallback
+            };
+        }
+
+        private static float ParseCommandFloat(object? parameter, float fallback)
+        {
+            return parameter switch
+            {
+                float value => value,
+                string text when float.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out float parsed) => parsed,
                 _ => fallback
             };
         }

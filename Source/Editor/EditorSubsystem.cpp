@@ -3424,6 +3424,21 @@ void EditorSubsystem::SetViewportForcedLod(int32 lodIndex)
     g_cvMeshLodForceLod.Set(MathUtil::Clamp(lodIndex, -1, int32(MaxMeshLods) - 1));
 }
 
+float EditorSubsystem::GetCameraMoveSpeed() const
+{
+    return EditorCameraController::GetMoveSpeed();
+}
+
+void EditorSubsystem::SetCameraMoveSpeed(float moveSpeed)
+{
+    EditorCameraController::SetMoveSpeed(moveSpeed);
+}
+
+void EditorSubsystem::ResetCameraMoveSpeed()
+{
+    EditorCameraController::ResetMoveSpeed();
+}
+
 static VolumeBase* ResolveFittableVolume(Node* node)
 {
     VolumeBase* volume = TryCast<VolumeBase>(node);
@@ -4948,6 +4963,32 @@ void EditorSubsystem::InitViewport()
             return UIEventHandlerResult::OK;
         }));
 
+    backdropPanel->OnScroll.RemoveAllFromSet(m_delegateHandlers);
+    m_delegateHandlers.Add(backdropPanel->OnScroll.Bind(
+        backdropPanel.Get(),
+        [this](const MouseEvent& event)
+        {
+            EditorViewport* activeViewport = AcquireInputViewport();
+            if (!activeViewport)
+            {
+                return UIEventHandlerResult::OK;
+            }
+
+            CameraController* controller = activeViewport->GetCamera()->GetCameraController();
+
+            if (controller != nullptr)
+            {
+                InputHandlerBase* inputHandler = controller->GetInputHandler();
+
+                if (inputHandler != nullptr && inputHandler->OnMouseScroll(event))
+                {
+                    return UIEventHandlerResult::STOP_BUBBLING;
+                }
+            }
+
+            return UIEventHandlerResult::OK;
+        }));
+
     backdropPanel->OnMouseDrag.RemoveAllFromSet(m_delegateHandlers);
     m_delegateHandlers.Add(backdropPanel->OnMouseDrag.Bind(
         backdropPanel.Get(),
@@ -5167,7 +5208,7 @@ void EditorSubsystem::InitViewport()
                 return UIEventHandlerResult::OK;
             }
 
-            if (GetTerrainState()->IsEnabled())
+            if (GetTerrainState()->IsEnabled() && event.mouseButtons[MouseButtonState::LEFT])
             {
                 InputManager* inputManager = GetActiveInputManager();
 
@@ -5176,7 +5217,7 @@ void EditorSubsystem::InitViewport()
                 return UIEventHandlerResult::STOP_BUBBLING;
             }
 
-            if (EditorSurfacePainterState* painter = GetActiveSurfacePainter())
+            if (EditorSurfacePainterState* painter = GetActiveSurfacePainter(); painter && event.mouseButtons[MouseButtonState::LEFT])
             {
                 InputManager* inputManager = GetActiveInputManager();
 
