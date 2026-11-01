@@ -202,7 +202,9 @@ public:
 
 private:
     static void MarkIfCreatedByCook(AssetObject& assetObject);
-    
+
+    void PersistLocalBlobData(uint32 bucketIndex, AssetObject& assetObject);
+
     FilePath GetBucketDirectory(uint32 bucketIndex) const;
 
     AssetRegistryId m_registryId;

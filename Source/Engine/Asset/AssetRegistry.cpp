@@ -1149,13 +1149,79 @@ void AssetRegistry::PutAsset(const AssetBucket& bucket, const Handle<AssetObject
     if (!IsGlobalContextActive<AssetLoadingContext>())
     {
         // Blob data must be persisted before it can be unpaged on last read scope release
-        const FilePath localBlobDir = GetAssetDirectory(bucket.GetIndex(), assetObject->GetName());
-        if (Result persistResult = assetObject->PersistBlobData(nullptr, localBlobDir); persistResult.HasError())
+        PersistLocalBlobData(bucket.GetIndex(), *assetObject);
+    }
+}
+
+void AssetRegistry::PersistLocalBlobData(uint32 bucketIndex, AssetObject& assetObject)
+{
+    const FilePath localBlobDir = GetAssetDirectory(bucketIndex, assetObject.GetName());
+
+    if (Result persistResult = assetObject.PersistBlobData(nullptr, localBlobDir); persistResult.HasError())
+    {
+        HYP_LOG(Assets, Warning, "Failed to persist blob data for asset '{}': {}",
+                assetObject.GetName(), persistResult.GetError().GetMessage());
+
+        return;
+    }
+
+    if (assetObject.IsTransient() || !assetObject.IsRegistered())
+    {
+        return;
+    }
+
+    Array<Tuple<const char*, uint16, BlobDataReference*>> blobDataReferences;
+    assetObject.CollectBlobDataReferences(blobDataReferences);
+
+    const bool wroteBlobData = AnyOf(blobDataReferences, [](const Tuple<const char*, uint16, BlobDataReference*>& tup)
         {
-            HYP_LOG(Assets, Warning, "Failed to persist blob data for asset '{}': {}",
-                    assetObject->GetName(), persistResult.GetError().GetMessage());
+            const BlobDataReference* reference = tup.GetElement<2>();
+
+            return reference && reference->raw;
+        });
+
+    const FilePath manifestPath = localBlobDir / (assetObject.GetName().ToString() + ".hmf");
+
+    if (!wroteBlobData || !manifestPath.Exists())
+    {
+        return;
+    }
+
+    // the blob files just replaced the ones this manifest describes; rewrite it too or the pair disagree on disk until the next save
+    MemoryByteWriter<DynamicAllocator> manifestText;
+
+    if (Result saveManifestResult = assetObject.SaveManifest(manifestText); saveManifestResult.HasError())
+    {
+        HYP_LOG(Assets, Warning, "Failed to save manifest for asset '{}': {}",
+                assetObject.GetName(), saveManifestResult.GetError().GetMessage());
+
+        return;
+    }
+
+    const ByteBuffer& newManifest = manifestText.GetBuffer();
+
+    {
+        FileByteReader existingReader { manifestPath };
+        const ByteBuffer existingManifest = existingReader.Read();
+
+        if (existingManifest.Size() == newManifest.Size()
+            && (newManifest.Size() == 0 || Memory::Compare(existingManifest.Data(), newManifest.Data(), newManifest.Size()) == 0))
+        {
+            return;
         }
     }
+
+    FileByteWriter manifestWriter { manifestPath };
+
+    if (!manifestWriter.IsOpen())
+    {
+        HYP_LOG(Assets, Warning, "Failed to open manifest file '{}' for writing", manifestPath);
+
+        return;
+    }
+
+    manifestWriter.Write(newManifest.Data(), newManifest.Size());
+    manifestWriter.Close();
 }
 
 void AssetRegistry::PutAssetUnique(const Handle<AssetObject>& assetObject)
@@ -1229,12 +1295,7 @@ void AssetRegistry::PutAssetUnique(const AssetBucket& bucket, const Handle<Asset
 
     // Blob data must be persisted before it can be unpaged (last read scope release),
     // otherwise unpaging a never-saved asset would lose its data.
-    const FilePath localBlobDir = GetAssetDirectory(bucket.GetIndex(), assetObject->GetName());
-    if (Result persistResult = assetObject->PersistBlobData(nullptr, localBlobDir); persistResult.HasError())
-    {
-        HYP_LOG(Assets, Warning, "Failed to persist blob data for asset '{}': {}",
-                assetObject->GetName(), persistResult.GetError().GetMessage());
-    }
+    PersistLocalBlobData(bucket.GetIndex(), *assetObject);
 }
 
 void AssetRegistry::WalkAssetDeep(const BoxedValue& target, const ProcRef<void(const Handle<AssetObject>&)>& onAssetFound)

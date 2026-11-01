@@ -229,6 +229,7 @@ void RenderThread::Update()
         target.swapchain = swapchain;
         target.viewport = Viewport { Vec2u(Vec2f(swapchain->GetExtent()) * window->GetRenderTargetScale()) };
         target.outputExtent = swapchain->GetExtent();
+        target.presentRequested = window->ConsumePresentRequest();
     };
 
     if (mainWindow != nullptr && !isShuttingDown)
@@ -305,7 +306,7 @@ void RenderThread::Update()
                 continue;
             }
 
-            if (!target.swapchain->NeedsRecreate() && !deferredPass->HasUpdatedOutputForWindow(target.windowId))
+            if (!target.swapchain->NeedsRecreate() && !target.presentRequested && !deferredPass->HasUpdatedOutputForWindow(target.windowId))
             {
                 continue;
             }

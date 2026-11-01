@@ -14,6 +14,7 @@
 #include <Core/Math/Vector2.hpp>
 
 #include <Core/Threading/Semaphore.hpp>
+#include <Core/Threading/SharedMutex.hpp>
 
 #include <Core/Memory/Pool/Pool.hpp>
 
@@ -157,10 +158,10 @@ public:
         return !IsButtonDown(btn);
     }
 
-    void AddController(ControllerHandle controller);
-    void RemoveController(ControllerHandle controller);
+    void AddController(ControllerId controller);
+    void RemoveController(ControllerId controller);
 
-    HYP_FORCE_INLINE ControllerHandle GetController(uint8 controllerIndex) const
+    HYP_FORCE_INLINE ControllerId GetController(uint8 controllerIndex) const
     {
         return m_controllers[controllerIndex];
     }
@@ -281,11 +282,11 @@ private:
     AtomicVec2i m_windowSize;
 
     Array<InputMouseLockState*, InputAllocator> m_mouseLockStates;
-    Mutex m_mouseLockStatesMutex;
+    SharedMutex m_mouseLockStatesMutex;
 
     ApplicationWindow* m_ownerWindow;
 
-    ControllerHandle m_controllers[MaxAttachedControllers];
+    ControllerId m_controllers[MaxAttachedControllers];
     uint8 m_validControllersMask;
 
     bool m_isMouseLocked;

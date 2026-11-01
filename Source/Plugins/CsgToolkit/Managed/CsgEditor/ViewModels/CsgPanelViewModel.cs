@@ -1,4 +1,5 @@
 using System;
+using System.Collections.ObjectModel;
 using System.Windows.Input;
 using Avalonia.Threading;
 using Hyperion;
@@ -6,6 +7,11 @@ using Hyperion.Editor.Commands;
 
 namespace Hyperion.Editor.ViewModels
 {
+    public record struct CsgTargetSnapshot(
+        string Name,
+        string Issue,
+        bool Included);
+
     public struct CsgStateSnapshot
     {
         public bool Enabled;
@@ -18,9 +24,12 @@ namespace Hyperion.Editor.ViewModels
         public bool CanApply;
         public bool HasPendingEdits;
         public bool KeepBrushAfterApply;
+        public bool AlignToSurface;
+        public bool OutlinesShown = true;
         public CsgBrushShape BrushShape = CsgBrushShape.Box;
         public CsgOperation Operation = CsgOperation.Subtract;
-        public string TargetName = string.Empty;
+        public CsgTargetSnapshot[] Targets = Array.Empty<CsgTargetSnapshot>();
+        public bool TargetsPinned;
         public string StatusText = string.Empty;
         public CsgBrushShape SizingShape = CsgBrushShape.Box;
         public Vec3f SizingHalfExtents = new Vec3f(0.5f);
@@ -30,14 +39,92 @@ namespace Hyperion.Editor.ViewModels
         }
     }
 
+    public sealed class CsgTargetRowViewModel : ViewModelBase
+    {
+        private readonly Action<uint, bool> _setIncluded;
+
+        public uint Index { get; }
+
+        private string _name = string.Empty;
+        public string Name
+        {
+            get => _name;
+            private set => SetProperty(ref _name, value);
+        }
+
+        private string _issue = string.Empty;
+        public string Issue
+        {
+            get => _issue;
+            private set
+            {
+                if (SetProperty(ref _issue, value))
+                {
+                    OnPropertyChanged(nameof(HasIssue));
+                    OnPropertyChanged(nameof(CanInclude));
+                }
+            }
+        }
+
+        public bool HasIssue => !string.IsNullOrEmpty(_issue);
+        public bool CanInclude => !HasIssue;
+
+        private bool _isIncluded;
+        public bool IsIncluded
+        {
+            get => _isIncluded;
+            set
+            {
+                if (SetProperty(ref _isIncluded, value))
+                {
+                    _setIncluded(Index, value);
+                }
+            }
+        }
+
+        public CsgTargetRowViewModel(uint index, Action<uint, bool> setIncluded)
+        {
+            Index = index;
+            _setIncluded = setIncluded;
+        }
+
+        internal void Update(CsgTargetSnapshot target)
+        {
+            Name = target.Name ?? string.Empty;
+            Issue = target.Issue ?? string.Empty;
+
+            if (_isIncluded != target.Included)
+            {
+                _isIncluded = target.Included;
+
+                OnPropertyChanged(nameof(IsIncluded));
+            }
+        }
+    }
+
     public class CsgPanelViewModel : EditorPanelViewModel
     {
         private readonly EditorSubsystem _editorSubsystem;
         private readonly Action _refreshState;
 
-        private CsgStateSnapshot _state = new CsgStateSnapshot();
+        private CsgStateSnapshot _state = new();
 
-        public string TargetName => string.IsNullOrEmpty(_state.TargetName) ? "(no mesh)" : _state.TargetName;
+        public ObservableCollection<CsgTargetRowViewModel> Targets { get; } = new();
+
+        public bool HasNoTargets => Targets.Count == 0;
+
+        private bool _targetsPinned;
+        public bool TargetsPinned
+        {
+            get => _targetsPinned;
+            set
+            {
+                if (SetProperty(ref _targetsPinned, value))
+                {
+                    PostToCsgState(csgState => csgState.SetTargetsPinned(value));
+                }
+            }
+        }
 
         public string StatusText => _state.StatusText;
         public bool HasStatusText => !string.IsNullOrEmpty(_state.StatusText);
@@ -133,6 +220,32 @@ namespace Hyperion.Editor.ViewModels
             }
         }
 
+        private bool _alignToSurface;
+        public bool AlignToSurface
+        {
+            get => _alignToSurface;
+            set
+            {
+                if (SetProperty(ref _alignToSurface, value))
+                {
+                    PostToCsgState(csgState => csgState.SetAlignToSurface(value));
+                }
+            }
+        }
+
+        private bool _outlinesShown = true;
+        public bool OutlinesShown
+        {
+            get => _outlinesShown;
+            set
+            {
+                if (SetProperty(ref _outlinesShown, value))
+                {
+                    PostToCsgState(csgState => csgState.SetOutlinesShown(value));
+                }
+            }
+        }
+
         public ICommand SelectShapeCommand { get; }
         public ICommand SetOperationCommand { get; }
         public ICommand ApplyCommand { get; }
@@ -189,7 +302,30 @@ namespace Hyperion.Editor.ViewModels
                 OnPropertyChanged(nameof(KeepBrushAfterApply));
             }
 
-            OnPropertyChanged(nameof(TargetName));
+            if (_alignToSurface != state.AlignToSurface)
+            {
+                _alignToSurface = state.AlignToSurface;
+
+                OnPropertyChanged(nameof(AlignToSurface));
+            }
+
+            if (_outlinesShown != state.OutlinesShown)
+            {
+                _outlinesShown = state.OutlinesShown;
+
+                OnPropertyChanged(nameof(OutlinesShown));
+            }
+
+            if (_targetsPinned != state.TargetsPinned)
+            {
+                _targetsPinned = state.TargetsPinned;
+
+                OnPropertyChanged(nameof(TargetsPinned));
+            }
+
+            UpdateTargets(state.Targets ?? Array.Empty<CsgTargetSnapshot>());
+
+            OnPropertyChanged(nameof(HasNoTargets));
             OnPropertyChanged(nameof(StatusText));
             OnPropertyChanged(nameof(HasStatusText));
             OnPropertyChanged(nameof(HasBrush));
@@ -272,6 +408,29 @@ namespace Hyperion.Editor.ViewModels
                 .Button("Discard", () => PostToCsgState(csgState => csgState.Exit(/* saveEdits */ false)))
                 .Button("Cancel", () => { })
                 .Show();
+        }
+
+        private void UpdateTargets(CsgTargetSnapshot[] targets)
+        {
+            while (Targets.Count > targets.Length)
+            {
+                Targets.RemoveAt(Targets.Count - 1);
+            }
+
+            while (Targets.Count < targets.Length)
+            {
+                Targets.Add(new CsgTargetRowViewModel((uint)Targets.Count, SetTargetIncluded));
+            }
+
+            for (int index = 0; index < targets.Length; index++)
+            {
+                Targets[index].Update(targets[index]);
+            }
+        }
+
+        private void SetTargetIncluded(uint index, bool included)
+        {
+            PostToCsgState(csgState => csgState.SetTargetIncluded(index, included));
         }
 
         private static float RoundForDisplay(float value) => MathF.Round(value, 4);

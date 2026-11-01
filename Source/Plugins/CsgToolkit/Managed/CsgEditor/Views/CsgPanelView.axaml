@@ -58,11 +58,48 @@
             <StackPanel Margin="12,12,12,8" Spacing="14">
 
                 <StackPanel Spacing="4">
-                    <TextBlock Classes="section-label" Text="Mesh" />
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            Classes="section-label"
+                            Text="Targets" />
+                        <ToggleButton
+                            Grid.Column="1"
+                            Padding="4,2"
+                            Classes="panel-toggle"
+                            IsChecked="{Binding TargetsPinned, Mode=TwoWay}">
+                            <controls:Codicon Kind="Pinned" Size="14" />
+                        </ToggleButton>
+                    </Grid>
                     <TextBlock
-                        FontWeight="SemiBold"
-                        Text="{Binding TargetName}"
-                        TextTrimming="CharacterEllipsis" />
+                        Classes="csg-hint"
+                        IsVisible="{Binding HasNoTargets}"
+                        Text="(nothing under brush)" />
+                    <ItemsControl ItemsSource="{Binding Targets}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:CsgTargetRowViewModel">
+                                <Grid ColumnDefinitions="*,Auto" ToolTip.Tip="{Binding Name}">
+                                    <CheckBox
+                                        Content="{Binding Name}"
+                                        IsChecked="{Binding IsIncluded, Mode=TwoWay}"
+                                        IsVisible="{Binding CanInclude}" />
+                                    <TextBlock
+                                        VerticalAlignment="Center"
+                                        Foreground="{DynamicResource Brush.TextMuted}"
+                                        IsVisible="{Binding HasIssue}"
+                                        Text="{Binding Name}"
+                                        TextTrimming="CharacterEllipsis" />
+                                    <TextBlock
+                                        Grid.Column="1"
+                                        Margin="8,0,0,0"
+                                        VerticalAlignment="Center"
+                                        Classes="csg-hint"
+                                        IsVisible="{Binding HasIssue}"
+                                        Text="{Binding Issue}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
                     <Border
                         Padding="8,6"
                         Background="{DynamicResource Brush.PanelRaised}"
@@ -129,6 +166,7 @@
                             </StackPanel>
                         </ToggleButton>
                     </Grid>
+                    <CheckBox Content="Align to surface" IsChecked="{Binding AlignToSurface}" />
                 </StackPanel>
 
                 <StackPanel IsVisible="{Binding ShowSizing}" Spacing="6">
@@ -245,6 +283,7 @@
                         Content="{Binding ApplyText}"
                         ToolTip.Tip="Apply operation (Enter)" />
                     <CheckBox Content="Keep brush after applying" IsChecked="{Binding KeepBrushAfterApply}" />
+                    <CheckBox Content="Show outlines" IsChecked="{Binding OutlinesShown}" />
                 </StackPanel>
 
             </StackPanel>

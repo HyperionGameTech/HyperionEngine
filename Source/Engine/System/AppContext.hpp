@@ -185,6 +185,16 @@ public:
         m_hasFocus.Set(hasFocus, MemoryOrder::RELAXED);
     }
 
+    HYP_FORCE_INLINE void RequestPresent()
+    {
+        m_presentRequested.Set(true, MemoryOrder::RELEASE);
+    }
+
+    HYP_FORCE_INLINE bool ConsumePresentRequest()
+    {
+        return m_presentRequested.Exchange(false, MemoryOrder::ACQUIRE_RELEASE);
+    }
+
     HYP_METHOD()
     virtual bool IsHighDPI() const
     {
@@ -241,6 +251,7 @@ protected:
     HWND m_hwnd;
     SwapchainRef m_swapchain;
     AtomicVar<bool> m_hasFocus { true };
+    AtomicVar<bool> m_presentRequested { false };
     bool m_allowVSync = true;
 
 #if HYP_VULKAN

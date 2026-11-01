@@ -217,7 +217,7 @@ void InputManager::PushMouseLockState(bool mouseLocked, bool syncToVirtualPositi
 
 void InputManager::PopMouseLockState()
 {
-    Mutex::Guard guard(m_mouseLockStatesMutex);
+    TUniqueLock guard(m_mouseLockStatesMutex);
 
     if (m_mouseLockStates.Empty())
     {
@@ -500,7 +500,7 @@ EnumFlags<MouseButtonState> InputManager::GetButtonStates() const
 
 void InputManager::ApplyMouseLockState(InputMouseLockState* mouseLockState)
 {
-    Mutex::Guard guard(m_mouseLockStatesMutex);
+    TUniqueLock guard(m_mouseLockStatesMutex);
 
     if (!mouseLockState)
     {
@@ -532,7 +532,7 @@ void InputManager::RemoveMouseLockState(InputMouseLockState* mouseLockState)
         return;
     }
 
-    Mutex::Guard guard(m_mouseLockStatesMutex);
+    TUniqueLock guard(m_mouseLockStatesMutex);
 
     auto it = m_mouseLockStates.Find(mouseLockState);
     Assert(it != m_mouseLockStates.End());
@@ -563,7 +563,7 @@ void InputManager::RemoveMouseLockState(InputMouseLockState* mouseLockState)
     }
 }
 
-void InputManager::AddController(ControllerHandle controller)
+void InputManager::AddController(ControllerId controller)
 {
     AssertOnThread(g_mainThread);
 
@@ -580,7 +580,7 @@ void InputManager::AddController(ControllerHandle controller)
     m_validControllersMask |= (1u << controllerIndex);
 }
 
-void InputManager::RemoveController(ControllerHandle controller)
+void InputManager::RemoveController(ControllerId controller)
 {
     AssertOnThread(g_mainThread);
 
@@ -595,7 +595,7 @@ void InputManager::RemoveController(ControllerHandle controller)
         return;
     }
 
-    m_controllers[controllerIndex] = InvalidControllerHandle;
+    m_controllers[controllerIndex] = InvalidController;
     m_validControllersMask &= ~(1u << controllerIndex);
 }
 
@@ -747,7 +747,7 @@ void InputManager::MainThreadUpdate()
 
     ReleaseKeysNotPhysicallyHeld();
 
-    Mutex::Guard guard(m_mouseLockStatesMutex);
+    TSharedLock guard(m_mouseLockStatesMutex);
 
     if (m_mouseLockStates.Any())
     {

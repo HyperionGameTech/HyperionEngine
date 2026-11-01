@@ -27,6 +27,8 @@ struct PresentTarget
     
     // full swapchain size
     Vec2u outputExtent;
+
+    bool presentRequested = false;
 };
 
 /*! \brief Describes the setup for rendering a frame.  */

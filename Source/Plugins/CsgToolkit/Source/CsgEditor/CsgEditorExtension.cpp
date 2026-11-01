@@ -198,7 +198,6 @@ void CsgEditorExtension::OnFocusedNodeChanged(const Handle<Node>& focusedNode)
         return;
     }
 
-    // the focused node is what Enter would target, so CanEnter may have changed
     m_csgState->OnStateChanged();
 }
 

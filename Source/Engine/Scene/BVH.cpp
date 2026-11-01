@@ -12,6 +12,8 @@
 
 namespace Hyperion {
 
+constexpr size_t MinSerializedBVHNodeSize = sizeof(Vec3f) * 2 + sizeof(int8) + sizeof(uint32) * 2;
+
 HYP_NODISCARD RayTestResults BVHNode::TestRay(
     const Ray& ray,
     const VertexArrayView& vertices,
@@ -243,7 +245,9 @@ void BVHNode::Shake_Internal()
 
 #pragma region BVHNode Serialization
 
-static void SerializeBVHNodeInto(ByteWriter& writer, const BVHNode& node)
+namespace {
+
+void SerializeBVHNodeInto(ByteWriter& writer, const BVHNode& node)
 {
     writer.Write(&node.aabb.min, sizeof(Vec3f));
     writer.Write(&node.aabb.max, sizeof(Vec3f));
@@ -260,16 +264,16 @@ static void SerializeBVHNodeInto(ByteWriter& writer, const BVHNode& node)
 
     const uint32 numChildren = uint32(node.children.Size());
     writer.Write(&numChildren, sizeof(uint32));
-    
+
     for (const BVHNode& child : node.children)
     {
         SerializeBVHNodeInto(writer, child);
     }
 }
 
-static bool DeserializeBVHNodeFrom(ByteReader& reader, BVHNode& node)
+bool DeserializeBVHNodeFrom(ByteReader& reader, BVHNode& node)
 {
-    if (reader.Position() + sizeof(Vec3f) * 2 + sizeof(uint32) * 3 > reader.Max())
+    if (reader.Position() + MinSerializedBVHNodeSize > reader.Max())
     {
         return false;
     }
@@ -285,6 +289,11 @@ static bool DeserializeBVHNodeFrom(ByteReader& reader, BVHNode& node)
     uint32 numTriangles = 0;
     reader.Read(&numTriangles, sizeof(uint32));
 
+    if (uint64(numTriangles) * sizeof(uint32) > reader.Max() - reader.Position())
+    {
+        return false;
+    }
+
     node.triangleIds.Resize(numTriangles);
 
     for (uint32 i = 0; i < numTriangles; i++)
@@ -294,6 +303,11 @@ static bool DeserializeBVHNodeFrom(ByteReader& reader, BVHNode& node)
 
     uint32 numChildren = 0;
     reader.Read(&numChildren, sizeof(uint32));
+
+    if (uint64(numChildren) * MinSerializedBVHNodeSize > reader.Max() - reader.Position())
+    {
+        return false;
+    }
 
     node.children.Resize(numChildren);
 
@@ -307,6 +321,8 @@ static bool DeserializeBVHNodeFrom(ByteReader& reader, BVHNode& node)
 
     return true;
 }
+
+} // namespace
 
 ByteBuffer BVHNode::Serialize(const BVHNode& node)
 {

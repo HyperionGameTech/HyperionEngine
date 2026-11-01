@@ -777,6 +777,12 @@ LRESULT Win32ApplicationWindow::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPAR
 
         break;
     }
+    case WM_PAINT:
+    {
+        RequestPresent();
+
+        break;
+    }
     case WM_ACTIVATE:
     {
         bool isActive = (LOWORD(wParam) != WA_INACTIVE);

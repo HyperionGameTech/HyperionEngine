@@ -13,16 +13,14 @@
 namespace Hyperion {
 
 /// Opaque handle to a Gamepad/Controller
-struct ControllerT;
-using ControllerHandle = ControllerT*;
-
-static constexpr ControllerHandle InvalidControllerHandle = {};
+enum class ControllerId : uint32;
+static constexpr ControllerId InvalidController = Invalid<ControllerId>;
 
 static constexpr uint8 MaxAttachedControllers = 8;
 
-bool IsValidController(ControllerHandle);
-bool IsSteamInputController(ControllerHandle);
-uint8 GetControllerIndex(ControllerHandle);
+bool IsValidController(ControllerId);
+bool IsSteamInputController(ControllerId);
+uint8 GetControllerIndex(ControllerId);
 
 #include <Input/Controller.inl>
 

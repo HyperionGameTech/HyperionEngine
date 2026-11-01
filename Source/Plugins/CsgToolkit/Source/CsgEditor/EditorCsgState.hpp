@@ -37,6 +37,7 @@ class EditorActionStack;
 class DebugDrawCommandList;
 class Node;
 class Mesh;
+class Material;
 
 struct Ray;
 
@@ -70,6 +71,8 @@ enum class CsgOperation : uint8
 
 static constexpr uint32 NumCsgOperations = uint32(CsgOperation::Max);
 
+enum class CsgSessionId : uint32;
+
 static constexpr const char* CsgOperationNames[NumCsgOperations] = {
     "Union",
     "Subtract",
@@ -100,7 +103,28 @@ public:
     void Exit(bool saveEdits);
 
     HYP_METHOD()
-    Node* GetTargetNode() const;
+    uint32 GetTargetCount() const;
+
+    HYP_METHOD()
+    Node* GetTargetNodeAt(uint32 index) const;
+
+    HYP_METHOD()
+    String GetTargetName(uint32 index) const;
+
+    HYP_METHOD()
+    String GetTargetIssue(uint32 index) const;
+
+    HYP_METHOD()
+    bool IsTargetIncluded(uint32 index) const;
+
+    HYP_METHOD()
+    void SetTargetIncluded(uint32 index, bool included);
+
+    HYP_METHOD()
+    bool AreTargetsPinned() const;
+
+    HYP_METHOD()
+    void SetTargetsPinned(bool pinned);
 
     HYP_METHOD()
     bool HasBrush() const;
@@ -163,12 +187,24 @@ public:
     void SetKeepBrushAfterApply(bool keepBrushAfterApply);
 
     HYP_METHOD()
+    bool IsAlignToSurface() const;
+
+    HYP_METHOD()
+    void SetAlignToSurface(bool alignToSurface);
+
+    HYP_METHOD()
+    bool AreOutlinesShown() const;
+
+    HYP_METHOD()
+    void SetOutlinesShown(bool outlinesShown);
+
+    HYP_METHOD()
     void ApplyBrush();
 
     HYP_METHOD()
     void CancelBrush();
 
-    bool IsSessionActive(uint32 sessionId) const;
+    bool IsSessionActive(CsgSessionId sessionId) const;
 
     bool IsSessionNode(const Node* node) const;
 
@@ -199,15 +235,52 @@ public:
     ScriptableDelegate<void> OnStateChanged;
 
 private:
-    Node* ResolveTarget() const;
-    Handle<Mesh> GetTargetMesh() const;
+    struct CsgTarget
+    {
+        WeakHandle<Node> node;
+        Handle<Mesh> baselineMesh;
+        Handle<Material> createdMaterial;
+        Handle<Mesh> validatedMesh;
+        MeshBooleanError error = MeshBooleanError::None;
+        float overlap = 0.0f;
+        bool overlapping = false;
+        bool pinned = false;
+        bool included = false;
+        bool includedByUser = false;
+        bool created = false;
+    };
+
+    struct ValidatedMesh
+    {
+        Handle<Mesh> mesh;
+        MeshBooleanError error = MeshBooleanError::None;
+    };
 
     const Handle<Mesh>& GetBrushMesh(CsgBrushShape shape);
 
-    void ValidateTarget();
+    CsgTarget* FindTarget(const Node* node);
+    CsgTarget& AddTarget(const Handle<Node>& node);
+    const CsgTarget* GetListedTarget(uint32 index) const;
+    bool IsTargetListed(const CsgTarget& target) const;
+
+    MeshBooleanError ValidateMesh(const Handle<Mesh>& mesh);
+    void ValidateTarget(CsgTarget& target);
+
+    Transform GetPlacementTransform() const;
+    bool GetActiveBrushTransform(CsgBrushShape& outShape, Transform& outTransform) const;
+
+    void SaveSettings() const;
+    void RefreshTargets();
+    void UpdateDefaultInclusion();
+
+    static void RefreshBrushAfterApply(EditorSubsystem* editorSubsystem, const Handle<Node>& brushNode, bool keepBrush, CsgSessionId sessionId);
+    static void RestoreBrushAfterUndo(EditorSubsystem* editorSubsystem, const Handle<Node>& brushNode, CsgBrushShape shape, CsgSessionId sessionId);
+
+    void ApplyToTargets(const Handle<Node>& brushNode, CsgBrushShape shape, CsgOperation operation, bool keepBrush);
+    void CreateUnionMesh(const Handle<Node>& brushNode, CsgBrushShape shape, bool keepBrush);
 
     Vec3f GetBrushHalfExtent() const;
-    Transform MakeDefaultBrushTransform(Node* target) const;
+    Transform MakeDefaultBrushTransform() const;
 
     void BeginPlacement(CsgBrushShape shape);
     void PlaceBrush(CsgBrushShape shape, const Transform& transform);
@@ -231,16 +304,27 @@ private:
     bool IsSessionAction(const EditorActionBase* action) const;
     void RemoveSessionActions(bool includeApplyActions);
 
-    void FinalizeMesh();
+    void FinalizeMeshes();
 
     EditorSubsystem* m_subsystem = nullptr;
 
     bool m_enabled = false;
 
-    WeakHandle<Node> m_targetNode;
-    Handle<Mesh> m_baselineMesh;
+    Array<CsgTarget, EditorAllocator> m_targets;
+    Array<uint32, EditorAllocator> m_listedTargets;
+    Array<ValidatedMesh, EditorAllocator> m_validatedMeshes;
 
-    uint32 m_sessionId = 0;
+    WeakHandle<Node> m_placedOnNode;
+    WeakHandle<Node> m_primaryTarget;
+    bool m_targetsPinned = false;
+    HashCode m_targetsHash;
+
+    bool m_hasGathered = false;
+    CsgBrushShape m_gatheredShape = CsgBrushShape::Box;
+    Mat4f m_gatheredBrushMatrix;
+    uint32 m_framesSinceGather = 0;
+
+    CsgSessionId m_sessionId = CsgSessionId(0);
 
     Array<Handle<EditorActionBase>, EditorAllocator> m_brushActions;
     Array<Handle<EditorActionBase>, EditorAllocator> m_applyActions;
@@ -251,14 +335,14 @@ private:
     CsgBrushShape m_brushShape = CsgBrushShape::Box;
     CsgOperation m_operation = CsgOperation::Subtract;
     bool m_keepBrushAfterApply = false;
+    bool m_alignToSurface = false;
+    bool m_outlinesShown = true;
 
     Optional<Vec3f> m_lastBrushHalfExtent;
 
     FixedArray<Handle<Mesh>, NumCsgBrushShapes> m_brushMeshes;
 
-    WeakHandle<Mesh> m_validatedMesh;
-    MeshBooleanError m_targetError = MeshBooleanError::None;
-    MeshBooleanError m_lastApplyError = MeshBooleanError::None;
+    String m_statusText;
 
     EditorManipulationMode m_manipulationModeBeforeCsg = EditorManipulationMode::Translate;
     EditorManipulationMode m_brushManipulationMode = EditorManipulationMode::Translate;
@@ -272,6 +356,7 @@ private:
         bool hasHover = false;
         Vec3f hoverPosition;
         Vec3f hoverNormal = Vec3f::UnitY();
+        WeakHandle<Node> hoverNode;
     } m_placement;
 
     struct HandleDragState

@@ -27,7 +27,7 @@ namespace Hyperion.Editor.ViewModels
 
     public sealed class BrushToolsViewModel : EditorMeshToolViewModel
     {
-        private CsgStateSnapshot _state = new CsgStateSnapshot();
+        private CsgStateSnapshot _state = new();
 
         private CsgPanelViewModel? _panel;
 
@@ -88,39 +88,64 @@ namespace Hyperion.Editor.ViewModels
 
             CsgStateSnapshot snapshot = new();
 
-            try
+            snapshot.Simulating = Read("IsSimulating", () => editorSubsystem.IsSimulating(), false);
+
+            EditorCsgState? csgState = Read("GetCsgState", () => editorSubsystem.GetCsgState(), null);
+
+            if (csgState is EditorCsgState state)
             {
-                EditorCsgState? csgState = editorSubsystem.GetCsgState();
-
-                snapshot.Simulating = editorSubsystem.IsSimulating();
-
-                if (csgState != null)
-                {
-                    snapshot.Enabled = csgState.IsEnabled();
-                    snapshot.CanEnable = csgState.CanEnter();
-                    snapshot.HasBrush = csgState.HasBrush();
-                    snapshot.IsBrushSelected = csgState.IsBrushSelected();
-                    snapshot.IsPlacing = csgState.IsPlacing();
-                    snapshot.PlacementShape = csgState.GetPlacementShape();
-                    snapshot.CanApply = csgState.CanApply();
-                    snapshot.HasPendingEdits = csgState.HasPendingEdits();
-                    snapshot.KeepBrushAfterApply = csgState.IsKeepBrushAfterApply();
-                    snapshot.BrushShape = csgState.GetBrushShape();
-                    snapshot.Operation = csgState.GetOperation();
-                    snapshot.TargetName = csgState.GetTargetNode()?.Name.ToString() ?? string.Empty;
-                    snapshot.StatusText = csgState.GetStatusText() ?? string.Empty;
-                    snapshot.SizingShape = csgState.GetSizingShape();
-                    snapshot.SizingHalfExtents = csgState.GetSizingHalfExtents();
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Log(LogLevel.Warning, $"Failed to read CSG state from engine: {ex.Message}");
-
-                return;
+                snapshot.Enabled = Read("IsEnabled", () => state.IsEnabled(), false);
+                snapshot.CanEnable = Read("CanEnter", () => state.CanEnter(), false);
+                snapshot.HasBrush = Read("HasBrush", () => state.HasBrush(), false);
+                snapshot.IsBrushSelected = Read("IsBrushSelected", () => state.IsBrushSelected(), false);
+                snapshot.IsPlacing = Read("IsPlacing", () => state.IsPlacing(), false);
+                snapshot.PlacementShape = Read("GetPlacementShape", () => state.GetPlacementShape(), CsgBrushShape.Box);
+                snapshot.CanApply = Read("CanApply", () => state.CanApply(), false);
+                snapshot.HasPendingEdits = Read("HasPendingEdits", () => state.HasPendingEdits(), false);
+                snapshot.KeepBrushAfterApply = Read("IsKeepBrushAfterApply", () => state.IsKeepBrushAfterApply(), false);
+                snapshot.AlignToSurface = Read("IsAlignToSurface", () => state.IsAlignToSurface(), false);
+                snapshot.OutlinesShown = Read("AreOutlinesShown", () => state.AreOutlinesShown(), true);
+                snapshot.BrushShape = Read("GetBrushShape", () => state.GetBrushShape(), CsgBrushShape.Box);
+                snapshot.Operation = Read("GetOperation", () => state.GetOperation(), CsgOperation.Subtract);
+                snapshot.Targets = Read("targets", () => ReadTargets(state), Array.Empty<CsgTargetSnapshot>());
+                snapshot.TargetsPinned = Read("AreTargetsPinned", () => state.AreTargetsPinned(), false);
+                snapshot.StatusText = Read("GetStatusText", () => state.GetStatusText() ?? string.Empty, string.Empty);
+                snapshot.SizingShape = Read("GetSizingShape", () => state.GetSizingShape(), CsgBrushShape.Box);
+                snapshot.SizingHalfExtents = Read("GetSizingHalfExtents", () => state.GetSizingHalfExtents(), new Vec3f(0.5f));
             }
 
             Dispatcher.UIThread.Post(() => Apply(snapshot));
+        }
+
+        private static T Read<T>(string name, Func<T> getter, T fallback)
+        {
+            try
+            {
+                return getter();
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogLevel.Warning, $"Failed to read CSG state ({name}): {ex.Message}");
+
+                return fallback;
+            }
+        }
+
+        private static CsgTargetSnapshot[] ReadTargets(EditorCsgState csgState)
+        {
+            uint count = csgState.GetTargetCount();
+
+            CsgTargetSnapshot[] targets = new CsgTargetSnapshot[count];
+
+            for (uint index = 0; index < count; index++)
+            {
+                targets[index] = new CsgTargetSnapshot(
+                    csgState.GetTargetName(index) ?? string.Empty,
+                    csgState.GetTargetIssue(index) ?? string.Empty,
+                    csgState.IsTargetIncluded(index));
+            }
+
+            return targets;
         }
 
         private static EditorSubsystem? GetEditorSubsystem()
@@ -153,10 +178,10 @@ namespace Hyperion.Editor.ViewModels
 
             if (!state.CanEnable)
             {
-                return "Select a mesh made of position, normal and UV channels";
+                return "Not available while editing a prefab";
             }
 
-            return "Carve, grow or trim the selected mesh with box, sphere and cylinder brushes";
+            return "Carve, grow or trim meshes with box, sphere and cylinder brushes";
         }
 
         private void Toggle()

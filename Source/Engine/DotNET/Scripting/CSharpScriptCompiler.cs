@@ -10,7 +10,9 @@ using System.Diagnostics;
 
 namespace Hyperion
 {
-    public record ScriptReferenceAssembly(string ScopeDirectory, string AssemblyPath);
+    public record struct ScriptReferenceAssembly(
+        string ScopeDirectory,
+        string AssemblyPath);
 
     public class CSharpScriptCompiler : ScriptCompilerBase
     {
@@ -20,7 +22,10 @@ namespace Hyperion
 
         private List<string> pluginModules = [];
 
-        public CSharpScriptCompiler(string sourceDirectory, string intermediateDirectory, string binaryOutputDirectory)
+        public CSharpScriptCompiler(
+            string sourceDirectory,
+            string intermediateDirectory,
+            string binaryOutputDirectory)
             : base(sourceDirectory, intermediateDirectory, binaryOutputDirectory)
         {
         }

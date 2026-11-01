@@ -10,7 +10,7 @@ using Hyperion.Editor.Services;
 
 namespace Hyperion.Editor.ViewModels
 {
-    public record ModelImportSnapshot(
+    public record struct ModelImportSnapshot(
         string FileName,
         bool HasMesh,
         uint BoneCount,

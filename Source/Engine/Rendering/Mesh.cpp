@@ -463,6 +463,11 @@ void Mesh::PageBlobData()
     }
 
     // Keep BVH data separate from vertex and index data because it is mutually exclusive from them
+    if (m_bvh.IsValid())
+    {
+        return;
+    }
+
     if (m_bvhData.raw == nullptr
         && m_bvhData.key
         && m_bvhData.size != 0)
@@ -473,9 +478,12 @@ void Mesh::PageBlobData()
         }
     }
 
-    if (m_bvhData.raw != nullptr)
+    if (m_bvhData.raw != nullptr
+        && !BVHNode::Deserialize(m_bvh, m_bvhData.raw, m_bvhData.size))
     {
-        BVHNode::Deserialize(m_bvh, m_bvhData.raw, m_bvhData.size);
+        HYP_LOG(Assets, Warning, "BVH data for {} is corrupt; ray tests against it fall back to its bounds", GetName());
+
+        m_bvh = BVHNode();
     }
 }
 

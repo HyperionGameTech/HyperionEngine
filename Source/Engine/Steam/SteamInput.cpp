@@ -30,10 +30,17 @@ HYP_DECLARE_LOG_CHANNEL(Steam);
 
 bool IsInitialized();
 
-static inline ControllerHandle MakeSteamInputControllerHandle(uint8 controllerIndex)
+namespace {
+
+inline ControllerId MakeSteamInputControllerHandle(uint8 controllerIndex)
 {
-    uint64 value = (1u << controllerIndex) | 0x100;
-    return reinterpret_cast<ControllerHandle>(value);
+    if (controllerIndex >= MaxAttachedControllers)
+    {
+        return InvalidController;
+    }
+
+    uint32 value = (1u << controllerIndex) | 0x100;
+    return static_cast<ControllerId>(value);
 }
 
 struct ActionSetDesc
@@ -43,7 +50,7 @@ struct ActionSetDesc
     Pair<const char*, ControllerButton> const* digitalActions;
 };
 
-static constexpr const char* FPSControls_AnalogActions[] = {
+constexpr const char* FPSControls_AnalogActions[] = {
     "Move",
     "Look",
     "LeftTrigger",
@@ -51,7 +58,7 @@ static constexpr const char* FPSControls_AnalogActions[] = {
     nullptr
 };
 
-static constexpr Pair<const char*, ControllerButton> FPSControls_DigitalActions[] = {
+constexpr Pair<const char*, ControllerButton> FPSControls_DigitalActions[] = {
     { "A", ControllerButton::A },
     { "B", ControllerButton::B },
     { "X", ControllerButton::X },
@@ -72,13 +79,16 @@ static constexpr Pair<const char*, ControllerButton> FPSControls_DigitalActions[
     { nullptr, ControllerButton::None }
 };
 
-static constexpr const ActionSetDesc ActionSetDescs[] = {
+constexpr const ActionSetDesc ActionSetDescs[] = {
     // FPSControls
     ActionSetDesc {
         "FPSControls",
         FPSControls_AnalogActions,
         FPSControls_DigitalActions }
 };
+} // namespace
+
+#pragma region SteamInputManager
 
 SteamInputManager s_steamInputManager;
 
@@ -294,7 +304,7 @@ void SteamInputManager::UpdateControllers(const ActionSet& set)
                     m_windowState.m_controllers[controllerIndex] = steamHandle;
                     mask.Set(controllerIndex, true);
 
-                    ControllerHandle controllerHandle = MakeSteamInputControllerHandle(controllerIndex);
+                    ControllerId controllerHandle = MakeSteamInputControllerHandle(controllerIndex);
                     inputManager->AddController(controllerHandle);
 
                     SteamInput()->ActivateActionSet(steamHandle, set.handle);
@@ -316,7 +326,7 @@ void SteamInputManager::UpdateControllers(const ActionSet& set)
     {
         if (m_windowState.m_controllers[controllerIndex] != 0 && !mask.Test(controllerIndex))
         {
-            ControllerHandle controllerHandle = MakeSteamInputControllerHandle(controllerIndex);
+            ControllerId controllerHandle = MakeSteamInputControllerHandle(controllerIndex);
             inputManager->RemoveController(controllerHandle);
 
             m_windowState.m_controllers[controllerIndex] = 0;
@@ -431,7 +441,7 @@ void SteamInputManager::ShutdownWindowState(WindowState& windowState)
         {
             if (inputManager != nullptr)
             {
-                ControllerHandle controllerHandle = MakeSteamInputControllerHandle(controllerIndex);
+                ControllerId controllerHandle = MakeSteamInputControllerHandle(controllerIndex);
                 inputManager->RemoveController(controllerHandle);
             }
 
@@ -441,6 +451,8 @@ void SteamInputManager::ShutdownWindowState(WindowState& windowState)
 
     windowState.window = nullptr;
 }
+
+#pragma endregion SteamInputManager
 
 } // namespace Steam
 } // namespace Hyperion
