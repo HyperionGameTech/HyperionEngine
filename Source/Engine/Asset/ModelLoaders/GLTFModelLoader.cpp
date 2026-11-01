@@ -89,6 +89,7 @@ CORE_API extern const FilePath& GetExecutablePath();
 namespace {
 
 using FatVertex = TVertex<VT_Simple | VT_UV1 | VT_Skeletal>;
+using StaticVertex = TVertex<VT_Simple | VT_UV1>;
 
 static constexpr bool SeparateMetalnessRoughnessTextures = true;
 
@@ -2101,6 +2102,24 @@ bool BuildPrimitive(GltfLoadContext& ctx,
         BuildTreeVertices(wind, vertices, texcoord1Data, treeVertices);
     }
 
+    Array<StaticVertex> staticVertices;
+
+    if (!hasWind && !hasSkinning)
+    {
+        staticVertices.Resize(vertices.Size());
+
+        for (size_t vertexIndex = 0; vertexIndex < vertices.Size(); ++vertexIndex)
+        {
+            const FatVertex& source = vertices[vertexIndex];
+            StaticVertex& vertex = staticVertices[vertexIndex];
+
+            vertex.SetPosition(source.GetPosition());
+            vertex.SetNormal(source.GetNormal());
+            vertex.SetUV0(source.GetUV0());
+            vertex.SetUV1(source.GetUV1());
+        }
+    }
+
     Array<uint32> indices;
 
     if (primitive.indices != nullptr)
@@ -2141,9 +2160,13 @@ bool BuildPrimitive(GltfLoadContext& ctx,
     {
         meshDesc.meshAttributes.inputLayout = VertexInputLayoutDesc { VT_Simple | VT_Tree };
     }
-    else
+    else if (hasSkinning)
     {
         meshDesc.meshAttributes.inputLayout = VertexInputLayoutDesc { VT_Simple | VT_UV1 | VT_Skeletal };
+    }
+    else
+    {
+        meshDesc.meshAttributes.inputLayout = VertexInputLayoutDesc { VT_Simple | VT_UV1 };
     }
 
     meshDesc.meshAttributes.topology = topology;
@@ -2166,9 +2189,13 @@ bool BuildPrimitive(GltfLoadContext& ctx,
     {
         vertexArrayView.floatData = reinterpret_cast<const float*>(treeVertices.Data());
     }
-    else
+    else if (hasSkinning)
     {
         vertexArrayView.floatData = reinterpret_cast<const float*>(vertices.Data());
+    }
+    else
+    {
+        vertexArrayView.floatData = reinterpret_cast<const float*>(staticVertices.Data());
     }
 
     vertexArrayView.vertexCount = vertices.Size();
