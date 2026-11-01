@@ -831,12 +831,15 @@ void Texture::GenerateMipmaps(TextureDesc& desc, ByteBuffer& imageData)
                     scratchBuffer = (ubyte*)Memory::Allocate(srcMipSize * 2);
                 }
 
-                const Float16* float16Data = reinterpret_cast<const Float16*>(srcView.Data());
+                const size_t numSrcValues = srcMipSize / sizeof(Float16);
+                float32* f32Data = reinterpret_cast<float32*>(scratchBuffer);
 
                 // initialize f32 data from f16
-                for (size_t byteIndex = 0; byteIndex < srcMipSize; byteIndex += sizeof(Float16))
+                Float16::ToFloatArray(Span<const Float16>(reinterpret_cast<const Float16*>(srcView.Data()), numSrcValues), Span<float32>(f32Data, numSrcValues));
+
+                for (size_t valueIndex = 0; valueIndex < numSrcValues; valueIndex++)
                 {
-                    float32& f32Value = (*(reinterpret_cast<float32*>(scratchBuffer + (byteIndex * 2))) = *(float16Data + (byteIndex / sizeof(Float16))));
+                    float32& f32Value = f32Data[valueIndex];
 
                     if (f32Value < -FLT16_MAX)
                     {
@@ -860,10 +863,8 @@ void Texture::GenerateMipmaps(TextureDesc& desc, ByteBuffer& imageData)
                     numChannels);
 
                 // scratchData now used to store result converted to f16
-                for (size_t byteIndex = 0; byteIndex < dstMipSize * 2; byteIndex += sizeof(float32))
-                {
-                    *reinterpret_cast<Float16*>(scratchBuffer + (byteIndex / 2)) = *(reinterpret_cast<const float32*>(intermediateBuffer + byteIndex));
-                }
+                const size_t numDstValues = dstMipSize / sizeof(Float16);
+                Float16::FromFloatArray(Span<const float32>(reinterpret_cast<const float32*>(intermediateBuffer), numDstValues), Span<Float16>(reinterpret_cast<Float16*>(scratchBuffer), numDstValues));
 
                 Memory::Copy(intermediateBuffer, scratchBuffer, dstMipSize);
             }

@@ -289,9 +289,8 @@ void GlimmerSceneInstances::Gather(RenderProxyList& rpl, const BoundingBox& regi
     struct EmitterCandidate
     {
         Float16 distance;
-        // @TODO Replace with Vec4h when we have one
-        Float16 sphere[4];
-        Float16 radiance[4];
+        Vec4h sphere;
+        Vec4h radiance;
     };
 
     FatArray<EmitterCandidate, InlineAllocator<8, GlimmerTempAllocator>> emitterCandidates;
@@ -334,11 +333,7 @@ void GlimmerSceneInstances::Gather(RenderProxyList& rpl, const BoundingBox& regi
                 return;
             }
 
-            const Vec3f nearestPoint = {
-                MathUtil::Clamp(viewerPosition.x, estimatedBounds.min.x, estimatedBounds.max.x),
-                MathUtil::Clamp(viewerPosition.y, estimatedBounds.min.y, estimatedBounds.max.y),
-                MathUtil::Clamp(viewerPosition.z, estimatedBounds.min.z, estimatedBounds.max.z)
-            };
+            const Vec3f nearestPoint = MathUtil::Clamp(viewerPosition, estimatedBounds.min, estimatedBounds.max);
 
             priority = viewerPosition.Distance(nearestPoint);
         }
@@ -501,15 +496,8 @@ void GlimmerSceneInstances::Gather(RenderProxyList& rpl, const BoundingBox& regi
                     EmitterCandidate& candidate = emitterCandidates.EmplaceBack();
                     candidate.distance = viewerPosition.Distance(center);
 
-                    candidate.sphere[0] = center.x - emitterOrigin.x;
-                    candidate.sphere[1] = center.y - emitterOrigin.y;
-                    candidate.sphere[2] = center.z - emitterOrigin.z;
-                    candidate.sphere[3] = emitterSphereRadius;
-
-                    candidate.radiance[0] = emissive.x * areaRatio;
-                    candidate.radiance[1] = emissive.y * areaRatio;
-                    candidate.radiance[2] = emissive.z * areaRatio;
-                    candidate.radiance[3] = emitterRadius;
+                    candidate.sphere = Vec4h(center - emitterOrigin, emitterSphereRadius);
+                    candidate.radiance = Vec4h(emissive * areaRatio, emitterRadius);
                 }
 
                 if (tracedRef.key != triangleRef.key && meshKeysSeen.Insert(tracedRef.key).second)
@@ -659,9 +647,9 @@ void GlimmerSceneInstances::Gather(RenderProxyList& rpl, const BoundingBox& regi
 
     std::sort(emitterCandidates.Begin(), emitterCandidates.Begin() + numEmitters, [](const EmitterCandidate& lhs, const EmitterCandidate& rhs)
         {
-            if (lhs.sphere[0] != rhs.sphere[0]) return lhs.sphere[0] < rhs.sphere[0];
-            if (lhs.sphere[1] != rhs.sphere[1]) return lhs.sphere[1] < rhs.sphere[1];
-            return lhs.sphere[2] < rhs.sphere[2];
+            if (lhs.sphere.x != rhs.sphere.x) return lhs.sphere.x < rhs.sphere.x;
+            if (lhs.sphere.y != rhs.sphere.y) return lhs.sphere.y < rhs.sphere.y;
+            return lhs.sphere.z < rhs.sphere.z;
         });
 
     outInput.emitters.info = Vec4u(numEmitters, 0, 0, 0);
@@ -669,15 +657,8 @@ void GlimmerSceneInstances::Gather(RenderProxyList& rpl, const BoundingBox& regi
 
     for (uint32 emitterIndex = 0; emitterIndex < numEmitters; emitterIndex++)
     {
-        Memory::Copy(
-            &outInput.emitters.spheres[emitterIndex * 4],
-            emitterCandidates[emitterIndex].sphere,
-            sizeof(EmitterCandidate::sphere));
-
-        Memory::Copy(
-            &outInput.emitters.radiance[emitterIndex * 4],
-            emitterCandidates[emitterIndex].radiance,
-            sizeof(EmitterCandidate::radiance));
+        outInput.emitters.spheres[emitterIndex] = emitterCandidates[emitterIndex].sphere;
+        outInput.emitters.radiance[emitterIndex] = emitterCandidates[emitterIndex].radiance;
     }
 
     m_instanceLods = std::move(instanceLods);

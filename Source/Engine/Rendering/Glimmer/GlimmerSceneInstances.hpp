@@ -20,8 +20,6 @@
 #include <Core/Math/BoundingBox.hpp>
 #include <Core/Math/Vector4.hpp>
 
-#include <Core/Utilities/Float16.hpp>
-
 namespace Hyperion {
 
 class RenderProxyList;
@@ -43,8 +41,8 @@ struct GlimmerEmittersShaderData
 {
     Vec4u info;                                 // x = number of emitters
     Vec4f origin;                               // xyz = what the centers are relative to, so they keep their precision as halves
-    Float16 spheres[GlimmerMaxEmitters * 4];    // xyz = center, w = radius of the sphere rays hit
-    Float16 radiance[GlimmerMaxEmitters * 4];   // rgb = radiance over that sphere, w = radius of the emitter itself
+    Vec4h spheres[GlimmerMaxEmitters];          // xyz = center, w = radius of the sphere rays hit
+    Vec4h radiance[GlimmerMaxEmitters];         // rgb = radiance over that sphere, w = radius of the emitter itself
 };
 
 static_assert(GlimmerMaxEmitters % 2 == 0 && sizeof(GlimmerEmittersShaderData) == 32 + GlimmerMaxEmitters * 16);

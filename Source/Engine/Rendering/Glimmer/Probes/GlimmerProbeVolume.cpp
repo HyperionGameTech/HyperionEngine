@@ -685,16 +685,8 @@ void GlimmerProbeVolume::Update(Frame* frame, const GlimmerProbeUpdateInputs& in
 
             for (uint32 emitterIndex = 0; emitterIndex < emitters.info.x; emitterIndex++)
             {
-                const Float16* sphere = &emitters.spheres[emitterIndex * 4];
-                const Float16* radiance = &emitters.radiance[emitterIndex * 4];
-
-                currentEmitters[emitterIndex * 2] = Vec4f(
-                    emitters.origin.x + float(sphere[0]),
-                    emitters.origin.y + float(sphere[1]),
-                    emitters.origin.z + float(sphere[2]),
-                    float(sphere[3]));
-
-                currentEmitters[emitterIndex * 2 + 1] = Vec4f(float(radiance[0]), float(radiance[1]), float(radiance[2]), float(radiance[3]));
+                currentEmitters[emitterIndex * 2] = Vec4f(emitters.spheres[emitterIndex]) + Vec4f(emitters.origin.GetXYZ(), 0.0f);
+                currentEmitters[emitterIndex * 2 + 1] = Vec4f(emitters.radiance[emitterIndex]);
             }
 
             const auto contains = [](const Array<Vec4f, GlimmerAllocator>& list, const Vec4f& sphere, const Vec4f& radiance)

@@ -9,6 +9,7 @@
 #include <Core/Math/Vector2.hpp>
 #include <Core/Math/Vector3.hpp>
 
+#include <Core/Utilities/Float16.hpp>
 #include <Core/Utilities/FormatFwd.hpp>
 
 #include <Core/Defines.hpp>
@@ -748,6 +749,185 @@ struct alignas(alignof(float) * 4) CORE_API Vec4<float>
     }
 };
 
+template <>
+struct alignas(alignof(Float16) * 4) Vec4<Float16>
+{
+    using Type = Float16;
+
+    static constexpr uint32 size = 4;
+
+    union
+    {
+        struct
+        {
+            Type x, y, z, w;
+        };
+
+        Type values[4];
+    };
+
+    constexpr Vec4()
+        : x(Float16::FromRaw(0)),
+          y(Float16::FromRaw(0)),
+          z(Float16::FromRaw(0)),
+          w(Float16::FromRaw(0))
+    {
+    }
+
+    constexpr Vec4(Type xyzw)
+        : x(xyzw),
+          y(xyzw),
+          z(xyzw),
+          w(xyzw)
+    {
+    }
+
+    constexpr Vec4(Type x, Type y, Type z, Type w)
+        : x(x),
+          y(y),
+          z(z),
+          w(w)
+    {
+    }
+
+    constexpr explicit Vec4(const Vec3<float>& xyz, float w)
+        : Vec4(Vec4<float>(xyz, w))
+    {
+    }
+
+    constexpr explicit Vec4(const Vec4<float>& other)
+        : x(Float16::FromRaw(0)),
+          y(Float16::FromRaw(0)),
+          z(Float16::FromRaw(0)),
+          w(Float16::FromRaw(0))
+    {
+        if (std::is_constant_evaluated())
+        {
+            x = other.x;
+            y = other.y;
+            z = other.z;
+            w = other.w;
+
+            return;
+        }
+
+        Float16::FromFloat4(other.values, values);
+    }
+
+    constexpr Vec4(const Vec4& other) = default;
+    constexpr Vec4& operator=(const Vec4& other) = default;
+
+    constexpr Vec4(Vec4&& other) noexcept = default;
+    constexpr Vec4& operator=(Vec4&& other) noexcept = default;
+
+    constexpr explicit operator Vec4<float>() const
+    {
+        if (std::is_constant_evaluated())
+        {
+            return Vec4<float>(float(x), float(y), float(z), float(w));
+        }
+
+        Vec4<float> result;
+        Float16::ToFloat4(values, result.values);
+
+        return result;
+    }
+
+    HYP_FORCE_INLINE Vec3<float> GetXYZ() const
+    {
+        return Vec4<float>(*this).GetXYZ();
+    }
+
+    constexpr Type& operator[](size_t index)
+    {
+        return values[index];
+    }
+
+    constexpr Type operator[](size_t index) const
+    {
+        return values[index];
+    }
+
+    HYP_FORCE_INLINE Vec4 operator+(const Vec4& other) const
+    {
+        return Vec4(Vec4<float>(*this) + Vec4<float>(other));
+    }
+
+    HYP_FORCE_INLINE Vec4& operator+=(const Vec4& other)
+    {
+        return *this = *this + other;
+    }
+
+    HYP_FORCE_INLINE Vec4 operator-(const Vec4& other) const
+    {
+        return Vec4(Vec4<float>(*this) - Vec4<float>(other));
+    }
+
+    HYP_FORCE_INLINE Vec4& operator-=(const Vec4& other)
+    {
+        return *this = *this - other;
+    }
+
+    HYP_FORCE_INLINE Vec4 operator*(const Vec4& other) const
+    {
+        return Vec4(Vec4<float>(*this) * Vec4<float>(other));
+    }
+
+    HYP_FORCE_INLINE Vec4& operator*=(const Vec4& other)
+    {
+        return *this = *this * other;
+    }
+
+    HYP_FORCE_INLINE Vec4 operator/(const Vec4& other) const
+    {
+        return Vec4(Vec4<float>(*this) / Vec4<float>(other));
+    }
+
+    HYP_FORCE_INLINE Vec4& operator/=(const Vec4& other)
+    {
+        return *this = *this / other;
+    }
+
+    HYP_FORCE_INLINE constexpr Vec4 operator-() const
+    {
+        return Vec4(-x, -y, -z, -w);
+    }
+
+    HYP_FORCE_INLINE constexpr bool operator==(const Vec4& other) const
+    {
+        return x == other.x && y == other.y && z == other.z && w == other.w;
+    }
+
+    HYP_FORCE_INLINE constexpr bool operator!=(const Vec4& other) const
+    {
+        return !operator==(other);
+    }
+
+    HYP_FORCE_INLINE constexpr bool IsZero() const
+    {
+        return ((x.Raw() | y.Raw() | z.Raw() | w.Raw()) & 0x7FFFu) == 0;
+    }
+
+    static constexpr Vec4 Zero()
+    {
+        return Vec4();
+    }
+
+    static constexpr Vec4 One()
+    {
+        return Vec4(Float16::FromRaw(0x3C00));
+    }
+
+    HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
+    {
+        return HashCode()
+            .Combine(x.Raw())
+            .Combine(y.Raw())
+            .Combine(z.Raw())
+            .Combine(w.Raw());
+    }
+};
+
 } // namespace math
 
 template <class T>
@@ -756,10 +936,12 @@ using Vec4 = math::Vec4<T>;
 using Vec4f = Vec4<float>;
 using Vec4i = Vec4<int>;
 using Vec4u = Vec4<uint32>;
+using Vec4h = Vec4<Float16>;
 
 static_assert(sizeof(Vec4f) == sizeof(float) * 4, "sizeof(Vec4f) must be equal to sizeof(float) * 4");
 static_assert(sizeof(Vec4i) == sizeof(int) * 4, "sizeof(Vec4i) must be equal to sizeof(int) * 4");
 static_assert(sizeof(Vec4u) == sizeof(uint32) * 4, "sizeof(Vec4u) must be equal to sizeof(uint32) * 4");
+static_assert(sizeof(Vec4h) == sizeof(Float16) * 4, "sizeof(Vec4h) must be equal to sizeof(Float16) * 4");
 
 template <class T>
 inline constexpr bool isVec4 = false;
