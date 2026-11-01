@@ -735,6 +735,11 @@ ENGINE_API void AddShaderCompileTargetProperties(const ShaderCompileTarget& targ
 
 ENGINE_API Name GetShaderBundleAssetName(Name baseName, const ShaderCompileTarget& target);
 ENGINE_API bool IsShaderBundleForTarget(Name bundleAssetName, const ShaderCompileTarget& target);
+ENGINE_API bool IsShaderBundleForAnyTarget(Name bundleAssetName);
+
+// "<PLATFORM>_<BACKEND>", the same suffix the target's shader bundle names carry
+ENGINE_API Name GetShaderCompileTargetName(const ShaderCompileTarget& target);
+ENGINE_API bool FindShaderCompileTargetByName(StringHash targetName, ShaderCompileTarget& outTarget);
 
 class ENGINE_API ShaderCompiler
 {

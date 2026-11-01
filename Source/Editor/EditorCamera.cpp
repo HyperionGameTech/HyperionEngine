@@ -33,11 +33,13 @@ static CVar<float> s_cvEditorCameraMouseSensitivity { "Editor.Camera.MouseSensit
 static CVar<float> s_cvEditorCameraMovementSpeed { "Editor.Camera.MovementSpeed", 0.5f };
 static CVar<float> s_cvEditorCameraMoveSpeed { "Editor.Camera.MoveSpeed", 1.0f };
 
-static constexpr float BaseMoveSpeed = 15.0f;
-static constexpr float BoostMoveSpeedScale = 3.0f;
-static constexpr float MoveSpeedScrollStep = 1.25f;
-static constexpr float MinMoveSpeed = 0.05f;
-static constexpr float MaxMoveSpeed = 50.0f;
+constexpr float BaseMoveSpeed = 15.0f;
+constexpr float BoostMoveSpeedScale = 3.0f;
+constexpr float ScrollMoveDistance = 1.0f;
+constexpr float MoveSpeedScrollStep = 1.25f;
+
+constexpr float MinMoveSpeed = 0.05f;
+constexpr float MaxMoveSpeed = 50.0f;
 
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(Camera);
 
@@ -219,7 +221,41 @@ bool EditorCameraInputHandler::OnMouseScroll(const MouseEvent& evt)
 
     const float wheelSteps = float(evt.wheel.y) / 120.0f;
 
-    EditorCameraController::SetMoveSpeed(EditorCameraController::GetMoveSpeed() * MathUtil::Pow(MoveSpeedScrollStep, wheelSteps));
+    ApplicationWindow* window = evt.baseEvent != nullptr ? evt.baseEvent->GetWindow() : nullptr;
+    const InputManager* inputManager = window != nullptr ? window->GetInputManager().Get() : nullptr;
+
+    bool changeSpeed = false;
+
+    if (inputManager != nullptr)
+    {
+        changeSpeed = inputManager->IsCtrlDown();
+
+        for (uint32 i = 0; i < NumKeyboardKeys && !changeSpeed; i++)
+        {
+            changeSpeed = MovementKeys.Test(i) && inputManager->IsKeyDown(KeyCode(i));
+        }
+    }
+    else
+    {
+        changeSpeed = IsKeyDown(KeyCode::KEY_LCTRL) || IsKeyDown(KeyCode::KEY_RCTRL)
+            || (GetKeyStates() & MovementKeys).CountOnes() != 0;
+    }
+
+    if (changeSpeed)
+    {
+        EditorCameraController::SetMoveSpeed(EditorCameraController::GetMoveSpeed() * MathUtil::Pow(MoveSpeedScrollStep, wheelSteps));
+
+        return true;
+    }
+
+    Camera* camera = m_controller->GetCamera();
+
+    if (!camera)
+    {
+        return false;
+    }
+
+    camera->SetWorldTranslation(camera->GetWorldTranslation() + camera->GetDirection() * (wheelSteps * ScrollMoveDistance * EditorCameraController::GetMoveSpeed()));
 
     return true;
 }

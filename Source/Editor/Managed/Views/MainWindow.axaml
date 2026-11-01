@@ -1385,7 +1385,7 @@
                                             CommandParameter="3"
                                             Header="Force LOD 3" />
                                     </MenuItem>
-                                    <MenuItem Header="{Binding CameraMoveSpeedText}" ToolTip.Tip="Editor camera move speed. Scroll in the viewport to change it, hold Shift to move faster">
+                                    <MenuItem Header="{Binding CameraMoveSpeedText}" ToolTip.Tip="Editor camera move speed&#x0a;Scroll +/- while moving or Ctrl held:&#x09;increase/decrease&#x0a;Shift:&#x09;increase speed while held">
                                         <MenuItem
                                             Command="{Binding ResetCameraMoveSpeed}"
                                             Header="Reset Move Speed" />

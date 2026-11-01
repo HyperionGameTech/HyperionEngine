@@ -451,6 +451,39 @@ bool IsShaderBundleForTarget(Name bundleAssetName, const ShaderCompileTarget& ta
     return String(*bundleAssetName).EndsWith(suffix);
 }
 
+bool IsShaderBundleForAnyTarget(Name bundleAssetName)
+{
+    for (const ShaderCompileTarget& target : ValidShaderCompileTargets)
+    {
+        if (IsShaderBundleForTarget(bundleAssetName, target))
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+Name GetShaderCompileTargetName(const ShaderCompileTarget& target)
+{
+    return NAME_FMT("{}_{}", GetTargetPlatformPropertyValue(target.platform), GetTargetBackendPropertyValue(target.backend));
+}
+
+bool FindShaderCompileTargetByName(StringHash targetName, ShaderCompileTarget& outTarget)
+{
+    for (const ShaderCompileTarget& target : ValidShaderCompileTargets)
+    {
+        if (StringHash(GetShaderCompileTargetName(target)) == targetName)
+        {
+            outTarget = target;
+
+            return true;
+        }
+    }
+
+    return false;
+}
+
 namespace {
 
 static void SetShaderCompileTargetPerms(const ShaderCompileTarget& target, ShaderVariantPerms& inOutPerms)

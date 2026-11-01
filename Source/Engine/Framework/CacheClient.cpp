@@ -34,6 +34,8 @@
 
 #include <System/MessageBox.hpp>
 
+#include <Rendering/Util/ShaderCompiler.hpp>
+
 #if defined(HYP_UNIX) || defined(HYP_ANDROID)
 
 #include <unistd.h>
@@ -64,6 +66,11 @@ namespace CacheClient {
 HYP_DEFINE_LOG_SUBCHANNEL(CacheClient, Engine);
 
 namespace {
+
+constexpr uint32 DefaultReceiveTimeoutMs = 10000;
+
+// the server builds a manifest on first request, loading every asset it lists
+constexpr uint32 ManifestReceiveTimeoutMs = 300000;
 
 /// \p headerBuf must be NUL terminated, \p headerEnd points at the "\r\n\r\n" inside it.
 /// \p outContentLength is -1 when the response has no Content-Length.
@@ -133,7 +140,8 @@ Result HttpGetBytes(
     uint16 port,
     const ANSIString& path,
     ByteWriter& writer,
-    bool* outShouldRetry = nullptr)
+    bool* outShouldRetry = nullptr,
+    uint32 receiveTimeoutMs = DefaultReceiveTimeoutMs)
 {
     if (outShouldRetry)
     {
@@ -210,7 +218,7 @@ Result HttpGetBytes(
         WSACleanup();
     });
 
-    DWORD timeout = 10000;
+    DWORD timeout = receiveTimeoutMs;
     setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(timeout));
 
     char request[4096];
@@ -292,7 +300,14 @@ Result HttpGetBytes(
 
     if (n < 0)
     {
-        return HYP_MAKE_ERROR(Error, "Failed to receive response");
+        const int error = WSAGetLastError();
+
+        if (error == WSAETIMEDOUT)
+        {
+            return HYP_MAKE_ERROR(Error, "No response from the cache server within {} s", receiveTimeoutMs / 1000);
+        }
+
+        return HYP_MAKE_ERROR(Error, "Failed to receive response (socket error {})", error);
     }
 
     if (!headersDone)
@@ -359,7 +374,7 @@ Result HttpGetBytes(
     // every return from here on has to close the socket
     HYP_DEFER({ close(sock); });
 
-    struct timeval tv = { 10, 0 };
+    struct timeval tv = { time_t(receiveTimeoutMs / 1000), suseconds_t((receiveTimeoutMs % 1000) * 1000) };
     setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 
     char request[4096];
@@ -446,9 +461,17 @@ Result HttpGetBytes(
         }
     }
 
-    if (n < 0 && errno != EAGAIN && errno != EWOULDBLOCK)
+    // SO_RCVTIMEO expiring shows up as EAGAIN, not as the end of the response
+    if (n < 0)
     {
-        return HYP_MAKE_ERROR(Error, "Failed to receive response");
+        const int error = errno;
+
+        if (error == EAGAIN || error == EWOULDBLOCK)
+        {
+            return HYP_MAKE_ERROR(Error, "No response from the cache server within {} s", receiveTimeoutMs / 1000);
+        }
+
+        return HYP_MAKE_ERROR(Error, "Failed to receive response ({})", strerror(error));
     }
 
     if (!headersDone)
@@ -520,7 +543,9 @@ Result DownloadCacheFromHost(
     }
 
     MemoryByteWriter<DynamicAllocator> manifestWriter;
-    if (Result res = HttpGetBytes(host, port, String("/manifest?id=") + String::ToString(uint32(params.registryId)), manifestWriter, outShouldRetry); res.HasError())
+    const String manifestPath = HYP_FORMAT("/manifest?id={}&target={}", uint32(params.registryId), GetShaderCompileTargetName(HostShaderCompileTarget));
+
+    if (Result res = HttpGetBytes(host, port, manifestPath, manifestWriter, outShouldRetry, ManifestReceiveTimeoutMs); res.HasError())
     {
         return res;
     }

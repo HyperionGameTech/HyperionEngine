@@ -22,6 +22,7 @@
 #include <Asset/SerializationUtils.hpp>
 
 #include <Rendering/Util/ShaderCompiler.hpp>
+#include <Rendering/Shader.hpp>
 
 #include <Core/CLI/CommandLine.hpp>
 #include <Core/Core.hpp>
@@ -141,6 +142,32 @@ static bool IsSafeAssetFileName(const String& assetName)
     }
 
     return true;
+}
+
+static UTF8StringView GetQueryParam(const String& path, const String& name)
+{
+    size_t index = path.FindFirstIndex(String("&") + name + "=");
+
+    if (index == String::NotFound)
+    {
+        index = path.FindFirstIndex(String("?") + name + "=");
+    }
+
+    if (index == String::NotFound)
+    {
+        return {};
+    }
+
+    UTF8StringView value = path.Substr(index + name.Size() + 2);
+
+    const size_t ampIndex = value.FindFirstIndex("&");
+
+    if (ampIndex != String::NotFound)
+    {
+        value = value.Substr(0, ampIndex);
+    }
+
+    return value;
 }
 
 static bool IsPathUnderDirectory(const FilePath& path, const FilePath& directory)
@@ -627,10 +654,17 @@ class CacheServerCommandlet final : public CommandletBase
 
     using BlobLookupMap = Map<uint64, BlobLookupEntry>;
 
+    // one per registry and client shader target, other targets' shaders are most of the engine content
+    struct ServedManifest
+    {
+        AssetRegistryId registryId;
+        ShaderCompileTarget shaderTarget;
+        ServerManifest manifest;
+    };
+
     struct ServerState
     {
-        // Each map maps from world -> map or manifest
-        Map<AssetRegistryId, ServerManifest> manifests;
+        Map<uint64, ServedManifest> manifests;
         Map<AssetRegistryId, BlobLookupMap> blobLookups;
 
         BlobStorage* blobStorage = nullptr;
@@ -639,6 +673,8 @@ class CacheServerCommandlet final : public CommandletBase
         FilePath gameContentDir;
 
         SharedMutex lock;
+
+        Mutex buildMutex;
 
         Handle<AssetRegistry> engineRegistry;
         Handle<AssetRegistry> gameRegistry;
@@ -662,7 +698,34 @@ class CacheServerCommandlet final : public CommandletBase
         bool devServer = false;
     };
 
-    static void InitializeManifest(ServerState& state, ServerManifest& manifest, BlobLookupMap& blobLookup, const Handle<AssetRegistry>& registry, bool loadAll)
+    static uint64 MakeManifestKey(AssetRegistryId registryId, const ShaderCompileTarget& target)
+    {
+        return (uint64(registryId) << 32) | uint64(uint32(target.platform) | uint32(target.backend));
+    }
+
+    static bool IsAssetForShaderTarget(const AssetObject& assetObject, const ShaderCompileTarget& target)
+    {
+        const AssetBucket bucket = assetObject.GetPath().GetBucket();
+
+        if (bucket == AssetBuckets::Shaders)
+        {
+            return GetShaderCompileTargetForProperties(static_cast<const Shader&>(assetObject).properties, target) == target;
+        }
+
+        if (bucket == AssetBuckets::ShaderBundles)
+        {
+            return IsShaderBundleForTarget(assetObject.GetName(), target) || !IsShaderBundleForAnyTarget(assetObject.GetName());
+        }
+
+        return true;
+    }
+
+    static void InitializeManifest(
+        ServerManifest& manifest,
+        BlobLookupMap& blobLookup,
+        const Handle<AssetRegistry>& registry,
+        const ShaderCompileTarget& shaderTarget,
+        bool loadAll)
     {
         Assert(registry.IsValid());
 
@@ -686,6 +749,11 @@ class CacheServerCommandlet final : public CommandletBase
                 return;
             }
 
+            if (!IsAssetForShaderTarget(*assetObject, shaderTarget))
+            {
+                return;
+            }
+
             collectedAssets.Add(assetObject);
         };
 
@@ -693,11 +761,24 @@ class CacheServerCommandlet final : public CommandletBase
         {
             for (uint32 bucketIndex = 1; bucketIndex < MaxAssetBuckets; bucketIndex++)
             {
+                // shaders are reached through their bundles, the rest are orphaned variants
+                if (bucketIndex == AssetBuckets::Shaders.GetIndex())
+                {
+                    continue;
+                }
+
                 Array<AssetDesc> descs;
                 registry->GetBucketAssetDescs(bucketIndex, descs);
 
                 for (const AssetDesc& desc : descs)
                 {
+                    if (bucketIndex == AssetBuckets::ShaderBundles.GetIndex()
+                        && IsShaderBundleForAnyTarget(desc.name)
+                        && !IsShaderBundleForTarget(desc.name, shaderTarget))
+                    {
+                        continue;
+                    }
+
                     Handle<AssetObject> asset = registry->GetAsset(*AssetBuckets::AllBuckets[bucketIndex], desc.name);
 
                     if (!asset.IsValid() || asset->IsTransient())
@@ -850,16 +931,6 @@ class CacheServerCommandlet final : public CommandletBase
         const String& assetNameStr,
         bool wasDeleted)
     {
-        {
-            TSharedLock lock(state.lock);
-
-            // Not tracking manifest?
-            if (!state.manifests.Contains(registryId))
-            {
-                return;
-            }
-        }
-
         AssetBucket bucket = GetAssetBucketByName(StringHash(bucketName));
         uint32 bucketIndex = bucket.GetIndex();
 
@@ -870,14 +941,95 @@ class CacheServerCommandlet final : public CommandletBase
 
         const Name assetName = Name(assetNameStr.ToAnsi());
 
-        if (wasDeleted)
+        Mutex::Guard buildGuard(state.buildMutex);
+
+        Array<uint64> manifestKeys;
+
         {
-            TUniqueLock lock(state.lock);
+            TSharedLock lock(state.lock);
 
-            ServerManifest& manifest = state.manifests[registryId];
-            BlobLookupMap& blobLookup = state.blobLookups[registryId];
+            for (const auto& it : state.manifests)
+            {
+                if (it.second.registryId == registryId)
+                {
+                    manifestKeys.PushBack(it.first);
+                }
+            }
+        }
 
-            size_t existingIndex = SIZE_MAX;
+        // Not tracking manifest?
+        if (manifestKeys.Empty())
+        {
+            return;
+        }
+
+        Handle<AssetObject> assetObject;
+
+        const AssetPath path { registryId, *AssetBuckets::AllBuckets[bucketIndex], assetName };
+
+        AssetEntry newEntry;
+        newEntry.path = path;
+
+        Array<Tuple<uint64, uint64, const char*>> lookupEntries; // key, size, magic
+
+        if (!wasDeleted)
+        {
+            if (!registry)
+            {
+                return;
+            }
+
+            // The cached object predates the change on disk, so its blob keys and sizes would be stale
+            registry->RemoveCached(bucket, assetName);
+
+            assetObject = registry->GetAsset(bucket, assetName);
+            if (!assetObject.IsValid() || assetObject->IsTransient())
+            {
+                return;
+            }
+
+            Array<Tuple<const char*, uint16, BlobDataReference*>> blobRefs;
+            assetObject->CollectBlobDataReferences(blobRefs);
+
+            FilePath hmfPath = registry->GetManifestPath(assetObject->GetPath());
+            if (hmfPath.Exists())
+            {
+                newEntry.lastModifiedTimestamp = uint64(hmfPath.LastModifiedTimestamp());
+            }
+
+            for (auto& tup : blobRefs)
+            {
+                BlobDataReference* ref = tup.GetElement<2>();
+
+                if (!ref->key || ref->size == 0)
+                {
+                    continue;
+                }
+
+                uint64 key = ref->key.GetHashCode().Value();
+                const char* magic = tup.GetElement<0>();
+
+                BlobEntry blobEntry;
+                blobEntry.key = key;
+                blobEntry.size = ref->size;
+                blobEntry.magic = magic;
+                newEntry.blobs.PushBack(std::move(blobEntry));
+
+                lookupEntries.EmplaceBack(key, uint64(ref->size), magic);
+            }
+        }
+
+        TUniqueLock lock(state.lock);
+
+        BlobLookupMap& blobLookup = state.blobLookups[registryId];
+
+        bool removed = false;
+        bool added = false;
+
+        for (uint64 manifestKey : manifestKeys)
+        {
+            ServedManifest& served = state.manifests[manifestKey];
+            ServerManifest& manifest = served.manifest;
 
             for (size_t i = 0; i < manifest.assets.Size(); i++)
             {
@@ -887,110 +1039,37 @@ class CacheServerCommandlet final : public CommandletBase
                     && entry.path.bucketIndex == bucketIndex
                     && entry.path.assetName == assetName)
                 {
-                    existingIndex = i;
+                    for (const BlobEntry& blob : entry.blobs)
+                    {
+                        blobLookup.Erase(blob.key);
+                    }
+
+                    manifest.assets.EraseAt(i);
+
+                    removed = true;
 
                     break;
                 }
             }
 
-            if (existingIndex != SIZE_MAX)
+            if (assetObject.IsValid() && IsAssetForShaderTarget(*assetObject, served.shaderTarget))
             {
-                for (const BlobEntry& blob : manifest.assets[existingIndex].blobs)
-                    blobLookup.Erase(blob.key);
+                // Insert at the sorted position (descending by timestamp)
+                const AssetEntry* insertPos = std::lower_bound(
+                    manifest.assets.Data(),
+                    manifest.assets.Data() + manifest.assets.Size(),
+                    newEntry.lastModifiedTimestamp,
+                    [](const AssetEntry& entry, uint64 ts)
+                    {
+                        return entry.lastModifiedTimestamp > ts;
+                    });
 
-                manifest.assets.EraseAt(existingIndex);
+                manifest.assets.Insert(insertPos, newEntry);
 
-                HYP_LOG(Assets, Info, "CacheServer: removed asset {}/{}", bucketName, assetNameStr);
+                added = true;
             }
 
             manifest.timestamp = uint64(Time::Now());
-
-            return;
-        }
-
-        if (!registry)
-        {
-            return;
-        }
-
-        // Held across the reload so it can't interleave with a manifest build or /refresh on the same registry
-        TUniqueLock lock(state.lock);
-
-        // The cached object predates the change on disk, so its blob keys and sizes would be stale
-        registry->RemoveCached(bucket, assetName);
-
-        Handle<AssetObject> assetObject = registry->GetAsset(bucket, assetName);
-        if (!assetObject.IsValid() || assetObject->IsTransient())
-        {
-            return;
-        }
-
-        Array<Tuple<const char*, uint16, BlobDataReference*>> blobRefs;
-        assetObject->CollectBlobDataReferences(blobRefs);
-
-        const AssetPath path { registryId, *AssetBuckets::AllBuckets[bucketIndex], assetName };
-
-        AssetEntry newEntry;
-        newEntry.path = path;
-
-        FilePath hmfPath = registry->GetManifestPath(assetObject->GetPath());
-        if (hmfPath.Exists())
-        {
-            newEntry.lastModifiedTimestamp = uint64(hmfPath.LastModifiedTimestamp());
-        }
-
-        Array<Tuple<uint64, uint64, const char*>> lookupEntries; // key, size, magic
-
-        for (auto& tup : blobRefs)
-        {
-            BlobDataReference* ref = tup.GetElement<2>();
-
-            if (!ref->key || ref->size == 0)
-            {
-                continue;
-            }
-
-            uint64 key = ref->key.GetHashCode().Value();
-            const char* magic = tup.GetElement<0>();
-
-            BlobEntry blobEntry;
-            blobEntry.key = key;
-            blobEntry.size = ref->size;
-            blobEntry.magic = magic;
-            newEntry.blobs.PushBack(std::move(blobEntry));
-
-            lookupEntries.EmplaceBack(key, uint64(ref->size), magic);
-        }
-
-        ServerManifest& manifest = state.manifests[registryId];
-        BlobLookupMap& blobLookup = state.blobLookups[registryId];
-
-        size_t existingIndex = SIZE_MAX;
-
-        for (size_t i = 0; i < manifest.assets.Size(); i++)
-        {
-            const AssetEntry& entry = manifest.assets[i];
-
-            if (entry.path.registryId == registryId
-                && entry.path.bucketIndex == bucketIndex
-                && entry.path.assetName == assetName)
-            {
-                existingIndex = i;
-
-                break;
-            }
-        }
-
-        if (existingIndex != SIZE_MAX)
-        {
-            // Replace in-place - sorted position may have shifted, so
-            // remove and re-insert at the correct position.
-            for (const BlobEntry& blob : manifest.assets[existingIndex].blobs)
-            {
-                blobLookup.Erase(blob.key);
-            }
-
-            manifest.assets.EraseAt(existingIndex);
         }
 
         for (auto& tup : lookupEntries)
@@ -1002,20 +1081,99 @@ class CacheServerCommandlet final : public CommandletBase
             lookup.magic = tup.GetElement<2>();
         }
 
-        // Insert at the sorted position (descending by timestamp)
-        const AssetEntry* insertPos = std::lower_bound(
-            manifest.assets.Data(),
-            manifest.assets.Data() + manifest.assets.Size(),
-            newEntry.lastModifiedTimestamp,
-            [](const AssetEntry& entry, uint64 ts)
+        if (added)
+        {
+            HYP_LOG(Assets, Info, "CacheServer: updated asset {}/{}", bucketName, assetNameStr);
+        }
+        else if (removed)
+        {
+            HYP_LOG(Assets, Info, "CacheServer: removed asset {}/{}", bucketName, assetNameStr);
+        }
+    }
+
+    static void BuildManifest(
+        ServerState& state,
+        const Handle<AssetRegistry>& registry,
+        const ShaderCompileTarget& shaderTarget)
+    {
+        ServedManifest served;
+        served.registryId = registry->GetRegistryId();
+        served.shaderTarget = shaderTarget;
+
+        BlobLookupMap blobLookup;
+
+        const Time startTime = Time::Now();
+
+        InitializeManifest(served.manifest, blobLookup, registry, shaderTarget, /* loadAll */ true);
+
+        HYP_LOG(Assets, Info, "CacheServer: built manifest for registry {} ({}), {} assets in {} ms",
+            uint32(served.registryId), GetShaderCompileTargetName(shaderTarget), served.manifest.assets.Size(), int64(Time::Now() - startTime));
+
+        TUniqueLock lock(state.lock);
+
+        BlobLookupMap& registryBlobLookup = state.blobLookups[served.registryId];
+
+        for (const auto& it : blobLookup)
+        {
+            registryBlobLookup[it.first] = it.second;
+        }
+
+        state.manifests[MakeManifestKey(served.registryId, shaderTarget)] = std::move(served);
+    }
+
+    static bool TryWriteManifestHMF(ServerState& state, uint64 manifestKey, String& outHmfText)
+    {
+        TSharedLock lock(state.lock);
+
+        auto it = state.manifests.Find(manifestKey);
+
+        if (it == state.manifests.End())
+        {
+            return false;
+        }
+
+        ObjectToHMF(GetClass<ServerManifest>(), BoxedValue(it->second.manifest), outHmfText);
+
+        return true;
+    }
+
+    static void EnsureManifest(
+        ServerState& state,
+        const Handle<AssetRegistry>& registry,
+        const ShaderCompileTarget& shaderTarget)
+    {
+        const uint64 manifestKey = MakeManifestKey(registry->GetRegistryId(), shaderTarget);
+
+        Mutex::Guard buildGuard(state.buildMutex);
+
+        {
+            TSharedLock lock(state.lock);
+
+            if (state.manifests.Contains(manifestKey))
             {
-                return entry.lastModifiedTimestamp > ts;
-            });
+                return;
+            }
+        }
 
-        manifest.assets.Insert(insertPos, std::move(newEntry));
-        manifest.timestamp = uint64(Time::Now());
+        BuildManifest(state, registry, shaderTarget);
+    }
 
-        HYP_LOG(Assets, Info, "CacheServer: updated asset {}/{}", bucketName, assetNameStr);
+    static String GetManifestHMF(
+        ServerState& state,
+        const Handle<AssetRegistry>& registry,
+        const ShaderCompileTarget& shaderTarget)
+    {
+        const uint64 manifestKey = MakeManifestKey(registry->GetRegistryId(), shaderTarget);
+
+        String hmfText;
+
+        if (!TryWriteManifestHMF(state, manifestKey, hmfText))
+        {
+            EnsureManifest(state, registry, shaderTarget);
+            TryWriteManifestHMF(state, manifestKey, hmfText);
+        }
+
+        return hmfText;
     }
 
 public:
@@ -1312,6 +1470,15 @@ protected:
 
         List<Task<void>> tasks;
 
+        // a client's first /manifest would otherwise wait out the whole build
+        tasks.EmplaceBack(serverPool.Enqueue(HYP_STATIC_MESSAGE("CacheServerPrebuildManifests"), [&state]()
+        {
+            GlobalContextScope scope { CacheServerContext() };
+
+            EnsureManifest(state, state.engineRegistry, HostShaderCompileTarget);
+            EnsureManifest(state, state.gameRegistry, HostShaderCompileTarget);
+        }));
+
         for (;;)
         {
             // Remove completed tasks.
@@ -1377,30 +1544,9 @@ protected:
 
             HYP_LOG(Assets, Info, "GET {}", path);
 
-            // Read `id` from the url.
-            size_t idIndex = path.FindFirstIndex("&id=");
-            if (idIndex == String::NotFound)
-            {
-                idIndex = path.FindFirstIndex("?id=");
-            }
-
-            UTF8StringView idValue;
-
-            if (idIndex != String::NotFound)
-            {
-                // get the data from it by reading until end or & is hit
-                idValue = path.Substr(idIndex + 4, SIZE_MAX);
-                size_t ampIndex = idValue.FindFirstIndex("&");
-
-                if (ampIndex != String::NotFound)
-                {
-                    idValue = idValue.Substr(0, ampIndex);
-                }
-            }
-
             AssetRegistryId registryId = AssetRegistryId::Game;
 
-            if (idValue)
+            if (const UTF8StringView idValue = GetQueryParam(path, "id"))
             {
                 if (!StringUtil::Parse(idValue, reinterpret_cast<uint32*>(&registryId)))
                 {
@@ -1408,12 +1554,20 @@ protected:
                 }
             }
 
-            tasks.EmplaceBack(serverPool.Enqueue(HYP_STATIC_MESSAGE("CacheServerRequest"), [&state, clientSock, registryId, path = std::move(path)]()
+            ShaderCompileTarget shaderTarget = HostShaderCompileTarget;
+
+            if (const UTF8StringView targetValue = GetQueryParam(path, "target"))
+            {
+                if (!FindShaderCompileTargetByName(StringHash(targetValue), shaderTarget))
+                {
+                    HYP_LOG(Assets, Warning, "CacheServer: unknown shader target in request {}, serving {}", path, GetShaderCompileTargetName(shaderTarget));
+                }
+            }
+
+            tasks.EmplaceBack(serverPool.Enqueue(HYP_STATIC_MESSAGE("CacheServerRequest"), [&state, clientSock, registryId, shaderTarget, path = std::move(path)]()
             {
                 // Needed per-thread
                 GlobalContextScope scope { CacheServerContext() };
-
-                const bool preloadAll = true;
 
                 const Handle<AssetRegistry>& registry = (registryId == AssetRegistryId::Engine)
                     ? state.engineRegistry
@@ -1435,40 +1589,7 @@ protected:
 
                 if (path.StartsWith("/manifest"))
                 {
-                    String hmfText;
-
-                    {
-                        TSharedLock sharedLock(state.lock);
-
-                        auto it = state.manifests.Find(registryId);
-                        if (it == state.manifests.End())
-                        {
-                            sharedLock.Reset();
-
-                            TUniqueLock uniqueLock(state.lock);
-
-                            it = state.manifests.Find(registryId);
-                            if (it == state.manifests.End())
-                            {
-                                ServerManifest& manifest = state.manifests[registryId];
-                                BlobLookupMap& blobLookup = state.blobLookups[registryId];
-
-                                InitializeManifest(state, manifest, blobLookup, registry, preloadAll);
-
-                                ObjectToHMF(GetClass<ServerManifest>(), BoxedValue(manifest), hmfText);
-                            }
-                            else
-                            {
-                                ServerManifest& manifest = state.manifests[registryId];
-                                ObjectToHMF(GetClass<ServerManifest>(), BoxedValue(manifest), hmfText);
-                            }
-                        }
-                        else
-                        {
-                            ServerManifest& manifest = state.manifests[registryId];
-                            ObjectToHMF(GetClass<ServerManifest>(), BoxedValue(manifest), hmfText);
-                        }
-                    }
+                    const String hmfText = GetManifestHMF(state, registry, shaderTarget);
 
                     char header[256];
                     int headerLen = std::snprintf(header, sizeof(header),
@@ -1500,15 +1621,32 @@ protected:
                     size_t numAssets = 0;
 
                     {
-                        TUniqueLock uniqueLock(state.lock);
+                        Mutex::Guard buildGuard(state.buildMutex);
 
                         registry->LoadAssetDescs();
                         registry->RemoveCached();
 
-                        ServerManifest& manifest = state.manifests[registryId];
-                        BlobLookupMap& blobLookup = state.blobLookups[registryId];
+                        BuildManifest(state, registry, shaderTarget);
 
-                        InitializeManifest(state, manifest, blobLookup, registry, preloadAll);
+                        const uint64 manifestKey = MakeManifestKey(registryId, shaderTarget);
+
+                        TUniqueLock uniqueLock(state.lock);
+                        Array<uint64> staleKeys;
+
+                        for (const auto& it : state.manifests)
+                        {
+                            if (it.second.registryId == registryId && it.first != manifestKey)
+                            {
+                                staleKeys.PushBack(it.first);
+                            }
+                        }
+
+                        for (uint64 staleKey : staleKeys)
+                        {
+                            state.manifests.Erase(staleKey);
+                        }
+
+                        const ServerManifest& manifest = state.manifests[manifestKey].manifest;
 
                         manifestTimestamp = manifest.timestamp;
                         numAssets = manifest.assets.Size();
