@@ -1116,6 +1116,11 @@ bool SceneOctree::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<
                 continue;
             }
 
+            if (entry.aabb.IsValid() && !ray.TestAABB(entry.aabb).HasValue())
+            {
+                continue;
+            }
+
             RayTestResults aabbResult;
 
             MeshComponent* meshComponent = entry.value->TryGetComponent<MeshComponent>();
@@ -1132,10 +1137,17 @@ bool SceneOctree::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<
                 const BoundingBox& meshAabb = meshComponent->mesh->GetAABB();
 
 #ifdef HYP_EDITOR
-                auto* pickCacheEntry = (flags & RayTestFlags::EditorPick)
-                    ? g_editorState->GetPickCache().GetEntry(meshComponent->mesh)
-                    : nullptr;
+                EditorPickCacheEntry* pickCacheEntry = nullptr;
+                bool canFillPickCache = false;
+
+                if (flags & RayTestFlags::EditorPick)
+                {
+                    pickCacheEntry = g_editorState->GetPickCache().GetEntry(meshComponent->mesh);
+                    canFillPickCache = pickCacheEntry == nullptr;
+                }
 #endif
+
+                TSharedResLock<AssetObject> resGuard;
 
                 bool hasBvhHit = false;
 
@@ -1160,9 +1172,22 @@ bool SceneOctree::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<
 
                     const Ray localSpaceRay = invModelMatrix * ray;
 
+                    if (!localSpaceRay.TestAABB(bvh.aabb).HasValue())
+                    {
+                        continue;
+                    }
+
                     RayTestResults localBvhResults;
 
 #ifdef HYP_EDITOR
+                    if (canFillPickCache)
+                    {
+                        canFillPickCache = false;
+
+                        g_editorState->GetPickCache().PutEntry(meshComponent->mesh);
+                        pickCacheEntry = g_editorState->GetPickCache().GetEntry(meshComponent->mesh);
+                    }
+
                     if (pickCacheEntry)
                     {
                         VertexArrayView vaView {};
@@ -1180,7 +1205,10 @@ bool SceneOctree::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<
                     else
 #endif
                     {
-                        auto resGuard = meshComponent->mesh->GetReadScope();
+                        if (!resGuard)
+                        {
+                            resGuard.Reset(*meshComponent->mesh);
+                        }
 
                         const VertexArrayView vertexData = meshComponent->mesh->GetVertexData(0);
                         const Span<const ubyte> indexData = meshComponent->mesh->GetIndexData(0);

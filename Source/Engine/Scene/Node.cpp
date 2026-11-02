@@ -1193,7 +1193,7 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
             const BVHNode* bvh = nullptr;
             Mat4f modelMatrix = Mat4f::Identity();
 
-            if (flags & RayTestFlags::TestBVH)
+            if (worldAabbHit && (flags & RayTestFlags::TestBVH))
             {
                 if (MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>(); meshComponent && meshComponent->mesh.IsValid())
                 {
@@ -1202,18 +1202,6 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
                     if (meshComponent->mesh->GetBVH().IsValid())
                     {
                         bvh = &meshComponent->mesh->GetBVH();
-
-#ifdef HYP_EDITOR
-                        if (flags & RayTestFlags::EditorPick)
-                        {
-                            pickCacheEntry = g_editorState->GetPickCache().GetEntry(meshComponent->mesh);
-                        }
-
-                        if (!pickCacheEntry)
-#endif
-                        {
-                            resGuard.Reset(*meshComponent->mesh);
-                        }
                     }
                 }
 
@@ -1226,8 +1214,29 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
 
                 const Ray localSpaceRay = modelMatrix.Inverse() * ray;
 
+                if (localSpaceRay.TestAABB(bvh->aabb).HasValue())
+                {
 #ifdef HYP_EDITOR
-                if ((flags & RayTestFlags::EditorPick) && pickCacheEntry)
+                    if (flags & RayTestFlags::EditorPick)
+                    {
+                        pickCacheEntry = g_editorState->GetPickCache().GetEntry(mesh);
+
+                        if (!pickCacheEntry)
+                        {
+                            g_editorState->GetPickCache().PutEntry(mesh);
+                            pickCacheEntry = g_editorState->GetPickCache().GetEntry(mesh);
+                        }
+                    }
+
+                    if (!pickCacheEntry)
+#endif
+                    {
+                        resGuard.Reset(*mesh);
+                    }
+                }
+
+#ifdef HYP_EDITOR
+                if (pickCacheEntry)
                 {
                     VertexArrayView vaView {};
                     vaView.floatData = pickCacheEntry->positions.Data();
@@ -1241,12 +1250,10 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
                         vaView,
                         pickCacheEntry->indices.ToSpan());
                 }
-
                 else
 #endif
+                if (resGuard)
                 {
-                    AssertDebug(resGuard);
-
                     const VertexArrayView vaView = mesh->GetVertexData(0);
                     const Span<const ubyte> indexData = mesh->GetIndexData(0);
 
