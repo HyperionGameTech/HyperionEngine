@@ -3,28 +3,22 @@
   "defaults": {},
   "configurations": [
     {
-      "type": "native",
-      "project": "..\\Binaries\\Windows\\Debug\\Hyperion.Editor.exe",
-      "name": "Hyperion.Editor (Debug)",
-      "currentDir": "${workspaceRoot}\\..\\Binaries\\Windows\\Debug"
+      "type": "default",
+      "project": "CMakeLists.txt",
+      "projectTarget": "Hyperion.Editor.Launch.dll",
+      "name": "Hyperion.Editor",
+      "exe": "${workspaceRoot}\\..\\Binaries\\Windows\\${cmake.configurationType}\\Hyperion.Editor.exe",
+      "currentDir": "${workspaceRoot}\\..\\Binaries\\Windows\\${cmake.configurationType}",
+      "debugType": "native"
     },
     {
-      "type": "native",
-      "project": "..\\Binaries\\Windows\\Release\\Hyperion.Editor.exe",
-      "name": "Hyperion.Editor (Release)",
-      "currentDir": "${workspaceRoot}\\..\\Binaries\\Windows\\Release"
-    },
-    {
-      "type": "coreclr",
-      "project": "..\\Binaries\\Windows\\Debug\\Hyperion.Editor.exe",
-      "name": "Hyperion.Editor (Debug, Managed)",
-      "currentDir": "${workspaceRoot}\\..\\Binaries\\Windows\\Debug"
-    },
-    {
-      "type": "coreclr",
-      "project": "..\\Binaries\\Windows\\Release\\Hyperion.Editor.exe",
-      "name": "Hyperion.Editor (Release, Managed)",
-      "currentDir": "${workspaceRoot}\\..\\Binaries\\Windows\\Release"
+      "type": "default",
+      "project": "CMakeLists.txt",
+      "projectTarget": "Hyperion.Editor.Launch.dll",
+      "name": "Hyperion.Editor (Managed)",
+      "exe": "${workspaceRoot}\\..\\Binaries\\Windows\\${cmake.configurationType}\\Hyperion.Editor.exe",
+      "currentDir": "${workspaceRoot}\\..\\Binaries\\Windows\\${cmake.configurationType}",
+      "debugType": "coreclr"
     }
   ]
 }

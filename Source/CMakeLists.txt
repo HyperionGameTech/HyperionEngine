@@ -1762,6 +1762,32 @@ foreach(plugin_module ${HYP_PLUGIN_MODULES})
   endif()
 endforeach()
 
+# VS "Open Folder" only builds CMake library/executable targets before launching, and Hyperion.Editor is a dotnet custom
+# target, so Source/launch.vs.json builds the editor and its plugins through this empty DLL. It has to be a DLL: for a DLL
+# target VS launches the launch config's "exe", for an executable target it always launches the target itself
+if(TARGET Hyperion.Editor AND CMAKE_HOST_WIN32 AND CMAKE_GENERATOR MATCHES "Ninja")
+  set(editor_launch_source "${CMAKE_BINARY_DIR}/EditorLaunch/EditorLaunch.cpp")
+  file(CONFIGURE OUTPUT "${editor_launch_source}" CONTENT "void HypEditorLaunch() {}\n")
+
+  add_library(Hyperion.Editor.Launch SHARED "${editor_launch_source}")
+  set_target_properties(Hyperion.Editor.Launch PROPERTIES
+      RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
+      RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}"
+      RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}")
+
+  add_dependencies(Hyperion.Editor.Launch Hyperion.Editor)
+
+  foreach(plugin_module ${HYP_PLUGIN_MODULES})
+    if(TARGET hyperion-plugin-${plugin_module})
+      add_dependencies(Hyperion.Editor.Launch hyperion-plugin-${plugin_module})
+    endif()
+
+    if(TARGET Hyperion.Plugin.${plugin_module})
+      add_dependencies(Hyperion.Editor.Launch Hyperion.Plugin.${plugin_module})
+    endif()
+  endforeach()
+endif()
+
 function(hyp_collect_static_link_items rootTarget outVar)
   set(items "")
   set(visited "")
