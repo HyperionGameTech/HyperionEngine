@@ -594,7 +594,7 @@ PSOutput PSMain(PSInput input)
 
                 if (isFoliage)
                 {
-                    direct_component += diffuse * FoliageTransmissionTint(albedo) * FoliageTransmission(V, L, foliageTransmission);
+                    direct_component += diffuse * FoliageTransmissionTint(albedo) * FoliageTransmission(N, V, L, foliageTransmission);
                 }
 
                 direct_lighting += direct_component * (light_color * ao * shadow * currentLight.position_intensity.w * attenuation);
@@ -640,7 +640,7 @@ PSOutput PSMain(PSInput input)
 
                 if (isFoliage)
                 {
-                    direct_component += diffuse_lobe * FoliageTransmissionTint(albedo) * FoliageTransmission(V, L, foliageTransmission);
+                    direct_component += diffuse_lobe * FoliageTransmissionTint(albedo) * FoliageTransmission(N, V, L, foliageTransmission);
                 }
 
                 direct_lighting += direct_component * (currentLight.color.rgb * currentLight.atmosphere_tint.rgb * ao * shadow * currentLight.position_intensity.w);

@@ -88,6 +88,7 @@ struct GlimmerSurface
 {
     float3 P;
     float3 N;
+    float transmission;
     bool isValid;
     bool isDynamic;
 };
@@ -108,7 +109,12 @@ GlimmerSurface GlimmerLoadSurface(int2 pixel, uint2 dimensions)
     surface.P = positionWS.xyz;
     surface.N = normalize(GBufferUnpackNormal(GBufferNormalsTexture.Load(int3(pixel, 0))));
     surface.isValid = depth < 1.0;
-    surface.isDynamic = (GBufferUnpackObjectMask(GBufferMaterialTexture.Load(int3(pixel, 0))) & OBJECT_MASK_DYNAMIC) != 0u;
+
+    const uint materialBits = GBufferMaterialTexture.Load(int3(pixel, 0));
+    const uint objectMask = GBufferUnpackObjectMask(materialBits);
+
+    surface.isDynamic = (objectMask & OBJECT_MASK_DYNAMIC) != 0u;
+    surface.transmission = (objectMask & OBJECT_MASK_FOLIAGE) != 0u ? GBufferUnpackTransmission(materialBits) : 0.0;
 
     return surface;
 }
@@ -128,6 +134,12 @@ PSOutput GlimmerEvaluateSurface(GlimmerSurface surface)
     const float3 R = reflect(-V, surface.N);
 
     output.irradiance = EvaluateGlimmer(glimmer, surface.P, surface.N, R, output.specular, output.reflection);
+
+    // light reaching the far side of a leaf comes through it
+    if (surface.transmission > 0.0)
+    {
+        output.irradiance.rgb += EvaluateGlimmer(glimmer, surface.P, -surface.N).rgb * surface.transmission;
+    }
 
     return output;
 }

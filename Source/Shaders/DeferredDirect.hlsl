@@ -151,6 +151,7 @@ DECLARE_SRV(DeferredPass, EnvProbesDepthTexture) TextureCubeArray<float2> envPro
 #include "./Deferred/DeferredLighting.hlsli"
 
 #include "Include/Shadows.hlsli"
+#include "Include/FoliageLighting.hlsli"
 
 #include "Include/LightSampling.hlsli"
 
@@ -178,6 +179,31 @@ float GetCascadeShadow(int cascadeIndex, float3 position, float3 N, float2 texco
     return GetShadowPCF(shadowMapCoord,
         atlasUV, atlasScale,
         position, texcoord, camera.dimensions.xy);
+}
+
+float GetCascadeCrownTransmittance(int cascadeIndex, float3 position)
+{
+    float4 positionLS = mul(shadowViewMat, float4(position, 1.0));
+    positionLS /= positionLS.w;
+
+    const float2 coord = float2(
+        positionLS.x * cascadeScaleX[cascadeIndex] + cascadeOffsetX[cascadeIndex],
+        positionLS.y * cascadeScaleY[cascadeIndex] + cascadeOffsetY[cascadeIndex]);
+    const float depth = positionLS.z * cascadeScaleZ[cascadeIndex] + cascadeOffsetZ[cascadeIndex];
+
+    const float2 atlasUV = float2(atlasU[cascadeIndex], atlasV[cascadeIndex]);
+    const float2 atlasScale = float2(atlasScaleX[cascadeIndex], atlasScaleY[cascadeIndex]);
+    const float3 uv = float3(clamp(coord, HYP_SHADOW_ATLAS_EDGE_BIAS, 1.0 - HYP_SHADOW_ATLAS_EDGE_BIAS) * atlasScale + atlasUV, (float)atlasSlice[cascadeIndex]);
+
+#if defined(BACKEND_WEBGPU) && defined(HYP_SAMPLER_NEAREST)
+    const float4 occluderDepths = shadow_maps.GatherRed(HYP_SAMPLER_NEAREST, uv);
+#else
+    const float4 occluderDepths = shadow_maps.GatherRed(HYP_SAMPLER_LINEAR, uv);
+#endif
+
+    const float4 thickness = max(depth - occluderDepths, 0.0) / max(abs(cascadeScaleZ[cascadeIndex]), 0.000001);
+
+    return dot(exp(-FOLIAGE_CROWN_EXTINCTION * thickness), (float4)0.25);
 }
 
 #endif // LIGHT_TYPE_DIRECTIONAL
@@ -210,8 +236,6 @@ uint GetShadowMapIndexForLight(uint lightIndex)
 }
 
 #endif // LIGHT_TYPE_CLUSTERED
-
-#include "Include/FoliageLighting.hlsli"
 
 PSOutput PSMain(PSInput input)
 {
@@ -275,6 +299,7 @@ PSOutput PSMain(PSInput input)
     const float NdotV = max(0.000001, dot(N, V));
 
     float shadow = 1.0;
+    float crownTransmittance = 0.0;
 
     float4 area_light_radiance;
 
@@ -383,7 +408,7 @@ PSOutput PSMain(PSInput input)
 
         if (isFoliage)
         {
-            direct_component += diffuse * float4(FoliageTransmissionTint(albedo.rgb), 1.0) * FoliageTransmission(V, L, transmission);
+            direct_component += diffuse * float4(FoliageTransmissionTint(albedo.rgb), 1.0) * FoliageTransmission(N, V, L, transmission);
         }
 
         result += float4((direct_component * (light_color * shadow * foliageDirectOcclusion * currentLight.position_intensity.w * attenuation)).rgb, attenuation);
@@ -543,13 +568,20 @@ PSOutput PSMain(PSInput input)
             {
                 shadow = lerp(shadow, GetCascadeShadow(nextCascadeIndex, shadowPosition, N, texcoord, NdotL), nextCascadeWeight);
             }
+
+            [branch]
+            if (transmission > 0.0)
+            {
+                crownTransmittance = GetCascadeCrownTransmittance(cascadeIndex, shadowPosition);
+            }
         }
     }
-    
+
     // cloud coverage
-    
+
     const float cloudShadow = GetCloudShadow(cloudWeatherMapTexture, cloudShadowMapTexture, sampler_linear, cloudVolume, cloudWeatherMap, cloudShadowMap, position.xyz, L);
     shadow *= cloudShadow;
+    crownTransmittance *= cloudShadow;
     
     [branch]
     if (cloudWeatherMap.debugShadows != 0)
@@ -600,14 +632,14 @@ PSOutput PSMain(PSInput input)
     // leaves and grass wrap light around and let some through from behind
     const float diffuseWeight = isFoliage ? FoliageWrapDiffuse(dot(N, L)) : NdotL;
 
-    float4 direct_component = diffuse * diffuseWeight + specular * float4(energy_compensation, 1.0) * NdotL * (isFoliage ? FoliageSpecularWeight(N, V) : 1.0);
+    float4 direct_component = (diffuse * diffuseWeight + specular * float4(energy_compensation, 1.0) * NdotL * (isFoliage ? FoliageSpecularWeight(N, V) : 1.0)) * shadow;
 
     if (isFoliage)
     {
-        direct_component += diffuse * float4(FoliageTransmissionTint(albedo.rgb), 1.0) * FoliageTransmission(V, L, transmission);
+        direct_component += diffuse * float4(FoliageTransmissionTint(albedo.rgb), 1.0) * FoliageTransmission(N, V, L, transmission, shadow, crownTransmittance);
     }
 
-    result += direct_component * (light_color * shadow * foliageDirectOcclusion * currentLight.position_intensity.w * attenuation);
+    result += direct_component * (light_color * foliageDirectOcclusion * currentLight.position_intensity.w * attenuation);
     result.a = attenuation;
 
 #ifdef LIGHT_TYPE_AREA_RECT
