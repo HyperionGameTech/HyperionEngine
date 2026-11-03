@@ -228,6 +228,31 @@
                     </Button>
                 </StackPanel>
             </Grid>
+
+            <Border
+                Padding="10,8,10,8"
+                Background="{DynamicResource Brush.WarningSubtle}"
+                BorderBrush="{DynamicResource Brush.Warning}"
+                BorderThickness="3,0,0,0"
+                CornerRadius="{DynamicResource Radius.Small}"
+                IsVisible="{Binding HasImportWarning}">
+                <Grid ColumnDefinitions="Auto,*">
+                    <controls:Codicon
+                        Margin="0,1,8,0"
+                        VerticalAlignment="Top"
+                        Foreground="{DynamicResource Brush.Warning}"
+                        Kind="Warning"
+                        Size="14" />
+                    <TextBlock
+                        Grid.Column="1"
+                        VerticalAlignment="Center"
+                        FontSize="11"
+                        Foreground="{DynamicResource Brush.Text}"
+                        LineHeight="16"
+                        Text="{Binding ImportWarning}"
+                        TextWrapping="Wrap" />
+                </Grid>
+            </Border>
         </StackPanel>
     </Grid>
 </UserControl>

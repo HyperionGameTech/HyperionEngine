@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -154,6 +155,21 @@ namespace Hyperion.Editor.ViewModels
         public ICommand ImportCommand { get; }
 
         public bool CanImport => _isAssetObjectType && !_isReadOnly;
+
+        private string? _importWarning;
+        public string? ImportWarning
+        {
+            get => _importWarning;
+            private set
+            {
+                if (SetProperty(ref _importWarning, value))
+                {
+                    OnPropertyChanged(nameof(HasImportWarning));
+                }
+            }
+        }
+
+        public bool HasImportWarning => _importWarning != null;
 
         private bool _canClone;
         public bool CanClone
@@ -824,12 +840,12 @@ namespace Hyperion.Editor.ViewModels
                         return;
                     }
 
-                    _ = EngineManager.PostToSimThread(() => AssignImportedAsset(result, capturedExpectedClass));
+                    _ = EngineManager.PostToSimThread(() => AssignImportedAsset(result, capturedExpectedClass, ShowImportError));
                 });
             });
         }
 
-        private void AssignImportedAsset(AssetImportResult result, Class expectedClass)
+        private void AssignImportedAsset(AssetImportResult result, Class expectedClass, Action<string> reportError)
         {
             try
             {
@@ -837,7 +853,7 @@ namespace Hyperion.Editor.ViewModels
 
                 if (obj == null || !obj.IsValid)
                 {
-                    ShowImportError($"Imported asset '{result.AssetName}' could not be found in the asset registry.");
+                    reportError($"Imported asset '{result.AssetName}' could not be found in the asset registry.");
                     return;
                 }
 
@@ -849,7 +865,7 @@ namespace Hyperion.Editor.ViewModels
 
                     if (largestMesh == null || !largestMesh.IsValid)
                     {
-                        ShowImportError($"Imported prefab asset '{result.AssetName}' contains no meshes that can be assigned to '{Label}'.");
+                        reportError($"Imported prefab asset '{result.AssetName}' contains no meshes that can be assigned to '{Label}'.");
                         return;
                     }
 
@@ -871,7 +887,7 @@ namespace Hyperion.Editor.ViewModels
 
                 if (objClass != expectedClass && !objClass.IsSubclassOf(expectedClass))
                 {
-                    ShowImportError($"Imported asset '{result.AssetName}' is a {objClass.Name}, which can't be assigned to '{Label}' (expects {expectedClass.Name}).");
+                    reportError($"Imported asset '{result.AssetName}' is a {objClass.Name}, which can't be assigned to '{Label}' (expects {expectedClass.Name}).");
                     return;
                 }
 
@@ -880,7 +896,7 @@ namespace Hyperion.Editor.ViewModels
             }
             catch (Exception ex)
             {
-                ShowImportError($"Failed to assign imported asset to '{Label}': {ex.Message}");
+                reportError($"Failed to assign imported asset to '{Label}': {ex.Message}");
 
                 Dispatcher.UIThread.Post(RefreshValue);
             }
@@ -891,6 +907,51 @@ namespace Hyperion.Editor.ViewModels
             Logger.Log(LogLevel.Warning, $"Import: {message}");
 
             Dispatcher.UIThread.Post(() => MessageBox.Critical("Import Failed", message).Show());
+        }
+
+        public void ImportFile(string filePath)
+        {
+            if (!CanImport)
+            {
+                return;
+            }
+
+            Class? expectedClass = _propertyTypeClass;
+
+            if (expectedClass == null)
+            {
+                return;
+            }
+
+            Class capturedExpectedClass = expectedClass.Value;
+
+            ImportWarning = null;
+
+            _ = EngineManager.PostToSimThread(() =>
+            {
+                AssetImportService.ImportFromPath(filePath, result =>
+                {
+                    if (result.Cancelled)
+                    {
+                        return;
+                    }
+
+                    if (!result.Succeeded)
+                    {
+                        ShowImportWarning(result.Error);
+                        return;
+                    }
+
+                    _ = EngineManager.PostToSimThread(() => AssignImportedAsset(result, capturedExpectedClass, ShowImportWarning));
+                });
+            });
+        }
+
+        private void ShowImportWarning(string message)
+        {
+            Logger.Log(LogLevel.Warning, $"Import: {message}");
+
+            Dispatcher.UIThread.Post(() => ImportWarning = message);
         }
 
         public string? GetCopyText()
@@ -913,6 +974,13 @@ namespace Hyperion.Editor.ViewModels
             }
 
             string cleaned = text.Trim().Trim('"', '\'');
+
+            if (Path.IsPathFullyQualified(cleaned))
+            {
+                ImportFile(cleaned);
+                return;
+            }
+
             int schemeIndex = cleaned.IndexOf("://", StringComparison.Ordinal);
 
             if (schemeIndex >= 0)
@@ -1115,6 +1183,8 @@ namespace Hyperion.Editor.ViewModels
             {
                 return;
             }
+
+            ImportWarning = null;
 
             uint bucketIndex = item.BucketIndex;
             Name assetName = item.AssetName;

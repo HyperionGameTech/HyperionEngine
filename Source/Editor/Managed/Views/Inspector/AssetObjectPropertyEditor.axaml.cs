@@ -9,6 +9,7 @@ using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
+using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Hyperion;
 using Hyperion.Editor.Services;
@@ -35,6 +36,10 @@ namespace Hyperion.Editor.Views.Inspector
             PART_PasteButton.Click += OnPasteClicked;
             PART_IconTile.Click += OnIconTileClicked;
             PART_GizmoRow.LayoutUpdated += OnGizmoRowLayoutUpdated;
+
+            DragDrop.SetAllowDrop(this, true);
+            AddHandler(DragDrop.DragOverEvent, OnDragOver);
+            AddHandler(DragDrop.DropEvent, OnDrop);
 
             DataContextChanged += OnDataContextChanged;
 
@@ -314,6 +319,33 @@ namespace Hyperion.Editor.Views.Inspector
 
             string? text = await clipboard.TryGetTextAsync();
             vm.PasteFromText(text);
+        }
+
+        private void OnDragOver(object? sender, DragEventArgs e)
+        {
+            e.DragEffects = DragDropEffects.None;
+
+            if (DataContext is ObjectPropertyViewModel { CanImport: true } && GetDroppedFilePath(e) != null)
+            {
+                e.DragEffects = DragDropEffects.Copy;
+                e.Handled = true;
+            }
+        }
+
+        private void OnDrop(object? sender, DragEventArgs e)
+        {
+            if (DataContext is ObjectPropertyViewModel { CanImport: true } vm && GetDroppedFilePath(e) is string filePath)
+            {
+                vm.ImportFile(filePath);
+                e.Handled = true;
+            }
+        }
+
+        private static string? GetDroppedFilePath(DragEventArgs e)
+        {
+            return e.DataTransfer.TryGetFiles()?
+                .Select(item => item.TryGetLocalPath())
+                .FirstOrDefault(path => !string.IsNullOrEmpty(path));
         }
 
         private bool _openOnPopulate;

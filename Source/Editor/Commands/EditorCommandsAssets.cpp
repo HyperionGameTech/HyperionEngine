@@ -662,7 +662,7 @@ public:
         const Vec3f insertionPoint = CalculateAssetInsertionPoint(*subsystem, *activeScene, Vec2f(nx, ny));
 
         ImportEditorContent(
-            subsystem,
+            *subsystem,
             files,
             subsystem->GetCurrentAssetFolder(),
             [weakScene = WeakHandle<Scene>(activeScene), insertionPoint](EditorSubsystem& editorSubsystem, const Array<Handle<AssetObject>>& assets)
@@ -750,7 +750,13 @@ public:
             files.PushBack(std::move(filePath));
         }
 
-        ImportEditorContent(subsystem, files, fields[0], {}, /* reviewModels */ true);
+        ImportEditorContent(
+            *subsystem,
+            files,
+            fields[0],
+            {},
+            /* reviewModels */
+            true);
     }
 };
 
@@ -1422,7 +1428,7 @@ public:
         }
 
         ImportEditorContent(
-            subsystem,
+            *subsystem,
             Array<FilePath> { filePath },
             subsystem->GetCurrentAssetFolder(),
             [filePath](EditorSubsystem& subsystem, const Array<Handle<AssetObject>>& assets)
@@ -1726,7 +1732,7 @@ public:
         for (size_t index = 0; index < tileFiles.Size(); index++)
         {
             ImportEditorContent(
-                subsystem,
+                *subsystem,
                 Array<FilePath> { tileFiles[index] },
                 subsystem->GetCurrentAssetFolder(),
                 [pendingTiles, tile = tileCoords[index], file = tileFiles[index]](EditorSubsystem& subsystem, const Array<Handle<AssetObject>>& assets)

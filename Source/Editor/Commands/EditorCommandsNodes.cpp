@@ -621,9 +621,14 @@ public:
                     return;
                 }
 
-                if (Handle<EditorSubsystem> subsystem = weakSubsystem.Lock())
+                if (Handle<EditorSubsystem> subsystem = weakSubsystem.Lock(); subsystem.IsValid())
                 {
-                    ImportEditorContent(subsystem.Get(), result.GetValue(), targetFolder, {}, /* reviewModels */ true);
+                    ImportEditorContent(
+                        *subsystem,
+                        result.GetValue(),
+                        targetFolder,
+                        {},
+                        /* reviewModels */ true);
                 }
             });
     }

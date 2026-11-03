@@ -44,6 +44,16 @@ namespace Hyperion.Editor.Services
         /// </summary>
         public static void ImportWithDialog(Action<AssetImportResult> onCompleted)
         {
+            Request(onCompleted, (subsystem, requestId) => subsystem.RequestAssetImport(requestId));
+        }
+
+        public static void ImportFromPath(string filePath, Action<AssetImportResult> onCompleted)
+        {
+            Request(onCompleted, (subsystem, requestId) => subsystem.RequestAssetImportFromPath(requestId, filePath));
+        }
+
+        private static void Request(Action<AssetImportResult> onCompleted, Action<EditorSubsystem, uint> send)
+        {
             EditorSubsystem? subsystem = EngineManager.EditorGame?.EditorSubsystem;
 
             if (subsystem == null)
@@ -62,7 +72,7 @@ namespace Hyperion.Editor.Services
                 _pending[requestId] = onCompleted;
             }
 
-            subsystem.RequestAssetImport(requestId);
+            send(subsystem, requestId);
         }
 
         private static void EnsureBound(EditorSubsystem subsystem)
