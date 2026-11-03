@@ -1192,6 +1192,11 @@
                                                 Header="Add Flat Terrain Layer"
                                                 IsEnabled="{Binding CanAddTerrainLayer}"
                                                 ToolTip.Tip="Add a flat terrain layer, with no procedural terrain" />
+                                            <MenuItem
+                                                Command="{Binding ImportTerrainHeightmapTiles}"
+                                                Header="Import Heightmap Tiles..."
+                                                IsEnabled="{Binding CanToggleTerrainSculptMode}"
+                                                ToolTip.Tip="Import a folder of heightmap tiles (name_x0_y0.png, ...) as the terrain's heightmap" />
                                         </ContextMenu>
                                     </DropDownButton.ContextMenu>
                                 </DropDownButton>

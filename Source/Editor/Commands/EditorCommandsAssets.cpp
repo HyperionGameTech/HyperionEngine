@@ -1558,6 +1558,247 @@ DEFINE_EDITOR_COMMAND(SetTerrainProceduralCell);
 
 #pragma endregion SetTerrainProceduralCell
 
+#pragma region ImportTerrainHeightmapTiles
+
+namespace {
+
+/// "name_x3_y1"
+bool ParseHeightmapTileCoord(const FilePath& filePath, Vec2i& outTile)
+{
+    const String name = String(StringUtil::StripExtension(filePath.Basename())).ToLower();
+
+    Optional<int> tileX;
+    Optional<int> tileY;
+
+    FatArray<int, InlineAllocator<2>> numbers;
+
+    for (const String& token : name.Split('_', '-', ' ', '.'))
+    {
+        int value = 0;
+
+        if (token.Size() > 1 && (token[0] == 'x' || token[0] == 'y') && StringUtil::Parse(token.Substr(1), &value))
+        {
+            if (token[0] == 'x')
+            {
+                tileX = value;
+            }
+            else
+            {
+                tileY = value;
+            }
+
+            continue;
+        }
+
+        if (StringUtil::Parse(token, &value))
+        {
+            numbers.PushBack(value);
+        }
+    }
+
+    if (tileX.HasValue() && tileY.HasValue())
+    {
+        outTile = Vec2i(*tileX, *tileY);
+
+        return true;
+    }
+
+    if (numbers.Size() >= 2)
+    {
+        outTile = Vec2i(numbers[numbers.Size() - 2], numbers[numbers.Size() - 1]);
+
+        return true;
+    }
+
+    return false;
+}
+
+} // namespace
+
+/// ImportTerrainHeightmapTiles [folder]: imports a folder of heightmap tiles and makes them the first terrain layer's heightmap.
+/// Tiles share their border samples; y counts along +Z
+class EditorCommandImportTerrainHeightmapTiles final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandImportTerrainHeightmapTiles);
+
+public:
+    virtual ~EditorCommandImportTerrainHeightmapTiles() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Import Terrain Heightmap Tiles";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        AssertOnThread(g_simThread);
+
+        FilePath folder;
+
+        if (NumArguments() >= 1)
+        {
+            folder = FilePath(GetArgument(0));
+        }
+        else
+        {
+            // the dialog runs to completion before this returns
+            ShowSelectFolderDialog(
+                "Select the folder of heightmap tiles to import",
+                EngineGlobals::GetDataDirectory(),
+                [&folder](TResult<FilePath>&& result)
+                {
+                    if (!result.HasError())
+                    {
+                        folder = result.GetValue();
+                    }
+                });
+
+            if (folder.Empty())
+            {
+                return;
+            }
+        }
+
+        if (!folder.IsDirectory())
+        {
+            HYP_LOG(Editor, Error, "ImportTerrainHeightmapTiles: '{}' is not a folder", folder);
+            return;
+        }
+
+        static const char* const tileExtensions[] = { "png", "tif", "r16", "raw" };
+
+        Array<FilePath> tileFiles;
+        Array<Vec2i> tileCoords;
+
+        for (const FilePath& file : folder.GetAllFilesInDirectory())
+        {
+            const String extension = file.GetExtension().ToLower();
+
+            bool isTileFile = false;
+
+            for (const char* tileExtension : tileExtensions)
+            {
+                if (extension == tileExtension)
+                {
+                    isTileFile = true;
+
+                    break;
+                }
+            }
+
+            if (!isTileFile)
+            {
+                continue;
+            }
+
+            Vec2i tile;
+
+            if (!ParseHeightmapTileCoord(file, tile))
+            {
+                HYP_LOG(Editor, Warning, "ImportTerrainHeightmapTiles: no tile x/y in the name of '{}', skipping it", file.Basename());
+
+                continue;
+            }
+
+            tileFiles.PushBack(file);
+            tileCoords.PushBack(tile);
+        }
+
+        if (tileFiles.Empty())
+        {
+            HYP_LOG(Editor, Error, "ImportTerrainHeightmapTiles: no heightmap tiles in '{}'", folder);
+            return;
+        }
+
+        struct PendingTiles
+        {
+            Mutex mutex;
+            Array<TerrainHeightmapTile> tiles;
+            size_t numRemaining = 0;
+        };
+
+        SharedPtr<PendingTiles> pendingTiles = MakeShared<PendingTiles>();
+        pendingTiles->numRemaining = tileFiles.Size();
+
+        HYP_LOG(Editor, Info, "ImportTerrainHeightmapTiles: importing {} tiles from '{}'", tileFiles.Size(), folder);
+
+        // one file per import, so each result keeps the tile it was parsed for
+        for (size_t index = 0; index < tileFiles.Size(); index++)
+        {
+            ImportEditorContent(
+                subsystem,
+                Array<FilePath> { tileFiles[index] },
+                subsystem->GetCurrentAssetFolder(),
+                [pendingTiles, tile = tileCoords[index], file = tileFiles[index]](EditorSubsystem& subsystem, const Array<Handle<AssetObject>>& assets)
+                {
+                    Handle<Texture> texture;
+
+                    for (const Handle<AssetObject>& asset : assets)
+                    {
+                        if ((texture = TryCast<Texture>(asset)).IsValid())
+                        {
+                            break;
+                        }
+                    }
+
+                    if (!texture.IsValid())
+                    {
+                        HYP_LOG(Editor, Error, "ImportTerrainHeightmapTiles: '{}' did not import as a texture", file);
+                    }
+
+                    Array<TerrainHeightmapTile> tiles;
+
+                    {
+                        Mutex::Guard guard(pendingTiles->mutex);
+
+                        if (texture.IsValid())
+                        {
+                            pendingTiles->tiles.PushBack(TerrainHeightmapTile { tile, texture });
+                        }
+
+                        if (--pendingTiles->numRemaining != 0)
+                        {
+                            return;
+                        }
+
+                        tiles = std::move(pendingTiles->tiles);
+                    }
+
+                    GetThreadById(g_simThread)->GetScheduler().Enqueue(
+                        [subsystem = MakeStrongRef(&subsystem), tiles = std::move(tiles)]()
+                        {
+                            Handle<Scene> activeScene = subsystem->GetActiveScene();
+
+                            if (!activeScene.IsValid() || !activeScene->GetWorld() || !activeScene->GetWorld()->GetWorldGrid().IsValid())
+                            {
+                                HYP_LOG(Editor, Warning, "ImportTerrainHeightmapTiles: no world grid");
+                                return;
+                            }
+
+                            for (const Handle<WorldGridLayer>& layer : activeScene->GetWorld()->GetWorldGrid()->GetLayers())
+                            {
+                                if (Handle<TerrainWorldGridLayer> terrainLayer = TryCast<TerrainWorldGridLayer>(layer); terrainLayer.IsValid())
+                                {
+                                    terrainLayer->SetHeightmapTiles(tiles);
+
+                                    HYP_LOG(Editor, Info, "ImportTerrainHeightmapTiles: {} tiles are now the heightmap of terrain layer '{}'", tiles.Size(), terrainLayer->GetName());
+
+                                    return;
+                                }
+                            }
+
+                            HYP_LOG(Editor, Warning, "ImportTerrainHeightmapTiles: no terrain layer");
+                        },
+                        TaskEnqueueFlags::FIRE_AND_FORGET);
+                });
+        }
+    }
+};
+
+DEFINE_EDITOR_COMMAND(ImportTerrainHeightmapTiles);
+
+#pragma endregion ImportTerrainHeightmapTiles
+
 #pragma region NewGroundCover
 
 /// Creates a ground cover asset from a list of prefab types.
