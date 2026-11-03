@@ -204,7 +204,9 @@ private:
     BoundingBox GetNodeWorldBounds(uint32 nodeIndex) const;
     BoundingBox GetPatchWorldBounds(uint32 patchIndex) const;
 
-    void ComputeNodeDistances(Span<const Vec3f> viewpoints, Array<float>& outNodeDistances) const;
+    void ComputeNodeDistances(
+        Span<const Vec3f> viewpoints,
+        Span<float> outNodeDistances) const;
 
     float GetLodRange(uint8 level) const;
     float GetLodMorphStart(uint8 level) const;
@@ -218,11 +220,16 @@ private:
     /// streaming thread - the top node plus any node already wanted for the layer's last LOD viewpoints
     void BuildInitialPatchMeshData();
 
-    void QueuePatchBuilds(Array<uint32>&& patchIndices);
-    void ApplyPatchBuilds(Array<TerrainPatchBuild>&& patchBuilds, uint32 buildGeneration);
+    void QueuePatchBuilds(
+        Array<uint32, SceneAllocator>&& patchIndices);
+
+    void ApplyPatchBuilds(
+        Array<TerrainPatchBuild, SceneAllocator>&& patchBuilds,
+        uint32 buildGeneration);
 
     /// sim thread, deferred - releases patches that UpdateLodSelection() found out of range, unless they're drawn again by then
-    void ReleaseUnwantedPatches(Array<uint32>&& patchIndices);
+    void ReleaseUnwantedPatches(
+        Array<uint32, SceneAllocator>&& patchIndices);
 
     void CreatePatch(uint32 patchIndex, const TerrainPatchMeshData& meshData);
     void ReleasePatch(uint32 patchIndex);

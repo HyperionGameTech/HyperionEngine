@@ -320,7 +320,10 @@ static bool SelectTerrainQuadtreeNode(
     return true;
 }
 
-void SelectTerrainQuadtreePatches(const TerrainQuadtreeSelectionInput& input, Span<uint8> outNodeInRange, Span<uint8> outPatchDrawn)
+void SelectTerrainQuadtreePatches(
+    const TerrainQuadtreeSelectionInput& input,
+    Span<uint8> outNodeInRange,
+    Span<uint8> outPatchDrawn)
 {
     HYP_SCOPE;
 
@@ -333,15 +336,8 @@ void SelectTerrainQuadtreePatches(const TerrainQuadtreeSelectionInput& input, Sp
         && outNodeInRange.Size() == layout.GetNumNodes()
         && outPatchDrawn.Size() == layout.GetNumPatches());
 
-    for (uint8& nodeInRange : outNodeInRange)
-    {
-        nodeInRange = 0;
-    }
-
-    for (uint8& patchDrawn : outPatchDrawn)
-    {
-        patchDrawn = 0;
-    }
+    Memory::Zero(outNodeInRange.Data(), outNodeInRange.Size());
+    Memory::Zero(outPatchDrawn.Data(), outPatchDrawn.Size());
 
     if (!layout.IsValid())
     {

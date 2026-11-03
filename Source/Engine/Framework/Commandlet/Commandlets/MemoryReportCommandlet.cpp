@@ -26,8 +26,11 @@
 #include <DotNET/ManagedClass.hpp>
 #endif // HYP_DOTNET
 
+#include <Rendering/DebugDrawer.hpp>
+
 #ifdef HYP_EDITOR
 #include <Editor/EditorMemory.hpp>
+#include <Editor/EditorPickCache.hpp>
 #include <Baking/BakerMemory.hpp>
 #endif // HYP_EDITOR
 
@@ -75,7 +78,7 @@ public:
             s_definitions.Add(
                 "pools",
                 "p",
-                "Comma-separated list of pools to report (object,scene,asset,streaming,physics,render,glimmer,vulkan,dx12,editor,baker), or 'all'",
+                "Comma-separated list of pools to report (object,scene,asset,streaming,physics,render,glimmer,debugdraw,vulkan,dx12,editor,pickcache,baker), or 'all'",
                 CommandLineArgumentFlags::NONE,
                 Array<String> { "all" },
                 JSON::Value("all"));
@@ -169,8 +172,13 @@ protected:
         tryAddPool("render", g_renderPool);
         tryAddPool("glimmer", g_glimmerPool);
 
+#ifndef HYP_SHIPPING
+        tryAddPool("debugdraw", g_debugDrawerPool);
+#endif // !HYP_SHIPPING
+
 #ifdef HYP_EDITOR
         tryAddPool("editor", g_editorPool);
+        tryAddPool("pickcache", g_editorPickCachePool);
         tryAddPool("baker", Baking::g_bakerPool);
 #endif // HYP_EDITOR
 

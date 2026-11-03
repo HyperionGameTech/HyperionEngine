@@ -1077,6 +1077,11 @@ void DebugDrawer::Update()
     m_headers[idx].Resize(0);
     bufferOffset = 0;
 
+    for (uint32 i = 0; i < m_consumedListCounts[idx] && m_commandLists[idx].Any(); i++)
+    {
+        m_commandLists[idx].Erase(m_commandLists[idx].Begin());
+    }
+
     for (DebugDrawCommandList& it : m_commandLists[idx])
     {
         if (it.m_bufferOffset == 0)
@@ -1153,6 +1158,8 @@ void DebugDrawer::Update()
         it.m_headers.Resize(0);
         it.m_bufferOffset = 0;
     }
+
+    m_consumedListCounts[idx] = uint32(m_commandLists[idx].Size());
 
     {
         Mutex::Guard guard(m_readyIndexMutex);
@@ -1482,6 +1489,7 @@ void DebugDrawer::ClearCommands()
     m_bufferOffsets[idx] = 0;
 
     m_commandLists[idx].Clear();
+    m_consumedListCounts[idx] = 0;
 }
 
 void DebugDrawer::DiscardPendingCommands()
@@ -1509,6 +1517,7 @@ void DebugDrawer::DiscardPendingCommands()
     }
 
     m_commandLists[idx].Clear();
+    m_consumedListCounts[idx] = 0;
 }
 
 DebugDrawCommandList& DebugDrawer::CreateCommandList()

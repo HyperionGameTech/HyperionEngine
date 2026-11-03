@@ -390,6 +390,7 @@ private:
     //    - the render thread then swaps ready/render inside the sim/render exclusive window, so the sim can keep swapping
     //      its own two slots while a frame is still being drawn from m_renderIndex.
     FixedArray<List<DebugDrawCommandList, DebugDrawAllocator>, BufferCount> m_commandLists;
+    FixedArray<uint32, BufferCount> m_consumedListCounts {};
 
     typedef Array<ImmediateDrawShaderData, DebugDrawAllocator> CachedPartitionedShaderData[MaxDebugDrawShapeTypes];
 

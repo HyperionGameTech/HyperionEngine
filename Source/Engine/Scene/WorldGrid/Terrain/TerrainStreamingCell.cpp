@@ -64,24 +64,30 @@ namespace Hyperion {
 
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(WorldGrid);
 
-static CVar<bool> g_cvTerrainGrass("Terrain.Grass", true);
+namespace {
 
-///how far from a viewpoint grass is planted
-static CVar<float> g_cvTerrainGrassRange("Terrain.Grass.Range", 80.0f);
-///scales how many patches every ground cover layer plants
-static CVar<float> g_cvTerrainGrassDensity("Terrain.Grass.Density", 1.0f);
-///past this, tiles are planted with fewer, wider patches
-static CVar<float> g_cvTerrainGrassNearRange("Terrain.Grass.NearRange", 30.0f);
-///logs how long each batch of grass tiles took to generate and to reach the scene
-static CVar<bool> g_cvTerrainGrassLogTimings("Terrain.Grass.LogTimings", false);
-///how much further apart, and wider, the patches of far tiles are
-static constexpr float s_grassFarStretch = 1.8f;
-///tiles are built a few at a time, nearest first, so the ground underfoot isn't waiting on the whole cell
-static constexpr uint32 s_grassTilesPerBuild = 8;
+CVar<bool> g_cvTerrainGrass("Terrain.Grass", true);
 
+/// how far from a viewpoint grass is planted
+CVar<float> g_cvTerrainGrassRange("Terrain.Grass.Range", 80.0f);
+/// scales how many patches every ground cover layer plants
+CVar<float> g_cvTerrainGrassDensity("Terrain.Grass.Density", 1.0f);
+/// past this, tiles are planted with fewer, wider patches
+CVar<float> g_cvTerrainGrassNearRange("Terrain.Grass.NearRange", 30.0f);
+/// logs how long each batch of grass tiles took to generate and to reach the scene
+CVar<bool> g_cvTerrainGrassLogTimings("Terrain.Grass.LogTimings", false);
 
-///the physics collider always uses the full-resolution grid, regardless of the mesh LODs in memory
-static void ExtractColliderHeights(Span<const float> paddedHeights, uint32 cellSize, Array<float>& outHeights)
+/// how much further apart, and wider, the patches of far tiles are
+constexpr float GrassFarStretch = 1.8f;
+
+/// tiles are built a few at a time, nearest first, so the ground underfoot isn't waiting on the whole cell
+constexpr uint32 GrassTilesPerBuild = 8;
+
+/// the physics collider always uses the full-resolution grid, regardless of the mesh LODs in memory
+void ExtractColliderHeights(
+    Span<const float> paddedHeights,
+    uint32 cellSize,
+    Array<float, SceneAllocator>& outHeights)
 {
     const uint32 paddedSize = cellSize + TerrainGenerator::CellPadding * 2u;
 
@@ -98,7 +104,10 @@ static void ExtractColliderHeights(Span<const float> paddedHeights, uint32 cellS
     }
 }
 
-static void BuildPatchMeshDescAndDataView(const TerrainPatchMeshData& patchMeshData, MeshDesc& outMeshDesc, MeshDataView& outMeshData)
+void BuildPatchMeshDescAndDataView(
+    const TerrainPatchMeshData& patchMeshData,
+    MeshDesc& outMeshDesc,
+    MeshDataView& outMeshData)
 {
     outMeshDesc.meshAttributes.inputLayout = StaticVertexInputLayout<VT_Simple | VT_UV1>;
     outMeshDesc.lods[0].numIndices = uint32(patchMeshData.indices.Size());
@@ -113,7 +122,7 @@ static void BuildPatchMeshDescAndDataView(const TerrainPatchMeshData& patchMeshD
     outMeshData.indices[0] = patchMeshData.indices.ToByteView();
 }
 
-static float DistanceToBounds(const Vec3f& point, const BoundingBox& bounds)
+float DistanceToBounds(const Vec3f& point, const BoundingBox& bounds)
 {
     const Vec3f closestPoint {
         MathUtil::Clamp(point.x, bounds.min.x, bounds.max.x),
@@ -123,6 +132,8 @@ static float DistanceToBounds(const Vec3f& point, const BoundingBox& bounds)
 
     return (point - closestPoint).Length();
 }
+
+} // namespace
 
 #pragma region TerrainStreamingCell
 
@@ -772,7 +783,7 @@ void TerrainStreamingCell::UpdateCollider(bool notifyPhysicsWorld)
         return;
     }
 
-    Array<float> colliderHeights;
+    Array<float, SceneAllocator> colliderHeights;
     ExtractColliderHeights(m_paddedHeights, GetCellSize(), colliderHeights);
 
     m_collisionShape->SetHeights(colliderHeights, GetCellSize());
@@ -901,13 +912,11 @@ BoundingBox TerrainStreamingCell::GetPatchWorldBounds(uint32 patchIndex) const
     return GetNodeWorldBounds(m_quadtreeLayout.GetNodeIndex(footprintNode));
 }
 
-void TerrainStreamingCell::ComputeNodeDistances(Span<const Vec3f> viewpoints, Array<float>& outNodeDistances) const
+void TerrainStreamingCell::ComputeNodeDistances(
+    Span<const Vec3f> viewpoints,
+    Span<float> outNodeDistances) const
 {
-    const uint32 numNodes = m_quadtreeLayout.GetNumNodes();
-
-    outNodeDistances.Resize(numNodes);
-
-    for (uint32 nodeIndex = 0; nodeIndex < numNodes; nodeIndex++)
+    for (uint32 nodeIndex = 0; nodeIndex < uint32(outNodeDistances.Size()); nodeIndex++)
     {
         const BoundingBox nodeWorldBounds = GetNodeWorldBounds(nodeIndex);
 
@@ -977,7 +986,9 @@ void TerrainStreamingCell::BuildInitialPatchMeshData()
 
     const Array<Vec3f> viewpoints = m_layer->GetLodViewpoints();
 
-    Array<float> nodeDistances;
+    Array<float, SceneTempAllocator> nodeDistances;
+    nodeDistances.Resize(m_quadtreeLayout.GetNumNodes());
+
     ComputeNodeDistances(viewpoints, nodeDistances);
 
     TerrainMeshBuilder meshBuilder(GetCellSize(), m_quadtreeLayout);
@@ -1013,10 +1024,12 @@ void TerrainStreamingCell::UpdateLodSelection(Span<const Vec3f> viewpoints)
     const uint32 numNodes = m_quadtreeLayout.GetNumNodes();
     const uint32 numPatches = m_quadtreeLayout.GetNumPatches();
 
-    Array<float> nodeDistances;
+    Array<float, SceneTempAllocator> nodeDistances;
+    nodeDistances.Resize(numNodes);
+
     ComputeNodeDistances(viewpoints, nodeDistances);
 
-    Array<uint8> nodeResident;
+    Array<uint8, SceneTempAllocator> nodeResident;
     nodeResident.Resize(numNodes);
 
     for (uint32 nodeIndex = 0; nodeIndex < numNodes; nodeIndex++)
@@ -1024,7 +1037,7 @@ void TerrainStreamingCell::UpdateLodSelection(Span<const Vec3f> viewpoints)
         nodeResident[nodeIndex] = IsNodeResident(nodeIndex) ? 1 : 0;
     }
 
-    Array<float> levelRanges;
+    Array<float, SceneTempAllocator> levelRanges;
     levelRanges.Resize(m_quadtreeLayout.GetNumLevels());
 
     for (uint8 level = 0; level < m_quadtreeLayout.GetNumLevels(); level++)
@@ -1032,23 +1045,20 @@ void TerrainStreamingCell::UpdateLodSelection(Span<const Vec3f> viewpoints)
         levelRanges[level] = GetLodRange(level);
     }
 
-    Array<uint8> nodeInRange;
-    nodeInRange.Resize(numNodes);
+    m_nodeInRange.Resize(numNodes);
 
-    Array<uint8> patchDrawn;
+    Array<uint8, SceneTempAllocator> patchDrawn;
     patchDrawn.Resize(numPatches);
 
     const TerrainQuadtreeSelectionInput selectionInput {
         m_quadtreeLayout,
-        nodeDistances,
-        levelRanges,
-        nodeResident,
-        m_nodeInRange
+        nodeDistances.ToSpan(),
+        levelRanges.ToSpan(),
+        nodeResident.ToSpan(),
+        m_nodeInRange.ToSpan()
     };
 
-    SelectTerrainQuadtreePatches(selectionInput, nodeInRange, patchDrawn);
-
-    m_nodeInRange = std::move(nodeInRange);
+    SelectTerrainQuadtreePatches(selectionInput, m_nodeInRange, patchDrawn);
 
     UpdateGrassSelection(viewpoints);
 
@@ -1090,8 +1100,8 @@ void TerrainStreamingCell::UpdateLodSelection(Span<const Vec3f> viewpoints)
         return;
     }
 
-    Array<uint32> patchesToBuild;
-    Array<uint32> patchesToRelease;
+    Array<uint32, SceneAllocator> patchesToBuild;
+    Array<uint32, SceneAllocator> patchesToRelease;
 
     for (uint32 nodeIndex = 0; nodeIndex < numNodes; nodeIndex++)
     {
@@ -1147,7 +1157,10 @@ bool TerrainStreamingCell::ApplyPatchLod(
 
     const uint32 patchIndex = patchComponent.patchIndex;
     const bool isDrawn = patchIndex < m_patches.Size() && m_patches[patchIndex].isDrawn;
-    const Handle<Mesh> drawnMesh = isDrawn ? m_patches[patchIndex].mesh : Handle<Mesh>();
+
+    const Handle<Mesh>& drawnMesh = isDrawn
+            ? m_patches[patchIndex].mesh
+            : Handle<Mesh>::Null();
 
     if (meshComponent.mesh != drawnMesh)
     {
@@ -1186,7 +1199,8 @@ bool TerrainStreamingCell::ApplyPatchLod(
     return outDrawnMeshChanged || morphChanged;
 }
 
-void TerrainStreamingCell::QueuePatchBuilds(Array<uint32>&& patchIndices)
+void TerrainStreamingCell::QueuePatchBuilds(
+    Array<uint32, SceneAllocator>&& patchIndices)
 {
     HYP_SCOPE;
     AssertOnThread(g_simThread);
@@ -1206,12 +1220,15 @@ void TerrainStreamingCell::QueuePatchBuilds(Array<uint32>&& patchIndices)
         {
             TerrainMeshBuilder meshBuilder(cellSize, layout);
 
-            Array<TerrainPatchBuild> patchBuilds;
+            Array<TerrainPatchBuild, SceneAllocator> patchBuilds;
             patchBuilds.Reserve(patchIndices.Size());
 
             for (uint32 patchIndex : patchIndices)
             {
-                patchBuilds.PushBack(TerrainPatchBuild { patchIndex, meshBuilder.BuildPatchMeshData(paddedHeights, patchIndex) });
+                patchBuilds.PushBack(TerrainPatchBuild {
+                    patchIndex,
+                    meshBuilder.BuildPatchMeshData(paddedHeights, patchIndex)
+                });
             }
 
             ThreadBase* simThread = GetThreadById(g_simThread);
@@ -1235,7 +1252,9 @@ void TerrainStreamingCell::QueuePatchBuilds(Array<uint32>&& patchIndices)
         TaskEnqueueFlags::FIRE_AND_FORGET);
 }
 
-void TerrainStreamingCell::ApplyPatchBuilds(Array<TerrainPatchBuild>&& patchBuilds, uint32 buildGeneration)
+void TerrainStreamingCell::ApplyPatchBuilds(
+    Array<TerrainPatchBuild, SceneAllocator>&& patchBuilds,
+    uint32 buildGeneration)
 {
     HYP_SCOPE;
     AssertOnThread(g_simThread);
@@ -1260,7 +1279,8 @@ void TerrainStreamingCell::ApplyPatchBuilds(Array<TerrainPatchBuild>&& patchBuil
     }
 }
 
-void TerrainStreamingCell::ReleaseUnwantedPatches(Array<uint32>&& patchIndices)
+void TerrainStreamingCell::ReleaseUnwantedPatches(
+    Array<uint32, SceneAllocator>&& patchIndices)
 {
     HYP_SCOPE;
     AssertOnThread(g_simThread);
@@ -1291,7 +1311,9 @@ void TerrainStreamingCell::ReleaseUnwantedPatches(Array<uint32>&& patchIndices)
     }
 }
 
-void TerrainStreamingCell::CreatePatch(uint32 patchIndex, const TerrainPatchMeshData& meshData)
+void TerrainStreamingCell::CreatePatch(
+    uint32 patchIndex,
+    const TerrainPatchMeshData& meshData)
 {
     HYP_SCOPE;
     AssertOnThread(g_simThread);
@@ -1465,7 +1487,9 @@ bool TerrainStreamingCell::SampleDrawnHeight(const Vec2f& worldXZ, float& outHei
     Vec2f gridXZ;
     uint32 patchIndex;
 
-    if (!WorldToGridPosition(worldXZ, gridXZ) || m_paddedHeights.Empty() || !FindDrawnPatchAt(gridXZ, patchIndex))
+    if (!WorldToGridPosition(worldXZ, gridXZ)
+        || m_paddedHeights.Empty()
+        || !FindDrawnPatchAt(gridXZ, patchIndex))
     {
         return false;
     }
@@ -1496,7 +1520,12 @@ bool TerrainStreamingCell::SampleDrawnHeight(const Vec2f& worldXZ, float& outHei
 
     if (morphEnd > morphStart)
     {
-        const Vec3f worldPosition(worldXZ.x, m_cellInfo.bounds.min.y + height * m_cellInfo.scale.y, worldXZ.y);
+        const Vec3f worldPosition = {
+            worldXZ.x,
+            m_cellInfo.bounds.min.y + height * m_cellInfo.scale.y,
+            worldXZ.y
+        };
+
         const float morphDistance = patch.lodMorphOrigin.Distance(worldPosition);
 
         const float rangeMultiplier = TerrainWorldGridLayer::GetLodRangeMultiplier();
@@ -1537,7 +1566,10 @@ void TerrainStreamingCell::RebuildPatchesInRegion(const Vec2i& minVertex, const 
     // a patch only reads heights on its own grid lines - the coarser grids its morph targets sample sit on a subset of
     // them - plus the immediate neighbours each vertex takes its normal from. A brush that misses every one of those
     // lines cannot change the patch, so a coarse patch covering the whole tile is left alone by a small stroke
-    const auto readsChangedGridLines = [](uint32 stride, int32 readMin, int32 readMax, int32 changedMin, int32 changedMax) -> bool
+    const auto readsChangedGridLines = [](
+        uint32 stride,
+        int32 readMin, int32 readMax,
+        int32 changedMin, int32 changedMax) -> bool
     {
         const int32 overlapMin = MathUtil::Max(readMin, changedMin - 1);
         const int32 overlapMax = MathUtil::Min(readMax, changedMax + 1);
@@ -1824,9 +1856,9 @@ void TerrainStreamingCell::UpdateGrassSelection(Span<const Vec3f> viewpoints)
             return first.distance < second.distance;
         });
 
-    for (uint32 firstRequest = 0; firstRequest < uint32(tilesToBuild.Size()); firstRequest += s_grassTilesPerBuild)
+    for (uint32 firstRequest = 0; firstRequest < uint32(tilesToBuild.Size()); firstRequest += GrassTilesPerBuild)
     {
-        const uint32 endRequest = MathUtil::Min(firstRequest + s_grassTilesPerBuild, uint32(tilesToBuild.Size()));
+        const uint32 endRequest = MathUtil::Min(firstRequest + GrassTilesPerBuild, uint32(tilesToBuild.Size()));
 
         Array<uint32> tileIndices;
         Array<uint8> tileDetailLevels;
@@ -1977,7 +2009,7 @@ void TerrainStreamingCell::QueueGrassBuilds(Array<uint32>&& tileIndices, Array<u
                     MathUtil::Min((tileX + 1) * TerrainGrassTileQuads, cellQuads),
                     MathUtil::Min((tileZ + 1) * TerrainGrassTileQuads, cellQuads));
                 input.seed = uint32(HashCode::GetHashCode(coord.x).Combine(HashCode::GetHashCode(coord.y)).Combine(HashCode::GetHashCode(tileIndex)).Value());
-                input.stretch = detailLevel == 0 ? 1.0f : s_grassFarStretch;
+                input.stretch = detailLevel == 0 ? 1.0f : GrassFarStretch;
                 input.layers = layerPlans.ToSpan();
 
                 GrassTileBuild tileBuild;

@@ -753,7 +753,7 @@ void ComputeEnvProbeSphericalHarmonics(const EnvProbe& envProbe, const Texture& 
                         EnqueueDeletion(std::move(payload.shBuffer));
                         EnqueueDeletion(std::move(payload.readbackBuffer));
 
-                        delete pPayload;
+                        PoolDelete(*g_renderPool, pPayload);
                     })
                     .Detach();
 
@@ -762,7 +762,7 @@ void ComputeEnvProbeSphericalHarmonics(const EnvProbe& envProbe, const Texture& 
             }
         };
 
-        ReadbackSphericalHarmonicsPayload* payload = new ReadbackSphericalHarmonicsPayload;
+        ReadbackSphericalHarmonicsPayload* payload = HYP_POOL_NEW(g_renderPool, ReadbackSphericalHarmonicsPayload);
         payload->envProbe = MakeStrongRef(&envProbe);
         payload->swatchName = swatchName;
         payload->shBuffer = std::move(shBuffer);
