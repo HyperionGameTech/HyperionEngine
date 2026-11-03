@@ -295,6 +295,7 @@ namespace Hyperion.Editor.ViewModels
         // Terrain
         public EditorCommand AddTerrainLayer { get; } = new EditorCommand("AddWorldGridLayer", () => "TerrainWorldGridLayer");
         public EditorCommand AddFlatTerrainLayer { get; } = new EditorCommand("AddWorldGridLayer", () => "TerrainWorldGridLayer Flat");
+        public EditorCommand ImportTerrainHeightmapTiles { get; } = new EditorCommand("ImportTerrainHeightmapTiles");
         public ICommand ToggleTerrainSculptMode { get; private set; }
         public ICommand ToggleTerrainPaintMode { get; private set; }
 

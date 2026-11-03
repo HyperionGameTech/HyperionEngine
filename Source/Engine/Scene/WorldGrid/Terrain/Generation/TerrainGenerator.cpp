@@ -322,8 +322,8 @@ uint64 TerrainGenerator::ComputeFingerprint(uint32 cellSize, const Vec2f& scaleX
         if (heightSourceDesc.heightmap)
         {
             hashCode.Add(heightSourceDesc.heightmap->contentHash);
-            hashCode.Add(heightSourceDesc.heightmap->width);
-            hashCode.Add(heightSourceDesc.heightmap->depth);
+            hashCode.Add(heightSourceDesc.heightmap->GetWidth());
+            hashCode.Add(heightSourceDesc.heightmap->GetDepth());
             hashCode.Add(heightSourceDesc.heightmapMinXZ);
             hashCode.Add(heightSourceDesc.heightmapMaxXZ);
             hashCode.Add(heightSourceDesc.heightmapHeightRange);
@@ -387,6 +387,24 @@ float TerrainGenerator::SampleBaseHeight(const Vec2f& worldXZ) const
     return height;
 }
 
+float TerrainHeightmapSamples::Fetch(uint32 x, uint32 z) const
+{
+    const uint32 tileX = MathUtil::Min(x / (tileWidth - 1), tilesX - 1);
+    const uint32 tileZ = MathUtil::Min(z / (tileDepth - 1), tilesZ - 1);
+
+    const TerrainHeightmapTileSamples* tile = tiles[size_t(tileZ) * tilesX + tileX].Get();
+
+    if (!tile)
+    {
+        return borderMean * 65535.0f;
+    }
+
+    const uint32 localX = x - tileX * (tileWidth - 1);
+    const uint32 localZ = z - tileZ * (tileDepth - 1);
+
+    return float(tile->samples[size_t(localZ) * tileWidth + localX]);
+}
+
 float TerrainGenerator::SampleHeightmap(const Vec2f& worldXZ) const
 {
     const TerrainHeightSourceDesc& heightSourceDesc = m_heightSourceDesc;
@@ -394,24 +412,22 @@ float TerrainGenerator::SampleHeightmap(const Vec2f& worldXZ) const
 
     const Vec2f extent = heightSourceDesc.heightmapMaxXZ - heightSourceDesc.heightmapMinXZ;
 
-    const float sampleX = MathUtil::Clamp((worldXZ.x - heightSourceDesc.heightmapMinXZ.x) / MathUtil::Max(extent.x, 1e-3f), 0.0f, 1.0f) * float(heightmap.width - 1);
-    const float sampleZ = MathUtil::Clamp((worldXZ.y - heightSourceDesc.heightmapMinXZ.y) / MathUtil::Max(extent.y, 1e-3f), 0.0f, 1.0f) * float(heightmap.depth - 1);
+    const uint32 width = heightmap.GetWidth();
+    const uint32 depth = heightmap.GetDepth();
 
-    const uint32 x0 = MathUtil::Min(uint32(sampleX), heightmap.width - 1);
-    const uint32 z0 = MathUtil::Min(uint32(sampleZ), heightmap.depth - 1);
-    const uint32 x1 = MathUtil::Min(x0 + 1, heightmap.width - 1);
-    const uint32 z1 = MathUtil::Min(z0 + 1, heightmap.depth - 1);
+    const float sampleX = MathUtil::Clamp((worldXZ.x - heightSourceDesc.heightmapMinXZ.x) / MathUtil::Max(extent.x, 1e-3f), 0.0f, 1.0f) * float(width - 1);
+    const float sampleZ = MathUtil::Clamp((worldXZ.y - heightSourceDesc.heightmapMinXZ.y) / MathUtil::Max(extent.y, 1e-3f), 0.0f, 1.0f) * float(depth - 1);
+
+    const uint32 x0 = MathUtil::Min(uint32(sampleX), width - 1);
+    const uint32 z0 = MathUtil::Min(uint32(sampleZ), depth - 1);
+    const uint32 x1 = MathUtil::Min(x0 + 1, width - 1);
+    const uint32 z1 = MathUtil::Min(z0 + 1, depth - 1);
 
     const float fractionX = sampleX - float(x0);
     const float fractionZ = sampleZ - float(z0);
 
-    const auto sampleAt = [&heightmap](uint32 x, uint32 z) -> float
-    {
-        return float(heightmap.samples[size_t(z) * heightmap.width + x]);
-    };
-
-    const float top = MathUtil::Lerp(sampleAt(x0, z0), sampleAt(x1, z0), fractionX);
-    const float bottom = MathUtil::Lerp(sampleAt(x0, z1), sampleAt(x1, z1), fractionX);
+    const float top = MathUtil::Lerp(heightmap.Fetch(x0, z0), heightmap.Fetch(x1, z0), fractionX);
+    const float bottom = MathUtil::Lerp(heightmap.Fetch(x0, z1), heightmap.Fetch(x1, z1), fractionX);
 
     float normalized = MathUtil::Lerp(top, bottom, fractionZ) / 65535.0f;
 

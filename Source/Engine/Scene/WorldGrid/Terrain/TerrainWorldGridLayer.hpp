@@ -46,6 +46,19 @@ class TerrainCellData;
 struct AssetPath;
 
 HYP_STRUCT()
+struct TerrainHeightmapTile
+{
+    HYP_STRUCT_BODY(TerrainHeightmapTile);
+
+    /// tiles share their border samples, so tile (1, 0) starts on tile (0, 0)'s last column
+    HYP_FIELD(Property = "Tile", Editor)
+    Vec2i tile;
+
+    HYP_FIELD(Property = "Texture", Editor)
+    Handle<Texture> texture;
+};
+
+HYP_STRUCT()
 struct TerrainLayerSettings
 {
     HYP_STRUCT_BODY(TerrainLayerSettings);
@@ -73,6 +86,10 @@ struct TerrainLayerSettings
 
     HYP_FIELD(Property = "ProceduralCells", Serialize)
     Array<Vec2i> proceduralCells;
+
+    /// in the order of the layer's heightmap tile textures
+    HYP_FIELD(Property = "HeightmapTiles", Serialize, Editor = false)
+    Array<Vec2i> heightmapTiles;
 
     HYP_METHOD(NoScriptBindings)
     bool IsFlat() const
@@ -160,11 +177,20 @@ public:
     HYP_METHOD(Property = "Settings", Editor, NoScriptBindings)
     void SetSettings(const TerrainLayerSettings& settings);
 
+    /// the heightmap when there's a single one - null for a tiled heightmap
     HYP_METHOD(Property = "Heightmap", Editor)
     Handle<Texture> GetHeightmap() const;
 
+    /// replaces any tiles with \p heightmap
     HYP_METHOD(Property = "Heightmap", Editor)
     void SetHeightmap(const Handle<Texture>& heightmap);
+
+    HYP_METHOD(Property = "HeightmapTiles", Editor, NoScriptBindings)
+    Array<TerrainHeightmapTile> GetHeightmapTiles() const;
+
+    /// setting any switches the height source to them
+    HYP_METHOD(Property = "HeightmapTiles", Editor, NoScriptBindings)
+    void SetHeightmapTiles(const Array<TerrainHeightmapTile>& tiles);
 
     HYP_METHOD()
     bool IsProceduralCell(const Vec2i& coord) const;
@@ -356,7 +382,8 @@ protected:
 
     TerrainLayerSettings m_settings;
 
-    AssetReference m_heightmap;
+    ///in the order of m_settings.heightmapTiles
+    Array<AssetReference> m_heightmapTileTextures;
 
     ///the copy the generator samples, kept while the heightmap's content is the same
     SharedPtr<const TerrainHeightmapSamples> m_heightmapSamples;

@@ -141,14 +141,40 @@ enum class TerrainHeightSource : uint8
     Heightmap
 };
 
-struct TerrainHeightmapSamples
+struct TerrainHeightmapTileSamples
 {
     uint32 width = 0;
     uint32 depth = 0;
     Array<uint16> samples;
     uint64 contentHash = 0;
+};
+
+struct TerrainHeightmapSamples
+{
+    uint32 tilesX = 1;
+    uint32 tilesZ = 1;
+    uint32 tileWidth = 0;
+    uint32 tileDepth = 0;
+
+    ///tilesX * tilesZ elems
+    Array<SharedPtr<const TerrainHeightmapTileSamples>> tiles;
+
+    uint64 contentHash = 0;
 
     float borderMean = 0.0f;
+
+    HYP_FORCE_INLINE uint32 GetWidth() const
+    {
+        return tilesX * (tileWidth - 1) + 1;
+    }
+
+    HYP_FORCE_INLINE uint32 GetDepth() const
+    {
+        return tilesZ * (tileDepth - 1) + 1;
+    }
+
+    ///0-65535, the border mean where a tile is missing
+    float Fetch(uint32 x, uint32 z) const;
 };
 
 struct TerrainHeightSourceDesc

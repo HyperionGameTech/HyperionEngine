@@ -70,7 +70,7 @@ const Name g_terrainWorldGridLayerName = NAME("TerrainWorldGridLayer");
 const Name g_terrainSceneName = NAME("TerrainScene");
 
 const Name g_groundCoverDescAssetKey = NAME("GroundCover");
-const Name g_heightmapDescAssetKey = NAME("Heightmap");
+const Name g_heightmapTileDescAssetKey = NAME("HeightmapTile");
 
 const WorldGridLayerInfo s_defaultTerrainWorldGridLayerInfo = {
     .scale = Vec3f { 1.0f, 1.0f, 1.0f },
@@ -146,7 +146,7 @@ Handle<Scene> MakeTerrainScene()
     return scene;
 }
 
-SharedPtr<const TerrainHeightmapSamples> MakeHeightmapSamples(const Texture& texture, const SharedPtr<const TerrainHeightmapSamples>& previousSamples)
+SharedPtr<const TerrainHeightmapTileSamples> MakeHeightmapTileSamples(const Texture& texture, const SharedPtr<const TerrainHeightmapSamples>& previousSamples)
 {
     HYP_SCOPE;
 
@@ -201,12 +201,18 @@ SharedPtr<const TerrainHeightmapSamples> MakeHeightmapSamples(const Texture& tex
 
     const uint64 contentHash = uint64(hashCode.Value());
 
-    if (previousSamples && previousSamples->contentHash == contentHash)
+    if (previousSamples)
     {
-        return previousSamples;
+        for (const SharedPtr<const TerrainHeightmapTileSamples>& previousTile : previousSamples->tiles)
+        {
+            if (previousTile && previousTile->contentHash == contentHash)
+            {
+                return previousTile;
+            }
+        }
     }
 
-    SharedPtr<TerrainHeightmapSamples> samples = MakeShared<TerrainHeightmapSamples>();
+    SharedPtr<TerrainHeightmapTileSamples> samples = MakeShared<TerrainHeightmapTileSamples>();
     samples->width = width;
     samples->depth = depth;
     samples->contentHash = contentHash;
@@ -229,22 +235,155 @@ SharedPtr<const TerrainHeightmapSamples> MakeHeightmapSamples(const Texture& tex
         }
     }
 
+    return samples;
+}
+
+SharedPtr<const TerrainHeightmapSamples> MakeHeightmapSamples(
+    Span<const Vec2i> tileCoords,
+    Span<const AssetReference> tileTextures,
+    const SharedPtr<const TerrainHeightmapSamples>& previousSamples)
+{
+    HYP_SCOPE;
+
+    const size_t numTiles = MathUtil::Min(tileCoords.Size(), tileTextures.Size());
+
+    if (numTiles == 0)
+    {
+        return nullptr;
+    }
+
+    Vec2i minTile = tileCoords[0];
+    Vec2i maxTile = tileCoords[0];
+
+    for (size_t index = 1; index < numTiles; index++)
+    {
+        minTile = Vec2i(MathUtil::Min(minTile.x, tileCoords[index].x), MathUtil::Min(minTile.y, tileCoords[index].y));
+        maxTile = Vec2i(MathUtil::Max(maxTile.x, tileCoords[index].x), MathUtil::Max(maxTile.y, tileCoords[index].y));
+    }
+
+    static constexpr int64 MaxTiles = 64 * 64;
+
+    const int64 tilesX = int64(maxTile.x) - int64(minTile.x) + 1;
+    const int64 tilesZ = int64(maxTile.y) - int64(minTile.y) + 1;
+
+    if (tilesX * tilesZ > MaxTiles)
+    {
+        HYP_LOG(WorldGrid, Warning, "Heightmap tiles span {}x{}, more than the {} allowed", tilesX, tilesZ, MaxTiles);
+
+        return nullptr;
+    }
+
+    SharedPtr<TerrainHeightmapSamples> samples = MakeShared<TerrainHeightmapSamples>();
+    samples->tilesX = uint32(tilesX);
+    samples->tilesZ = uint32(tilesZ);
+    samples->tiles.Resize(size_t(tilesX * tilesZ));
+
+    HashCode hashCode;
+    hashCode.Add(samples->tilesX);
+    hashCode.Add(samples->tilesZ);
+
+    for (size_t index = 0; index < numTiles; index++)
+    {
+        Handle<Texture> texture = TryCast<Texture>(tileTextures[index].Resolve());
+
+        if (!texture.IsValid())
+        {
+            HYP_LOG(WorldGrid, Warning, "Heightmap tile {} has no texture", tileCoords[index]);
+
+            continue;
+        }
+
+        SharedPtr<const TerrainHeightmapTileSamples> tileSamples = MakeHeightmapTileSamples(*texture, previousSamples);
+
+        if (!tileSamples)
+        {
+            continue;
+        }
+
+        if (samples->tileWidth == 0)
+        {
+            samples->tileWidth = tileSamples->width;
+            samples->tileDepth = tileSamples->depth;
+        }
+        else if (tileSamples->width != samples->tileWidth || tileSamples->depth != samples->tileDepth)
+        {
+            HYP_LOG(WorldGrid, Warning, "Heightmap tile {} is {}x{} but the other tiles are {}x{} - leaving it out",
+                tileCoords[index], tileSamples->width, tileSamples->depth, samples->tileWidth, samples->tileDepth);
+
+            continue;
+        }
+
+        const Vec2i tile = tileCoords[index] - minTile;
+
+        samples->tiles[size_t(tile.y) * size_t(tilesX) + size_t(tile.x)] = tileSamples;
+
+        hashCode.Add(tile);
+        hashCode.Add(tileSamples->contentHash);
+    }
+
+    if (samples->tileWidth < 2 || samples->tileDepth < 2)
+    {
+        return nullptr;
+    }
+
+    samples->contentHash = uint64(hashCode.Value());
+
+    if (previousSamples && previousSamples->contentHash == samples->contentHash)
+    {
+        return previousSamples;
+    }
+
+    uint32 numMissingTiles = 0;
+
+    for (const SharedPtr<const TerrainHeightmapTileSamples>& tileSamples : samples->tiles)
+    {
+        if (!tileSamples)
+        {
+            numMissingTiles++;
+        }
+    }
+
+    if (numMissingTiles != 0)
+    {
+        HYP_LOG(WorldGrid, Warning, "{} of the {}x{} heightmap tiles are missing - they read as the border's mean height", numMissingTiles, tilesX, tilesZ);
+    }
+
+    const uint32 width = samples->GetWidth();
+    const uint32 depth = samples->GetDepth();
+
     double borderSum = 0.0;
     uint32 numBorderSamples = 0;
 
+    const auto addBorderSample = [&](uint32 x, uint32 z)
+    {
+        const uint32 tileX = MathUtil::Min(x / (samples->tileWidth - 1), samples->tilesX - 1);
+        const uint32 tileZ = MathUtil::Min(z / (samples->tileDepth - 1), samples->tilesZ - 1);
+
+        if (!samples->tiles[size_t(tileZ) * samples->tilesX + tileX])
+        {
+            return;
+        }
+
+        borderSum += double(samples->Fetch(x, z));
+        numBorderSamples++;
+    };
+
     for (uint32 x = 0; x < width; x++)
     {
-        borderSum += double(samples->samples[x]) + double(samples->samples[size_t(depth - 1) * width + x]);
-        numBorderSamples += 2;
+        addBorderSample(x, 0);
+        addBorderSample(x, depth - 1);
     }
 
     for (uint32 z = 1; z + 1 < depth; z++)
     {
-        borderSum += double(samples->samples[size_t(z) * width]) + double(samples->samples[size_t(z) * width + width - 1]);
-        numBorderSamples += 2;
+        addBorderSample(0, z);
+        addBorderSample(width - 1, z);
     }
 
-    samples->borderMean = float(borderSum / double(numBorderSamples) / 65535.0);
+    if (numBorderSamples != 0)
+    {
+        samples->borderMean = float(borderSum / double(numBorderSamples) / 65535.0);
+    }
 
     return samples;
 }
@@ -417,9 +556,10 @@ void TerrainWorldGridLayer::GetDescAssets(Array<WGLayerAsset>& outAssets) const
         outAssets.PushBack(WGLayerAsset { g_groundCoverDescAssetKey, groundCover.GetAssetPath() });
     }
 
-    if (m_heightmap.IsValid())
+    // every tile is written, even unresolved ones, so they stay in step with m_settings.heightmapTiles
+    for (const AssetReference& tileTexture : m_heightmapTileTextures)
     {
-        outAssets.PushBack(WGLayerAsset { g_heightmapDescAssetKey, m_heightmap.GetAssetPath() });
+        outAssets.PushBack(WGLayerAsset { g_heightmapTileDescAssetKey, tileTexture.GetAssetPath() });
     }
 }
 
@@ -431,9 +571,9 @@ void TerrainWorldGridLayer::SetDescAssets(Span<const WGLayerAsset> assets)
         {
             m_groundCoverResources.SetGroundCoverPath(asset.path);
         }
-        else if (asset.key == g_heightmapDescAssetKey)
+        else if (asset.key == g_heightmapTileDescAssetKey)
         {
-            m_heightmap = AssetReference(asset.path);
+            m_heightmapTileTextures.PushBack(AssetReference(asset.path));
         }
     }
 }
@@ -513,31 +653,98 @@ void TerrainWorldGridLayer::SetSettings(const TerrainLayerSettings& settings)
 
 Handle<Texture> TerrainWorldGridLayer::GetHeightmap() const
 {
-    return TryCast<Texture>(m_heightmap.Resolve());
+    if (m_heightmapTileTextures.Size() != 1)
+    {
+        return Handle<Texture>::Null();
+    }
+
+    return TryCast<Texture>(m_heightmapTileTextures[0].Resolve());
 }
 
 void TerrainWorldGridLayer::SetHeightmap(const Handle<Texture>& heightmap)
 {
     AssertOnThread(g_simThread);
 
-    if (heightmap == GetHeightmap())
+    Array<TerrainHeightmapTile> tiles;
+
+    if (heightmap.IsValid())
     {
-        return;
+        tiles.PushBack(TerrainHeightmapTile { Vec2i(0, 0), heightmap });
     }
 
-    m_heightmap = heightmap.IsValid() ? AssetReference(Handle<AssetObject>(heightmap)) : AssetReference();
+    SetHeightmapTiles(tiles);
+}
 
-    MarkWorldDirty();
+Array<TerrainHeightmapTile> TerrainWorldGridLayer::GetHeightmapTiles() const
+{
+    const size_t numTiles = MathUtil::Min(m_settings.heightmapTiles.Size(), m_heightmapTileTextures.Size());
 
-    if (heightmap.IsValid() && m_settings.heightSource != TerrainHeightSource::Heightmap)
+    Array<TerrainHeightmapTile> tiles;
+    tiles.Reserve(numTiles);
+
+    for (size_t index = 0; index < numTiles; index++)
     {
-        TerrainLayerSettings settings = m_settings;
-        settings.heightSource = TerrainHeightSource::Heightmap;
+        tiles.PushBack(TerrainHeightmapTile { m_settings.heightmapTiles[index], TryCast<Texture>(m_heightmapTileTextures[index].Resolve()) });
+    }
 
+    return tiles;
+}
+
+void TerrainWorldGridLayer::SetHeightmapTiles(const Array<TerrainHeightmapTile>& tiles)
+{
+    AssertOnThread(g_simThread);
+
+    Array<Vec2i> tileCoords;
+    Array<AssetReference> tileTextures;
+
+    for (const TerrainHeightmapTile& tile : tiles)
+    {
+        if (!tile.texture.IsValid())
+        {
+            continue;
+        }
+
+        if (tileCoords.Contains(tile.tile))
+        {
+            HYP_LOG(WorldGrid, Warning, "Terrain layer '{}' was given heightmap tile {} more than once - keeping the first", GetName(), tile.tile);
+
+            continue;
+        }
+
+        tileCoords.PushBack(tile.tile);
+        tileTextures.PushBack(AssetReference(Handle<AssetObject>(tile.texture)));
+    }
+
+    bool texturesChanged = tileTextures.Size() != m_heightmapTileTextures.Size();
+
+    for (size_t index = 0; index < tileTextures.Size() && !texturesChanged; index++)
+    {
+        texturesChanged = tileTextures[index].Resolve() != m_heightmapTileTextures[index].Resolve();
+    }
+
+    m_heightmapTileTextures = std::move(tileTextures);
+
+    TerrainLayerSettings settings = m_settings;
+    settings.heightmapTiles = std::move(tileCoords);
+
+    if (settings.heightmapTiles.Any())
+    {
+        settings.heightSource = TerrainHeightSource::Heightmap;
+    }
+
+    if (settings != m_settings)
+    {
         SetSettings(settings);
 
         return;
     }
+
+    if (!texturesChanged)
+    {
+        return;
+    }
+
+    MarkWorldDirty();
 
     if (IsAddedToWorld() && m_settings.heightSource == TerrainHeightSource::Heightmap)
     {
@@ -694,9 +901,7 @@ TerrainHeightSourceDesc TerrainWorldGridLayer::MakeHeightSourceDesc()
         return heightSourceDesc;
     }
 
-    Handle<Texture> heightmap = GetHeightmap();
-
-    if (!heightmap.IsValid())
+    if (m_heightmapTileTextures.Empty())
     {
         m_heightmapSamples.Reset();
 
@@ -705,7 +910,13 @@ TerrainHeightSourceDesc TerrainWorldGridLayer::MakeHeightSourceDesc()
         return heightSourceDesc;
     }
 
-    m_heightmapSamples = MakeHeightmapSamples(*heightmap, m_heightmapSamples);
+    if (m_settings.heightmapTiles.Size() != m_heightmapTileTextures.Size())
+    {
+        HYP_LOG(WorldGrid, Warning, "Terrain layer '{}' has {} heightmap tile textures for {} tiles - using the first {}",
+            GetName(), m_heightmapTileTextures.Size(), m_settings.heightmapTiles.Size(), MathUtil::Min(m_heightmapTileTextures.Size(), m_settings.heightmapTiles.Size()));
+    }
+
+    m_heightmapSamples = MakeHeightmapSamples(m_settings.heightmapTiles.ToSpan(), m_heightmapTileTextures.ToSpan(), m_heightmapSamples);
 
     if (!m_heightmapSamples)
     {
@@ -716,12 +927,12 @@ TerrainHeightSourceDesc TerrainWorldGridLayer::MakeHeightSourceDesc()
 
     if (heightmapSize.x <= 0.0f)
     {
-        heightmapSize.x = float(m_heightmapSamples->width - 1) * layerInfo.scale.x;
+        heightmapSize.x = float(m_heightmapSamples->GetWidth() - 1) * layerInfo.scale.x;
     }
 
     if (heightmapSize.y <= 0.0f)
     {
-        heightmapSize.y = float(m_heightmapSamples->depth - 1) * layerInfo.scale.z;
+        heightmapSize.y = float(m_heightmapSamples->GetDepth() - 1) * layerInfo.scale.z;
     }
 
     heightSourceDesc.heightmap = m_heightmapSamples;
