@@ -25,11 +25,17 @@ class Texture;
 using EditorImportCallback = Proc<void(EditorSubsystem&, const Array<Handle<AssetObject>>&)>;
 
 void ImportEditorContent(
-    EditorSubsystem* subsystem,
+    EditorSubsystem& subsystem,
     const Array<FilePath>& files,
     const String& targetFolder,
     EditorImportCallback&& onImported = {},
     bool reviewModels = false);
+
+void ImportSingleAssetFile(
+    EditorSubsystem& editorSubsystem,
+    uint32 requestId,
+    const FilePath& filePath,
+    const String& targetFolder);
 
 Array<Handle<AssetObject>> CommitEditorModelImport(
     EditorSubsystem& subsystem,

@@ -316,6 +316,10 @@ public:
     HYP_METHOD()
     void RequestAssetImport(uint32 requestId);
 
+    /*! \brief Import the file at filePath, no dialog is shown. */
+    HYP_METHOD()
+    void RequestAssetImportFromPath(uint32 requestId, const String& filePath);
+
     void QueueImportReview(const Handle<EditorImportReview>& review);
 
     HYP_METHOD()

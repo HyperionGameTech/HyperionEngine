@@ -214,7 +214,9 @@ RenderableAttributeSet PhysicsWireframeAttributes()
 }
 
 /// A hit on an instance selects a InstanceHandleNode instead of the owning group
-Handle<Node> ResolvePickedNode(const RayHit& hit, EditorSubsystem& editorSubsystem)
+Handle<Node> ResolvePickedNode(
+    EditorSubsystem& editorSubsystem,
+    const RayHit& hit)
 {
     Entity* entity = TryCast<Entity>(hit.node);
 
@@ -4873,7 +4875,7 @@ void EditorSubsystem::InitViewport()
                 {
                     if (hit.node != nullptr)
                     {
-                        Handle<Node> nodeStrong = ResolvePickedNode(hit, *this);
+                        Handle<Node> nodeStrong = ResolvePickedNode(*this, hit);
 
                         if (!nodeStrong.IsValid())
                         {
@@ -6202,29 +6204,49 @@ void EditorSubsystem::RequestAssetImport(uint32 requestId)
                 return;
             }
 
-            const FilePath filePath = result.GetValue()[0];
-
-            ImportEditorContent(
-                this,
-                result.GetValue(),
-                targetFolder,
-                [requestId, filePath](EditorSubsystem& subsystem, const Array<Handle<AssetObject>>& assets)
-                {
-                    for (const Handle<AssetObject>& asset : assets)
-                    {
-                        if (!asset.IsValid() || !asset->GetPath().IsValid())
-                        {
-                            continue;
-                        }
-
-                        subsystem.OnAssetImportCompleted(requestId, asset->GetPath().GetBucket().GetIndex(), asset->GetName(), String::empty);
-
-                        return;
-                    }
-
-                    subsystem.OnAssetImportCompleted(requestId, 0, Name::Invalid(), HYP_FORMAT("Failed to import '{}'. See the console for details.", filePath.Basename()));
-                });
+            ImportSingleAssetFile(
+                *this,
+                requestId,
+                result.GetValue()[0],
+                targetFolder);
         });
+}
+
+void EditorSubsystem::RequestAssetImportFromPath(
+    uint32 requestId,
+    const String& filePath)
+{
+    AssertOnThread(g_simThread);
+
+    if (!CanCreateAssets())
+    {
+        OnAssetImportCompleted(
+            requestId,
+            0,
+            Name::Invalid(),
+            "Assets can only be imported while a project is open and the simulation is stopped.");
+
+        return;
+    }
+
+    FilePath path(filePath);
+
+    if (!path.Exists())
+    {
+        OnAssetImportCompleted(
+            requestId,
+            0,
+            Name::Invalid(),
+            HYP_FORMAT("File '{}' does not exist.", filePath));
+
+        return;
+    }
+
+    ImportSingleAssetFile(
+        *this,
+        requestId,
+        path,
+        m_currentAssetFolder);
 }
 
 void EditorSubsystem::SetFocusedNode(const Handle<Node>& focusedNode, bool shouldSelectInOutline)

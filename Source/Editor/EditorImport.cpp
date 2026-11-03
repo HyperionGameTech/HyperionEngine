@@ -213,7 +213,7 @@ Array<Handle<AssetObject>> CommitEditorModelImport(
 }
 
 void ImportEditorContent(
-    EditorSubsystem* subsystem,
+    EditorSubsystem& subsystem,
     const Array<FilePath>& files,
     const String& targetFolder,
     EditorImportCallback&& onImported,
@@ -298,7 +298,7 @@ void ImportEditorContent(
     const String normalizedTargetFolder = EditorAssetFolders::NormalizeFolderPath(targetFolder);
 
     batch->OnComplete
-        .Bind([context, editorTaskScope, weakSubsystem = MakeWeakRef(subsystem), normalizedTargetFolder, sourcePathsByKey = std::move(sourcePathsByKey), reviewModels](AssetMap& results) mutable
+        .Bind([context, editorTaskScope, weakSubsystem = MakeWeakRef(&subsystem), normalizedTargetFolder, sourcePathsByKey = std::move(sourcePathsByKey), reviewModels](AssetMap& results) mutable
               {
                   HYP_LOG(Editor, Verbose, "{} assets loaded.", results.Size());
 
@@ -420,6 +420,37 @@ void ImportEditorContent(
     batch->LoadAsync();
 
     // Note: The batch will be destroyed automatically by AssetManager when complete
+}
+
+void ImportSingleAssetFile(
+    EditorSubsystem& editorSubsystem,
+    uint32 requestId,
+    const FilePath& filePath,
+    const String& targetFolder)
+{
+    Array<FilePath> files;
+    files.PushBack(filePath);
+
+    ImportEditorContent(
+        editorSubsystem,
+        files,
+        targetFolder,
+        [requestId, filePath](EditorSubsystem& subsystem, const Array<Handle<AssetObject>>& assets)
+        {
+            for (const Handle<AssetObject>& asset : assets)
+            {
+                if (!asset.IsValid() || !asset->GetPath().IsValid())
+                {
+                    continue;
+                }
+
+                subsystem.OnAssetImportCompleted(requestId, asset->GetPath().GetBucket().GetIndex(), asset->GetName(), String::empty);
+
+                return;
+            }
+
+            subsystem.OnAssetImportCompleted(requestId, 0, Name::Invalid(), HYP_FORMAT("Failed to import '{}'. See the console for details.", filePath.Basename()));
+        });
 }
 
 const AssetImportInfo* GetEditorAssetImportInfo(const AssetObject* asset)
