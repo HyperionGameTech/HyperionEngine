@@ -171,7 +171,7 @@
                             IsEnabled="{Binding CanClone}"
                             IsVisible="{Binding HasSubObject}"
                             ToolTip.Tip="Clone and Assign">
-                            <controls:Codicon Kind="Copy" Size="14" />
+                            <controls:Codicon Kind="Layers" Size="14" />
                         </Button>
                         <Button
                             x:Name="PART_CopyButton"
@@ -209,7 +209,7 @@
                                     IsEnabled="{Binding CanClone}"
                                     IsVisible="{Binding HasSubObject}">
                                     <MenuItem.Icon>
-                                        <controls:Codicon Kind="Copy" Size="14" />
+                                        <controls:Codicon Kind="Layers" Size="14" />
                                     </MenuItem.Icon>
                                 </MenuItem>
                                 <Separator />
