@@ -16,6 +16,7 @@
 
 #include <Rendering/RenderMemory.hpp>
 #include <Rendering/Glimmer/GlimmerMemory.hpp>
+#include <Scene/WorldGrid/Terrain/TerrainMemory.hpp>
 
 #include <Physics/PhysicsMemory.hpp>
 
@@ -171,6 +172,7 @@ protected:
         tryAddPool("physics", g_physicsPool);
         tryAddPool("render", g_renderPool);
         tryAddPool("glimmer", g_glimmerPool);
+        tryAddPool("terrain", g_terrainPool);
 
 #ifndef HYP_SHIPPING
         tryAddPool("debugdraw", g_debugDrawerPool);

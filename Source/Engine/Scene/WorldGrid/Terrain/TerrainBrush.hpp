@@ -16,14 +16,16 @@
 
 #include <Core/Types.hpp>
 
+#include <Scene/WorldGrid/Terrain/TerrainMemory.hpp>
+
 namespace Hyperion {
 
 class TerrainWorldGridLayer;
 
 struct TerrainGroundCoverPaintState
 {
-    Array<Name> layers;
-    Array<ubyte> paint;
+    Array<Name, TerrainAllocator> layers;
+    Array<ubyte, TerrainAllocator> paint;
 };
 
 struct TerrainGroundCoverPaintEdit
@@ -53,15 +55,15 @@ public:
     /// forgets the cells touched by the current stroke without finishing it
     void ResetStroke();
 
-    Array<TerrainGroundCoverPaintEdit> TakeGroundCoverPaintEdits();
+    Array<TerrainGroundCoverPaintEdit, TerrainAllocator> TakeGroundCoverPaintEdits();
 
 private:
     TerrainWorldGridLayer& m_layer;
 
-    FlatMap<Vec2i, bool> m_modifiedCells;
+    FlatMap<Vec2i, bool, TerrainAllocator> m_modifiedCells;
 
-    FlatMap<Vec2i, TerrainGroundCoverPaintState> m_groundCoverStrokeBefore;
-    Array<TerrainGroundCoverPaintEdit> m_groundCoverPaintEdits;
+    FlatMap<Vec2i, TerrainGroundCoverPaintState, TerrainAllocator> m_groundCoverStrokeBefore;
+    Array<TerrainGroundCoverPaintEdit, TerrainAllocator> m_groundCoverPaintEdits;
 };
 
 } // namespace Hyperion

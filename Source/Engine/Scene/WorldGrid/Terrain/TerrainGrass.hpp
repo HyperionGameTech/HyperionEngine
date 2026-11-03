@@ -25,6 +25,8 @@
 
 #include <Core/Types.hpp>
 
+#include <Scene/WorldGrid/Terrain/TerrainMemory.hpp>
+
 namespace Hyperion {
 
 class Mesh;
@@ -43,7 +45,7 @@ struct TerrainCoverMember
 
 struct TerrainCoverType
 {
-    Array<TerrainCoverMember> members;
+    Array<TerrainCoverMember, TerrainAllocator> members;
 
     /// index of this type's first member among a tile's slots
     uint32 firstSlot = 0;
@@ -51,7 +53,7 @@ struct TerrainCoverType
 
 struct TerrainCoverLayer
 {
-    Array<TerrainCoverType> types;
+    Array<TerrainCoverType, TerrainAllocator> types;
 };
 
 /// what a tile build needs of a cover type, safe to copy to other threads
@@ -60,8 +62,8 @@ struct TerrainCoverTypePlan
     float weight = 1.0f;
 
     /// each member placed in prefab root space
-    Array<Mat4f> memberMatrices;
-    Array<BoundingBox> memberBounds;
+    Array<Mat4f, TerrainAllocator> memberMatrices;
+    Array<BoundingBox, TerrainAllocator> memberBounds;
 };
 
 struct TerrainCoverLayerPlan
@@ -81,7 +83,7 @@ struct TerrainCoverLayerPlan
     /// how much of the ground the layer hides from above where it grows fully
     float coverage = 1.0f;
 
-    Array<TerrainCoverTypePlan> types;
+    Array<TerrainCoverTypePlan, TerrainAllocator> types;
 };
 
 struct TerrainGrassTileInput
@@ -114,13 +116,13 @@ struct TerrainGrassTileInput
 
 struct TerrainGrassSlotInstances
 {
-    Array<Mat4f> transforms;
+    Array<Mat4f, TerrainAllocator> transforms;
     BoundingBox bounds = BoundingBox::Empty();
 };
 
 struct TerrainGrassTileOutput
 {
-    Array<TerrainGrassSlotInstances> slots;
+    Array<TerrainGrassSlotInstances, TerrainAllocator> slots;
 };
 
 class TerrainGroundCoverResources final
@@ -143,8 +145,8 @@ public:
     void Invalidate();
     void Refresh();
 
-    const Array<TerrainCoverLayer>& GetLayers();
-    const Array<TerrainCoverLayerPlan>& GetPlans();
+    const Array<TerrainCoverLayer, TerrainAllocator>& GetLayers();
+    const Array<TerrainCoverLayerPlan, TerrainAllocator>& GetPlans();
 
     /// the painted layers, for the paint tool to list
     Array<Name> GetPaintedLayerNames();
@@ -163,7 +165,10 @@ private:
     {
         Handle<Material> source;
 
-        /// colorVariation, groundNormalBlend, baseOcclusion, baseOcclusionHeight
+        /// x = colorVariation
+        /// y = groundNormalBlend
+        /// z = baseOcclusion
+        /// w = baseOcclusionHeight
         Vec4f groundCoverParameters;
 
         Handle<Material> material;
@@ -173,7 +178,7 @@ private:
     const CoverMaterial& GetCoverMaterial(
         const Handle<Material>& source,
         const Vec4f& groundCoverParameters,
-        Array<CoverMaterial>& previousMaterials);
+        Array<CoverMaterial, TerrainAllocator>& inOutPreviousMaterials);
 
     AssetReference m_groundCover;
 
@@ -181,10 +186,10 @@ private:
     uint32 m_version = 0;
     uint32 m_numSlots = 0;
 
-    Array<TerrainCoverLayer> m_layers;
-    Array<TerrainCoverLayerPlan> m_plans;
+    Array<TerrainCoverLayer, TerrainAllocator> m_layers;
+    Array<TerrainCoverLayerPlan, TerrainAllocator> m_plans;
 
-    Array<CoverMaterial> m_coverMaterials;
+    Array<CoverMaterial, TerrainAllocator> m_coverMaterials;
 
     HashCode::ValueType m_contentHashCode = 0;
 };

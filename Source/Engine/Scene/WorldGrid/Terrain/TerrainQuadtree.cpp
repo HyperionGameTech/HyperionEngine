@@ -194,8 +194,8 @@ void ComputeTerrainQuadtreeNodeHeightBounds(
     const TerrainQuadtreeLayout& layout,
     Span<const float> paddedHeights,
     uint32 cellSize,
-    Array<float>& outMinHeights,
-    Array<float>& outMaxHeights)
+    Array<float, TerrainAllocator>& outMinHeights,
+    Array<float, TerrainAllocator>& outMaxHeights)
 {
     HYP_SCOPE;
 

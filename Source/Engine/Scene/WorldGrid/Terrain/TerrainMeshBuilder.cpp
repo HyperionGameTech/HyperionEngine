@@ -84,7 +84,7 @@ static float BuildPatchGridVertices(
     const TerrainQuadtreeLayout& layout,
     uint32 patchIndex,
     Span<const float> paddedHeights,
-    Array<TerrainVertex>& outVertices)
+    Array<TerrainVertex, TerrainAllocator>& outVertices)
 {
     const uint32 padding = TerrainGenerator::CellPadding;
     const uint32 paddedPitch = cellSize + padding * 2u;
@@ -158,12 +158,12 @@ static float BuildPatchGridVertices(
     return geometricError;
 }
 
-static Array<uint32> BuildLodIndices(uint32 gridDimension)
+static Array<uint32, TerrainAllocator> BuildLodIndices(uint32 gridDimension)
 {
     const size_t gridIndexCount = size_t(6) * size_t(gridDimension - 1) * size_t(gridDimension - 1);
     const size_t skirtIndexCount = size_t(4) * size_t(6) * size_t(gridDimension - 1);
 
-    Array<uint32> indices;
+    Array<uint32, TerrainAllocator> indices;
     indices.Resize(gridIndexCount + skirtIndexCount);
 
     uint32 pitch = gridDimension;
@@ -326,7 +326,7 @@ TerrainPatchMeshData TerrainMeshBuilder::BuildPatchMeshData(Span<const float> pa
     const TerrainQuadtreeLayout::PatchRegion region = m_layout.GetPatchRegion(m_layout.GetPatchKey(patchIndex));
     const uint32 dimension = region.gridQuads / region.stride + 1;
 
-    Array<TerrainVertex> gridVertices;
+    Array<TerrainVertex, TerrainAllocator> gridVertices;
     const float geometricError = TerrainMeshHelpers::BuildPatchGridVertices(m_cellSize, m_layout, patchIndex, paddedHeights, gridVertices);
 
     const uint32 gridVertexCount = TerrainMeshHelpers::CalculateGridVertexCount(dimension);

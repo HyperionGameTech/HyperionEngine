@@ -396,7 +396,7 @@ public:
     template <class TOtherAllocator>
     bool operator==(const SlimArray<TElemType, TOtherAllocator>& other) const
     {
-        if (this == &other)
+        if (static_cast<const void*>(this) == static_cast<const void*>(&other))
         {
             return true;
         }

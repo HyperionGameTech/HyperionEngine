@@ -470,8 +470,8 @@ void FillGlimmerGroundCover(TerrainWorldGridLayer* terrain, GlimmerChannelState&
 {
     HYP_SCOPE;
 
-    const Array<TerrainCoverLayerPlan>& plans = terrain->GetGroundCoverResources().GetPlans();
-    const Array<TerrainCoverLayer>& layers = terrain->GetGroundCoverResources().GetLayers();
+    const Array<TerrainCoverLayerPlan, TerrainAllocator>& plans = terrain->GetGroundCoverResources().GetPlans();
+    const Array<TerrainCoverLayer, TerrainAllocator>& layers = terrain->GetGroundCoverResources().GetLayers();
 
     for (uint32 layerIndex = 0; layerIndex < uint32(MathUtil::Min(plans.Size(), layers.Size())); layerIndex++)
     {

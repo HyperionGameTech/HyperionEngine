@@ -25,9 +25,14 @@ public:
     static constexpr const char* SplatMapBlobMagic = "SPLT";
     static constexpr const char* ErosionMasksBlobMagic = "EMSK";
     static constexpr const char* GroundCoverPaintBlobMagic = "GCPT";
+    
+    static constexpr uint32 NumSplatLayers = 4;
 
     TerrainCellData();
-    explicit TerrainCellData(Name name, const Vec2i& coord = Vec2i::Zero(), const Vec3u& extent = Vec3u::Zero());
+    explicit TerrainCellData(
+        Name name,
+        const Vec2i& coord = Vec2i::Zero(),
+        const Vec3u& extent = Vec3u::Zero());
 
     TerrainCellData(const TerrainCellData& other) = delete;
     TerrainCellData& operator=(const TerrainCellData& other) = delete;
@@ -60,20 +65,30 @@ public:
     void SetHeights(Span<const float> paddedHeights);
     void ClearHeights();
 
+    ///////////
+
+    /// Get an IMMUTABLE view to the data. If the data is non-existant then it will return an empty view. (the data can be read only!)
     Span<const float> GetHeights() const;
-    Span<float> GetHeights();
+    /// Get a MUTABLE view to the data. If the data is non-existant or read only, will return an empty view!
+    Span<float> GetMutableHeights();
+
+    ///////////
 
     ///pages the heights in and makes them a private writable copy; false if there are none to load
     bool EnsureWritableHeights();
 
     void ClearSplatMap();
 
-    static constexpr uint32 NumSplatLayers = 4;
-
     bool HasSplatMap() const;
 
-    ByteView GetSplatMap();
+    ///////////
+
+    /// Get an IMMUTABLE view to the data. If the data is non-existant then it will return an empty view. (the data can be read only!)
     ConstByteView GetSplatMap() const;
+    /// Get a MUTABLE view to the data. If the data is non-existant or read only, will return an empty view!
+    ByteView GetMutableSplatMap();
+
+    ///////////
 
     bool EnsureSplatMapAllocated(uint32 numVertices);
 
@@ -98,8 +113,14 @@ public:
         return m_groundCoverPaintLayers;
     }
 
-    ByteView GetGroundCoverPaint();
+    ///////////
+
+    /// Get an IMMUTABLE view to the data. If the data is non-existant then it will return an empty view. (the data can be read only!)
     ConstByteView GetGroundCoverPaint() const;
+    /// Get a MUTABLE view to the data. If the data is non-existant or read only, will return an empty view!
+    ByteView GetMutableGroundCoverPaint();
+
+    ///////////
 
     ///pages the planes in as a writable copy and appends a cleared plane for \p layerName if it has none. The plane's index, or -1
     int32 EnsureGroundCoverPaintLayer(Name layerName, uint32 numVertices);
@@ -110,7 +131,7 @@ public:
     ///pages the planes in as a writable copy; false if there are none
     bool EnsureWritableGroundCoverPaint();
 
-    void SetGroundCoverPaint(const Array<Name>& layers, ConstByteView paint);
+    void SetGroundCoverPaint(Span<const Name> layers, ConstByteView paint);
 
 protected:
     virtual void PageBlobData() override;

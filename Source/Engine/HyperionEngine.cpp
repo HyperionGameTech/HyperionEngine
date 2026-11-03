@@ -73,6 +73,7 @@
 #include <Rendering/Util/ShaderPropertyDictionary.hpp>
 
 #include <Rendering/Glimmer/GlimmerMemory.hpp>
+#include <Scene/WorldGrid/Terrain/TerrainMemory.hpp>
 
 #include <Scene/ComponentInterface.hpp>
 #include <Scene/DetachedScene.hpp>
@@ -527,6 +528,7 @@ extern "C"
         InitThreads();
         InitMemoryPools();
         InitGlimmerMemory();
+        InitTerrainMemory();
         InitNameRegistry();
 
         ClassRegistry::GetInstance().Initialize();
@@ -956,6 +958,7 @@ extern "C"
 
         // Pools / arenas
         ShutdownGlimmerMemory();
+        ShutdownTerrainMemory();
 
         delete g_sceneArena;
         g_sceneArena = nullptr;

@@ -2489,7 +2489,7 @@ void World::FillWorldShaderData(WorldShaderData& outShaderData) const
             if (const Handle<TerrainWorldGridLayer>& terrainLayer = TryCast<TerrainWorldGridLayer>(layer); terrainLayer.IsValid())
             {
                 // every terrain layer is handed the same viewpoints by TerrainLodSystem
-                const Array<Vec3f> viewpoints = terrainLayer->GetLodViewpoints();
+                const Array<Vec3f, TerrainAllocator> viewpoints = terrainLayer->GetLodViewpoints();
 
                 for (uint32 viewpointIndex = 0; viewpointIndex < MathUtil::Min(uint32(viewpoints.Size()), MaxTerrainLodViewpoints); viewpointIndex++)
                 {

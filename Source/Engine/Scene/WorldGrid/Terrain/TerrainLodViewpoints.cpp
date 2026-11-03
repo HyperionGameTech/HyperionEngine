@@ -28,7 +28,7 @@ void TerrainLodViewpoints::Set(Span<const Vec3f> viewpoints)
     }
 }
 
-Array<Vec3f> TerrainLodViewpoints::Get() const
+Array<Vec3f, TerrainAllocator> TerrainLodViewpoints::Get() const
 {
     Mutex::Guard guard(m_mutex);
 

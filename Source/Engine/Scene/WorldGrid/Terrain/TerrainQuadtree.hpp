@@ -16,6 +16,8 @@
 
 #include <Core/Types.hpp>
 
+#include <Scene/WorldGrid/Terrain/TerrainMemory.hpp>
+
 namespace Hyperion {
 
 /// CDLOD quadtree over one terrain tile
@@ -127,8 +129,8 @@ void ComputeTerrainQuadtreeNodeHeightBounds(
     const TerrainQuadtreeLayout& layout,
     Span<const float> paddedHeights,
     uint32 cellSize,
-    Array<float>& outMinHeights,
-    Array<float>& outMaxHeights);
+    Array<float, TerrainAllocator>& outMinHeights,
+    Array<float, TerrainAllocator>& outMaxHeights);
 
 struct TerrainQuadtreeSelectionInput
 {

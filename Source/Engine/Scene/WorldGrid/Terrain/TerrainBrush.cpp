@@ -23,7 +23,9 @@ namespace Hyperion {
 
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(WorldGrid);
 
-static TerrainGroundCoverPaintState ReadGroundCoverPaintState(
+namespace {
+
+TerrainGroundCoverPaintState ReadGroundCoverPaintState(
     const Handle<TerrainCellData>& cellData)
 {
     TerrainGroundCoverPaintState state;
@@ -35,25 +37,27 @@ static TerrainGroundCoverPaintState ReadGroundCoverPaintState(
 
     auto readScope = cellData->GetReadScope();
 
-    const ConstByteView paint = static_cast<const TerrainCellData&>(*cellData).GetGroundCoverPaint();
+    state.layers = Array<Name, TerrainAllocator>(cellData->GetGroundCoverPaintLayers());
 
-    state.layers = cellData->GetGroundCoverPaintLayers();
+    const ConstByteView paint = cellData->GetGroundCoverPaint();
+
     state.paint.Resize(paint.Size());
     Memory::Copy(state.paint.Data(), paint.Data(), paint.Size());
 
     return state;
 }
 
-static bool IsSameGroundCoverPaintState(
+bool IsSameGroundCoverPaintState(
     const TerrainGroundCoverPaintState& first,
     const TerrainGroundCoverPaintState& second)
 {
-    if (first.layers.Size() != second.layers.Size() || first.paint.Size() != second.paint.Size())
+    if (first.layers.Size() != second.layers.Size()
+        || first.paint.Size() != second.paint.Size())
     {
         return false;
     }
 
-    for (uint32 layerIndex = 0; layerIndex < uint32(first.layers.Size()); layerIndex++)
+    for (size_t layerIndex = 0; layerIndex < first.layers.Size(); layerIndex++)
     {
         if (first.layers[layerIndex] != second.layers[layerIndex])
         {
@@ -72,6 +76,8 @@ static bool IsSameGroundCoverPaintState(
     return true;
 }
 
+} // namespace
+
 #pragma region TerrainBrush
 
 TerrainBrush::TerrainBrush(TerrainWorldGridLayer& layer)
@@ -86,12 +92,12 @@ void TerrainBrush::ResetStroke()
     m_groundCoverPaintEdits.Clear();
 }
 
-Array<TerrainGroundCoverPaintEdit> TerrainBrush::TakeGroundCoverPaintEdits()
+Array<TerrainGroundCoverPaintEdit, TerrainAllocator> TerrainBrush::TakeGroundCoverPaintEdits()
 {
     AssertOnThread(g_simThread);
 
-    Array<TerrainGroundCoverPaintEdit> edits = std::move(m_groundCoverPaintEdits);
-    m_groundCoverPaintEdits = Array<TerrainGroundCoverPaintEdit>();
+    Array<TerrainGroundCoverPaintEdit, TerrainAllocator> edits = std::move(m_groundCoverPaintEdits);
+    m_groundCoverPaintEdits = Array<TerrainGroundCoverPaintEdit, TerrainAllocator>();
 
     return edits;
 }
@@ -170,8 +176,8 @@ void TerrainBrush::Sculpt(const Vec3f& worldPos, float radius, float strength, b
                 && m_layer.AreCellHeightsCurrent(*cellData)
                 && cellData->EnsureWritableHeights();
 
-            Array<float> generatedHeights;
-            Array<ubyte> generatedErosionMasks;
+            Array<float, TerrainAllocator> generatedHeights;
+            Array<ubyte, TerrainAllocator> generatedErosionMasks;
 
             if (!hasCurrentHeights)
             {
@@ -230,7 +236,7 @@ void TerrainBrush::Sculpt(const Vec3f& worldPos, float radius, float strength, b
             {
                 auto cellDataWriteScope = cellData->GetWriteScope();
 
-                applyBrush(cellData->GetHeights());
+                applyBrush(cellData->GetMutableHeights());
 
                 if (anyModified)
                 {
@@ -370,7 +376,7 @@ void TerrainBrush::Paint(const Vec3f& worldPos, float radius, float strength, ui
             {
                 auto cellDataWriteScope = cellData->GetWriteScope();
 
-                ByteView splatMap = cellData->GetSplatMap();
+                ByteView splatMap = cellData->GetMutableSplatMap();
 
                 if (splatMap.Size() != 0)
                 {
@@ -382,19 +388,17 @@ void TerrainBrush::Paint(const Vec3f& worldPos, float radius, float strength, ui
                         // seed fresh splat maps from what the cell currently looks like
                         const uint32 paddedSize = cellSize + TerrainGenerator::CellPadding * 2u;
 
-                        Array<float> generatedHeights;
-                        Array<ubyte> generatedErosionMasks;
+                        Array<float, TerrainAllocator> generatedHeights;
+                        Array<ubyte, TerrainAllocator> generatedErosionMasks;
 
                         Span<const float> paddedHeights;
                         Span<const ubyte> erosionMasks;
 
                         if (!isNewCellData && m_layer.AreCellHeightsCurrent(*cellData))
                         {
-                            const TerrainCellData& constCellData = *cellData;
+                            paddedHeights = cellData->GetHeights();
 
-                            paddedHeights = constCellData.GetHeights();
-
-                            const ConstByteView savedErosionMasks = constCellData.GetErosionMasks();
+                            const ConstByteView savedErosionMasks = cellData->GetErosionMasks();
                             erosionMasks = Span<const ubyte>(savedErosionMasks.Data(), savedErosionMasks.Size());
                         }
 
@@ -638,7 +642,7 @@ void TerrainBrush::PaintGroundCover(
             {
                 auto cellDataWriteScope = cellData->GetWriteScope();
 
-                ByteView paint = cellData->GetGroundCoverPaint();
+                ByteView paint = cellData->GetMutableGroundCoverPaint();
 
                 if (paint.Size() != planeSize * numPlanes)
                 {

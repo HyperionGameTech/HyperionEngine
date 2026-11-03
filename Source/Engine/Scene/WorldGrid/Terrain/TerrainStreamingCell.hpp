@@ -22,6 +22,8 @@
 
 #include <Core/Threading/AtomicVar.hpp>
 
+#include <Scene/WorldGrid/Terrain/TerrainMemory.hpp>
+
 namespace Hyperion {
 
 class Scene;
@@ -144,7 +146,7 @@ private:
     struct GrassTile
     {
         /// one per member of every ground cover type, in TerrainGroundCoverResources' slot order
-        Array<GrassTileSlot> slots;
+        Array<GrassTileSlot, TerrainAllocator> slots;
 
         /// the ground cover version the tile was planted with
         uint32 coverVersion = 0;
@@ -247,17 +249,17 @@ private:
 
     uint32 GetNumGrassTilesPerSide() const;
 
-    void SetSplatWeights(const Array<ubyte>& splatBytes, bool rowsFlipped);
+    void SetSplatWeights(const Array<ubyte, TerrainAllocator>& splatBytes, bool rowsFlipped);
 
     /// call with a read scope on \p cellData
     void SetGroundCoverPaint(const TerrainCellData& cellData);
 
     void InvalidateGrass(const Vec2i& minVertex, const Vec2i& maxVertex);
 
-    void QueueGrassBuilds(Array<uint32>&& tileIndices, Array<uint8>&& detailLevels);
-    void ApplyGrassBuilds(Array<GrassTileBuild>&& tileBuilds, uint32 buildGeneration, uint64 queuedTimestamp, double generateMs);
+    void QueueGrassBuilds(Array<uint32, TerrainAllocator>&& tileIndices, Array<uint8, TerrainAllocator>&& detailLevels);
+    void ApplyGrassBuilds(Array<GrassTileBuild, TerrainAllocator>&& tileBuilds, uint32 buildGeneration, uint64 queuedTimestamp, double generateMs);
 
-    void ReleaseUnwantedGrassTiles(Array<uint32>&& tileIndices);
+    void ReleaseUnwantedGrassTiles(Array<uint32, TerrainAllocator>&& tileIndices);
     void ReleaseGrassTile(uint32 tileIndex);
     void ReleaseGrassTileSlot(GrassTileSlot& slot);
     void ReleaseAllGrass();
@@ -296,25 +298,25 @@ private:
     Handle<HeightFieldPhysicsShape> m_collisionShape;
 
     /// (cellSize + 2 * CellPadding)^2 - patches, the collider and the normal map are all built from these
-    Array<float> m_paddedHeights;
+    Array<float, TerrainAllocator> m_paddedHeights;
 
     /// cellSize^2 TerrainErosionMasks, loaded or generated with m_paddedHeights. Empty for cells saved without them
-    Array<ubyte> m_erosionMasks;
+    Array<ubyte, TerrainAllocator> m_erosionMasks;
 
     TerrainQuadtreeLayout m_quadtreeLayout;
-    Array<float> m_nodeMinHeights;
-    Array<float> m_nodeMaxHeights;
+    Array<float, TerrainAllocator> m_nodeMinHeights;
+    Array<float, TerrainAllocator> m_nodeMaxHeights;
 
     /// nodes in range at the last selection, for hysteresis
-    Array<uint8> m_nodeInRange;
+    Array<uint8, TerrainAllocator> m_nodeInRange;
 
-    Array<TerrainPatch> m_patches;
+    Array<TerrainPatch, TerrainAllocator> m_patches;
 
     /// bumped whenever the heights change, so async patch builds from older heights are dropped
     uint32 m_patchBuildGeneration = 0;
 
     /// built on the streaming thread, turned into patch entities by OnLoaded()
-    Array<TerrainPatchBuild> m_initialPatchBuilds;
+    Array<TerrainPatchBuild, TerrainAllocator> m_initialPatchBuilds;
 
     Handle<Material> m_cellMaterial;
     Handle<Texture> m_splatTexture;
@@ -324,19 +326,19 @@ private:
     bool m_hasGeneratedHeights = false;
 
     /// cellSize^2 * TerrainNumSplatLayers weights, row z first
-    Array<ubyte> m_splatWeights;
+    Array<ubyte, TerrainAllocator> m_splatWeights;
 
     /// copied from the cell data - planes of cellSize^2 weights, one per name in m_groundCoverPaintLayers
-    Array<ubyte> m_groundCoverPaint;
-    Array<Name> m_groundCoverPaintLayers;
-    Array<GrassTile> m_grassTiles;
+    Array<ubyte, TerrainAllocator> m_groundCoverPaint;
+    Array<Name, TerrainAllocator> m_groundCoverPaintLayers;
+    Array<GrassTile, TerrainAllocator> m_grassTiles;
 
     /// bumped when every tile's grass is released
     uint32 m_grassBuildGeneration = 0;
 
     /// what queued grass builds read, shared between them until the heights or splat weights change
-    SharedPtr<const Array<float>> m_grassHeightsSnapshot;
-    SharedPtr<const Array<ubyte>> m_grassSplatWeightsSnapshot;
-    SharedPtr<const Array<ubyte>> m_grassPaintSnapshot;
+    SharedPtr<const Array<float, TerrainAllocator>> m_grassHeightsSnapshot;
+    SharedPtr<const Array<ubyte, TerrainAllocator>> m_grassSplatWeightsSnapshot;
+    SharedPtr<const Array<ubyte, TerrainAllocator>> m_grassPaintSnapshot;
 };
 } // namespace Hyperion
