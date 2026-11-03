@@ -10,6 +10,7 @@
 
 #include <Core/Containers/Array.hpp>
 #include <Core/Containers/FlatMap.hpp>
+#include <Core/Containers/FlatSet.hpp>
 #include <Core/Utilities/Span.hpp>
 
 #include <Core/Memory/SharedPtr.hpp>
@@ -132,6 +133,42 @@ struct TerrainGenerationParams
     HYP_FORCE_INLINE bool operator!=(const TerrainGenerationParams& other) const = default;
 };
 
+HYP_ENUM()
+enum class TerrainHeightSource : uint8
+{
+    Procedural = 0,
+    Flat,
+    Heightmap
+};
+
+struct TerrainHeightmapSamples
+{
+    uint32 width = 0;
+    uint32 depth = 0;
+    Array<uint16> samples;
+    uint64 contentHash = 0;
+
+    float borderMean = 0.0f;
+};
+
+struct TerrainHeightSourceDesc
+{
+    TerrainHeightSource heightSource = TerrainHeightSource::Procedural;
+    float flatHeight = 0.0f;
+
+    SharedPtr<const TerrainHeightmapSamples> heightmap;
+    Vec2f heightmapMinXZ;
+    Vec2f heightmapMaxXZ;
+    Vec2f heightmapHeightRange;
+
+    bool proceduralEdges = true;
+    float blendDistance = 64.0f;
+
+    Vec2f cellOriginXZ;
+    Vec2f cellWorldSize { 1.0f, 1.0f };
+    FlatSet<Vec2i> proceduralCells;
+};
+
 class ENGINE_API TerrainGenerator
 {
 public:
@@ -143,11 +180,24 @@ public:
     TerrainGenerator& operator=(const TerrainGenerator& other) = delete;
     virtual ~TerrainGenerator();
 
-    void Configure(const TerrainGenerationParams& params);
+    void Configure(const TerrainGenerationParams& params, TerrainHeightSourceDesc&& heightSourceDesc = {});
+
+    ///shares the erosion regions \p previous already built, if they were built with the same params
+    void ReuseErosionRegionsFrom(const TerrainGenerator& previous);
 
     HYP_FORCE_INLINE const TerrainGenerationParams& GetParams() const
     {
         return m_params;
+    }
+
+    HYP_FORCE_INLINE const TerrainHeightSourceDesc& GetHeightSourceDesc() const
+    {
+        return m_heightSourceDesc;
+    }
+
+    HYP_FORCE_INLINE bool IsFullyProcedural() const
+    {
+        return m_heightSourceDesc.heightSource == TerrainHeightSource::Procedural;
     }
 
     HYP_FORCE_INLINE void Cancel()
@@ -160,10 +210,8 @@ public:
         return m_cancelled.Get(MemoryOrder::ACQUIRE);
     }
 
-    HYP_FORCE_INLINE float GetMaxHeightEstimate() const
-    {
-        return m_params.baseAmplitude + m_params.mountainAmplitude;
-    }
+    float GetMaxHeightEstimate() const;
+    float GetMinHeightEstimate() const;
 
     static HYP_FORCE_INLINE Vec3f ComputeGridNormal(float heightLeft, float heightRight, float heightDown, float heightUp)
     {
@@ -175,9 +223,16 @@ public:
 
     ///identifies everything that affects generated heights for a cell; saved heights with a different fingerprint are stale
     uint64 ComputeFingerprint(uint32 cellSize, const Vec2f& scaleXZ) const;
+    uint64 ComputeLocalFingerprint(const Vec2i& coord) const;
 
     ///uneroded input terrain
     virtual float SampleBaseHeight(const Vec2f& worldXZ) const;
+
+    float SampleSourceHeight(const Vec2f& worldXZ) const;
+
+    float ComputeProceduralWeight(const Vec2f& worldXZ) const;
+
+    bool HasProceduralInfluence(const Vec2f& worldMinXZ, const Vec2f& worldMaxXZ) const;
 
     void GenerateCellHeights(
         const Vec2f& cellWorldMinXZ,
@@ -221,10 +276,24 @@ public:
 
 protected:
     TerrainGenerationParams m_params;
+    TerrainHeightSourceDesc m_heightSourceDesc;
 
 private:
     struct ErosionRegion;
     struct ErosionRegionEntry;
+
+    float SampleProceduralBaseHeight(const Vec2f& worldXZ) const;
+
+    void GenerateProceduralPaddedCellHeights(
+        const Vec2f& cellWorldMinXZ,
+        const Vec2f& scaleXZ,
+        uint32 cellSize,
+        Array<float>& outPaddedHeights,
+        Array<ubyte>* outErosionMasks) const;
+
+    float SampleHeightmap(const Vec2f& worldXZ) const;
+    float ComputeProceduralCellWeight(const Vec2f& worldXZ) const;
+    float ComputeSnowLine() const;
 
     SharedPtr<ErosionRegionEntry> FindOrAddErosionRegionEntry(const Vec2i& regionCoord) const;
     SharedPtr<const ErosionRegion> EnsureErosionRegionBuilt(ErosionRegionEntry& entry, const Vec2i& regionCoord) const;

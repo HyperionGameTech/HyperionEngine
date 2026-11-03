@@ -45,6 +45,57 @@ class TerrainStreamingCell;
 class TerrainCellData;
 struct AssetPath;
 
+HYP_STRUCT()
+struct TerrainLayerSettings
+{
+    HYP_STRUCT_BODY(TerrainLayerSettings);
+
+    HYP_FIELD(Property = "HeightSource", Serialize, Editor)
+    TerrainHeightSource heightSource = TerrainHeightSource::Procedural;
+
+    HYP_FIELD(Property = "FlatHeight", Serialize, Editor, Condition = "IsFlat")
+    float flatHeight = 0.0f;
+
+    HYP_FIELD(Property = "HeightmapCenter", Serialize, Editor, Condition = "IsHeightmap")
+    Vec2f heightmapCenter;
+
+    HYP_FIELD(Property = "HeightmapSize", Serialize, Editor, Condition = "IsHeightmap")
+    Vec2f heightmapSize;
+
+    HYP_FIELD(Property = "HeightmapHeightRange", Serialize, Editor, Condition = "IsHeightmap")
+    Vec2f heightmapHeightRange { 0.0f, 200.0f };
+
+    HYP_FIELD(Property = "ProceduralEdges", Serialize, Editor, Condition = "IsHeightmap")
+    bool proceduralEdges = true;
+
+    HYP_FIELD(Property = "BlendDistance", Serialize, Editor, Condition = "IsFlatOrHeightmap")
+    float blendDistance = 64.0f;
+
+    HYP_FIELD(Property = "ProceduralCells", Serialize)
+    Array<Vec2i> proceduralCells;
+
+    HYP_METHOD(NoScriptBindings)
+    bool IsFlat() const
+    {
+        return heightSource == TerrainHeightSource::Flat;
+    }
+
+    HYP_METHOD(NoScriptBindings)
+    bool IsHeightmap() const
+    {
+        return heightSource == TerrainHeightSource::Heightmap;
+    }
+
+    HYP_METHOD(NoScriptBindings)
+    bool IsFlatOrHeightmap() const
+    {
+        return heightSource != TerrainHeightSource::Procedural;
+    }
+
+    HYP_FORCE_INLINE bool operator==(const TerrainLayerSettings& other) const = default;
+    HYP_FORCE_INLINE bool operator!=(const TerrainLayerSettings& other) const = default;
+};
+
 /// @TODO: Make a TerrainAllocator - use it throughout here.
 
 HYP_CLASS()
@@ -100,10 +151,35 @@ public:
 
     void WarmHeightsCache(const Vec2i& coord) const;
 
-    HYP_FORCE_INLINE uint64 GetCellFingerprint() const
+    HYP_METHOD(Property = "Settings", Editor, NoScriptBindings)
+    HYP_FORCE_INLINE const TerrainLayerSettings& GetSettings() const
     {
-        return m_generatorState.GetCellFingerprint();
+        return m_settings;
     }
+
+    HYP_METHOD(Property = "Settings", Editor, NoScriptBindings)
+    void SetSettings(const TerrainLayerSettings& settings);
+
+    HYP_METHOD(Property = "Heightmap", Editor)
+    Handle<Texture> GetHeightmap() const;
+
+    HYP_METHOD(Property = "Heightmap", Editor)
+    void SetHeightmap(const Handle<Texture>& heightmap);
+
+    HYP_METHOD()
+    bool IsProceduralCell(const Vec2i& coord) const;
+
+    HYP_METHOD()
+    void MarkProceduralCell(const Vec3f& worldPos, bool isProcedural);
+
+    HYP_METHOD()
+    void SetProceduralCells(const Array<Vec2i>& proceduralCells);
+
+    bool TakeProceduralCellsEdit(Array<Vec2i>& outBefore, Array<Vec2i>& outAfter);
+
+    uint64 GetCellFingerprint(const Vec2i& coord) const;
+    static uint64 GetCellFingerprint(const TerrainGenerationState& generationState, const Vec2i& coord);
+    static uint64 CombineCellFingerprint(uint64 baseFingerprint, const TerrainGenerator& generator, const Vec2i& coord);
 
     ///first of the coord's references that resolves
     Handle<TerrainCellData> FindCellData(const Vec2i& coord) const;
@@ -234,6 +310,9 @@ public:
     virtual void GetDescAssets(Array<WGLayerAsset>& outAssets) const override;
     virtual void SetDescAssets(Span<const WGLayerAsset> assets) override;
 
+    virtual BoxedValue GetDescSettings() const override;
+    virtual void SetDescSettings(const BoxedValue& settings) override;
+
     /////////////////////////
 
 protected:
@@ -245,10 +324,18 @@ protected:
     virtual void StreamPrefetch(Span<const Vec2i> cellCoords) override;
 
     TerrainGenerationParams MakeGenerationParams() const;
+    
+    TerrainHeightSourceDesc MakeHeightSourceDesc();
+    
     static uint64 ComputeCellFingerprint(const TerrainGenerator& generator, const WorldGridLayerInfo& layerInfo);
 
     ///swaps in a freshly configured generator and bumps the epoch so work started with the old one is discarded
     void ReplaceGenerator();
+
+    void RefreshGenerator();
+
+    bool IsAddedToWorld() const;
+    void MarkWorldDirty() const;
 
     float SampleHeight(const Vec2f& worldXZ, bool generateColdCells) const;
 
@@ -266,6 +353,16 @@ protected:
     Handle<Material> m_material;
 
     TerrainGeneratorState m_generatorState;
+
+    TerrainLayerSettings m_settings;
+
+    AssetReference m_heightmap;
+
+    ///the copy the generator samples, kept while the heightmap's content is the same
+    SharedPtr<const TerrainHeightmapSamples> m_heightmapSamples;
+
+    Optional<Array<Vec2i>> m_proceduralCellsBeforeStroke;
+    Optional<Array<Vec2i>> m_proceduralCellsEditBefore;
 
     mutable TerrainHeightsCache m_heightsCache;
 

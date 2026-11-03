@@ -11,7 +11,7 @@
         <StackPanel Margin="12,12,12,8" Spacing="12">
 
             <StackPanel Spacing="6">
-                <TextBlock Classes="section-label" Text="Sculpt Direction" />
+                <TextBlock Classes="section-label" Text="Tool" />
                 <StackPanel Orientation="Horizontal" Spacing="6">
                     <ToggleButton
                         IsChecked="{Binding IsRaiseMode, Mode=OneWay}"
@@ -24,6 +24,12 @@
                         Command="{Binding SetLowerModeCommand}"
                         ToolTip.Tip="Lower terrain (hold Shift to raise)">
                         <TextBlock Text="Lower" Margin="8,0" />
+                    </ToggleButton>
+                    <ToggleButton
+                        IsChecked="{Binding IsProceduralMode, Mode=OneWay}"
+                        Command="{Binding SetProceduralModeCommand}"
+                        ToolTip.Tip="Mark cells for procedural terrain on a flat or heightmap terrain (hold Shift to unmark)">
+                        <TextBlock Text="Procedural" Margin="8,0" />
                     </ToggleButton>
                 </StackPanel>
                 <TextBlock

@@ -155,7 +155,9 @@ TerrainStreamingCell::TerrainStreamingCell(
       m_layer(layer),
       m_cellData(cellData),
       m_generator(std::move(generationState.generator)),
-      m_cellFingerprint(generationState.cellFingerprint),
+      m_cellFingerprint(m_generator
+              ? TerrainWorldGridLayer::CombineCellFingerprint(generationState.cellFingerprint, *m_generator, cellInfo.coord)
+              : generationState.cellFingerprint),
       m_generationEpoch(generationState.epoch),
       m_generationLayerInfo(generationState.layerInfo)
 {

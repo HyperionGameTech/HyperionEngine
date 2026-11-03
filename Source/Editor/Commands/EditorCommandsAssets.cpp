@@ -1388,6 +1388,176 @@ DEFINE_EDITOR_COMMAND(SampleTerrainHeight);
 
 #pragma endregion SampleTerrainHeight
 
+#pragma region ImportTerrainHeightmap
+
+/// ImportTerrainHeightmap <path>
+class EditorCommandImportTerrainHeightmap final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandImportTerrainHeightmap);
+
+public:
+    virtual ~EditorCommandImportTerrainHeightmap() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Import Terrain Heightmap";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        AssertOnThread(g_simThread);
+
+        if (NumArguments() < 1)
+        {
+            HYP_LOG(Editor, Error, "expected a file path");
+            return;
+        }
+
+        const FilePath filePath(GetArgument(0));
+
+        if (!filePath.Exists())
+        {
+            HYP_LOG(Editor, Error, "file '{}' does not exist", filePath);
+            return;
+        }
+
+        ImportEditorContent(
+            subsystem,
+            Array<FilePath> { filePath },
+            subsystem->GetCurrentAssetFolder(),
+            [filePath](EditorSubsystem& subsystem, const Array<Handle<AssetObject>>& assets)
+            {
+                Handle<Texture> heightmap;
+                Name foundObjectClassName;
+
+                for (const Handle<AssetObject>& asset : assets)
+                {
+                    if (!asset.IsValid())
+                    {
+                        continue;
+                    }
+
+                    if ((heightmap = TryCast<Texture>(asset)).IsValid())
+                    {
+                        break;
+                    }
+
+                    foundObjectClassName = asset->InstanceClass()->GetName();
+                }
+
+                if (!heightmap.IsValid())
+                {
+                    HYP_LOG(Editor, Error, "attempted to import texture for '{}' but got a: {}",
+                            filePath,
+                            foundObjectClassName.IsValid() ? *foundObjectClassName : "<nothing>");
+
+                    return;
+                }
+
+                GetThreadById(g_simThread)->GetScheduler().Enqueue(
+                    [subsystem = MakeStrongRef(&subsystem), heightmap]()
+                    {
+                        Handle<Scene> activeScene = subsystem->GetActiveScene();
+
+                        if (!activeScene.IsValid() || !activeScene->GetWorld() || !activeScene->GetWorld()->GetWorldGrid().IsValid())
+                        {
+                            HYP_LOG(Editor, Warning, "no world grid to import heightmap for");
+                            return;
+                        }
+
+                        for (const Handle<WorldGridLayer>& layer : activeScene->GetWorld()->GetWorldGrid()->GetLayers())
+                        {
+                            if (Handle<TerrainWorldGridLayer> terrainLayer = TryCast<TerrainWorldGridLayer>(layer); terrainLayer.IsValid())
+                            {
+                                terrainLayer->SetHeightmap(heightmap);
+
+                                HYP_LOG(Editor, Info, "set '{}' to be the heightmap of terrain layer '{}'", heightmap->GetName(), terrainLayer->GetName());
+
+                                return;
+                            }
+                        }
+
+                        HYP_LOG(Editor, Warning, "no terrain layer to set heightmap for");
+                    },
+                    TaskEnqueueFlags::FIRE_AND_FORGET);
+            });
+    }
+};
+
+DEFINE_EDITOR_COMMAND(ImportTerrainHeightmap);
+
+#pragma endregion ImportTerrainHeightmap
+
+#pragma region SetTerrainProceduralCell
+
+// SetTerrainProceduralCell <worldX> <worldZ> <0|1>: marks or unmarks the first terrain layer's cell at that position as procedural
+class EditorCommandSetTerrainProceduralCell final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandSetTerrainProceduralCell);
+
+public:
+    virtual ~EditorCommandSetTerrainProceduralCell() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Set Terrain Procedural Cell";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        AssertOnThread(g_simThread);
+
+        float worldX = 0.0f;
+        float worldZ = 0.0f;
+        int isProcedural = 1;
+
+        if (NumArguments() < 3
+            || !StringUtil::Parse(GetArgument(0), &worldX)
+            || !StringUtil::Parse(GetArgument(1), &worldZ)
+            || !StringUtil::Parse(GetArgument(2), &isProcedural))
+        {
+            HYP_LOG(Editor, Error, "SetTerrainProceduralCell: expected <worldX> <worldZ> <0|1>");
+            return;
+        }
+
+        Handle<Scene> activeScene = subsystem->GetActiveScene();
+
+        if (!activeScene.IsValid() || !activeScene->GetWorld() || !activeScene->GetWorld()->GetWorldGrid().IsValid())
+        {
+            HYP_LOG(Editor, Warning, "SetTerrainProceduralCell: no world grid");
+            return;
+        }
+
+        for (const Handle<WorldGridLayer>& layer : activeScene->GetWorld()->GetWorldGrid()->GetLayers())
+        {
+            if (Handle<TerrainWorldGridLayer> terrainLayer = TryCast<TerrainWorldGridLayer>(layer); terrainLayer.IsValid())
+            {
+                const Vec2i coord = TerrainWorldGridLayer::ComputeCellCoord(terrainLayer->GetLayerInfo(), Vec2f(worldX, worldZ));
+
+                Array<Vec2i> proceduralCells = terrainLayer->GetSettings().proceduralCells;
+                proceduralCells.Erase(coord);
+
+                if (isProcedural != 0)
+                {
+                    proceduralCells.PushBack(coord);
+                }
+
+                terrainLayer->SetProceduralCells(proceduralCells);
+
+                HYP_LOG(Editor, Info, "SetTerrainProceduralCell: cell {} is {}procedural", coord, isProcedural != 0 ? "" : "not ");
+
+                return;
+            }
+        }
+
+        HYP_LOG(Editor, Warning, "SetTerrainProceduralCell: no terrain layer");
+    }
+};
+
+DEFINE_EDITOR_COMMAND(SetTerrainProceduralCell);
+
+#pragma endregion SetTerrainProceduralCell
+
 #pragma region NewGroundCover
 
 /// Creates a ground cover asset from a list of prefab types.

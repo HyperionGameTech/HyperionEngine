@@ -86,6 +86,9 @@ struct WGLayerDesc
     /// assets the layer class configures itself with, by key
     HYP_FIELD()
     Array<WGLayerAsset> assets;
+
+    HYP_FIELD()
+    BoxedValue settings;
 };
 
 HYP_CLASS()

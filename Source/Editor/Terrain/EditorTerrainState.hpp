@@ -34,7 +34,8 @@ enum class TerrainSculptMode : uint8
     Raise,
     Lower,
     PaintSplat,
-    PaintGroundCover
+    PaintGroundCover,
+    MarkProcedural
 };
 
 HYP_CLASS(Serialize = false)
@@ -144,6 +145,9 @@ private:
     bool ApplyStroke(float dt);
 
     void PushGroundCoverPaintAction(const Handle<TerrainWorldGridLayer>& terrainLayer);
+    void PushProceduralCellsAction(const Handle<TerrainWorldGridLayer>& terrainLayer);
+
+    void DebugDrawProceduralCells(DebugDrawCommandList& debugDrawCommandList, const Handle<TerrainWorldGridLayer>& layer);
 
     Array<Handle<TerrainWorldGridLayer>> GetTerrainLayers() const;
     Name ResolveGroundCoverPaintLayer(const Handle<TerrainWorldGridLayer>& terrainLayer, bool createIfMissing);

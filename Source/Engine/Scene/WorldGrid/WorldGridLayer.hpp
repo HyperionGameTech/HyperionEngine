@@ -12,6 +12,7 @@
 
 #include <Core/Reflection/ObjectBase.hpp>
 #include <Core/Reflection/Handle.hpp>
+#include <Core/Reflection/BoxedValue.hpp>
 
 #include <Core/Functional/Delegate.hpp>
 
@@ -163,6 +164,15 @@ public:
     }
 
     virtual void SetDescAssets(Span<const WGLayerAsset> assets)
+    {
+    }
+
+    virtual BoxedValue GetDescSettings() const
+    {
+        return BoxedValue();
+    }
+
+    virtual void SetDescSettings(const BoxedValue& settings)
     {
     }
 

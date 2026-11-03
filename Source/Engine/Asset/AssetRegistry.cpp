@@ -688,13 +688,12 @@ FilePath AssetRegistry::GetRootPath() const
 
 void AssetRegistry::SetRootPath(const FilePath& rootPath)
 {
-    TUniqueLock lock(m_mutex);
-
-    if (rootPath == m_rootPath)
+    if (rootPath == GetRootPath())
     {
         return;
     }
 
+    // Not under m_mutex. loading an asset pages its blob data from the current root path, which takes the lock again.
     // Mark all assets dirty so they get saved to the new location
     for (uint32 bucketIndex = 0; bucketIndex < MaxAssetBuckets; bucketIndex++)
     {
@@ -720,6 +719,8 @@ void AssetRegistry::SetRootPath(const FilePath& rootPath)
     }
 
     // @TODO - Move blob storage data?
+
+    TUniqueLock lock(m_mutex);
 
     m_rootPath = rootPath;
 }

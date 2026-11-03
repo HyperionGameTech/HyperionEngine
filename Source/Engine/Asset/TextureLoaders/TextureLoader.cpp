@@ -11,6 +11,7 @@
 #include <Asset/AssetRegistry.hpp>
 
 #include <Core/Utilities/StringUtil.hpp>
+#include <Core/Math/MathUtil.hpp>
 
 #include <Rendering/Texture.hpp>
 
@@ -22,6 +23,8 @@
 
 namespace Hyperion {
 
+namespace {
+
 struct LoadedTextureData
 {
     int width;
@@ -30,7 +33,7 @@ struct LoadedTextureData
     TextureFormat format;
 };
 
-static const stbi_io_callbacks s_callbacks {
+const stbi_io_callbacks g_callbacks {
     .read = [](void* user, char* data, int size) -> int
     {
         LoaderState* state = static_cast<LoaderState*>(user);
@@ -58,12 +61,102 @@ static const stbi_io_callbacks s_callbacks {
     }
 };
 
+Handle<Texture> MakeSingleChannelFloatTexture(uint32 width, uint32 height, const uint16* samples, uint32 sampleStride)
+{
+    TextureDesc textureDesc {
+        TextureType::Texture2D,
+        TextureFormat::R32F,
+        Vec3u { width, height, 1 },
+        TextureFilterMode::LinearMipmap,
+        TextureFilterMode::Linear,
+        TextureWrapMode::Repeat
+    };
+
+    const size_t numSamples = size_t(width) * size_t(height);
+
+    ByteBuffer baseMipData(numSamples * sizeof(float));
+    float* values = reinterpret_cast<float*>(baseMipData.Data());
+
+    for (size_t index = 0; index < numSamples; index++)
+    {
+        values[index] = float(samples[index * sampleStride]) / 65535.0f;
+    }
+
+    Texture::GenerateMipmaps(textureDesc, baseMipData);
+
+    return MakeHandle<Texture>(textureDesc, baseMipData.ToByteView());
+}
+
+AssetLoadResult FinishLoadedTexture(LoaderState& state, Handle<Texture>&& texture)
+{
+    texture->SetName(CreateNameFromDynamicString(ANSIString(StringUtil::StripExtension(state.filepath.Basename()))));
+
+    if (!(state.hint & AssetLoadHint::Transient))
+    {
+        GetCurrentAssetRegistry()->PutAssetUnique(texture);
+    }
+
+    return LoadedAsset { std::move(texture) };
+}
+
+} // namespace
+
 AssetLoadResult TextureLoader::LoadAsset(LoaderState& state) const
 {
+    const String extension = StringUtil::GetExtension(state.filepath.ToLower());
+
+    if (extension == "r16" || extension == "raw")
+    {
+        const ByteBuffer fileBytes = state.stream.Read();
+
+        const size_t numSamples = fileBytes.Size() / sizeof(uint16);
+        const uint32 side = uint32(MathUtil::Sqrt(double(numSamples)) + 0.5);
+
+        if (side < 2 || size_t(side) * size_t(side) * sizeof(uint16) != fileBytes.Size())
+        {
+            return HYP_MAKE_ERROR(AssetLoadError, "Raw image is {} bytes (must be square of 16 bit samples)", fileBytes.Size());
+        }
+
+        return FinishLoadedTexture(state, MakeSingleChannelFloatTexture(side, side, reinterpret_cast<const uint16*>(fileBytes.Data()), 1));
+    }
+
+    const size_t startPosition = state.stream.Position();
+
+    const bool is16Bit = stbi_is_16_bit_from_callbacks(
+        &g_callbacks,
+        (void*)&state) != 0;
+
+    state.stream.Rewind(state.stream.Position() - startPosition);
+
+    if (is16Bit)
+    {
+        int width = 0;
+        int height = 0;
+        int numComponents = 0;
+
+        stbi_us* samples = stbi_load_16_from_callbacks(&g_callbacks, (void*)&state, &width, &height, &numComponents, 0);
+
+        if (samples != nullptr && (numComponents == STBI_grey || numComponents == STBI_grey_alpha))
+        {
+            Handle<Texture> texture = MakeSingleChannelFloatTexture(uint32(width), uint32(height), samples, uint32(numComponents));
+
+            stbi_image_free(samples);
+
+            return FinishLoadedTexture(state, std::move(texture));
+        }
+
+        if (samples != nullptr)
+        {
+            stbi_image_free(samples);
+        }
+
+        state.stream.Rewind(state.stream.Position() - startPosition);
+    }
+
     LoadedTextureData data {};
 
     unsigned char* imageBytes = stbi_load_from_callbacks(
-        &s_callbacks,
+        &g_callbacks,
         (void*)&state,
         &data.width,
         &data.height,

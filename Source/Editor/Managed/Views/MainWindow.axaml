@@ -305,6 +305,23 @@
             <Setter Property="BorderBrush" Value="{DynamicResource Brush.HoverBorder}" />
         </Style>
 
+        <Style Selector="DropDownButton.gizmo-wide.raised.Primary">
+            <Setter Property="Background" Value="{StaticResource Brush.Primary}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.Primary}" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+
+        <Style Selector="DropDownButton.gizmo-wide.raised.Primary:pointerover">
+            <Setter Property="Background" Value="{StaticResource Brush.PrimaryHover}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.PrimaryHover}" />
+        </Style>
+
+        <Style Selector="DropDownButton.gizmo-wide.raised.Primary:pressed">
+            <Setter Property="Background" Value="{StaticResource Brush.PrimaryMuted}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.PrimaryMuted}" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+
         <Style Selector="Border.mode-strip">
             <Setter Property="Background" Value="{DynamicResource Brush.PanelRaised}" />
             <Setter Property="BorderBrush" Value="{DynamicResource Brush.BorderLight}" />
@@ -822,7 +839,7 @@
                               HorizontalAlignment="Right"
                               VerticalAlignment="Center"
                               IsEnabled="{Binding !IsSimulating}"
-                              Classes="gizmo-wide raised"
+                              Classes="gizmo-wide raised Primary"
                               Click="OnDropDownClick"
                               ToolTip.Tip="Add to the active scene">
 
@@ -1170,6 +1187,11 @@
                                                 Header="Add Terrain Layer"
                                                 IsEnabled="{Binding CanAddTerrainLayer}"
                                                 ToolTip.Tip="Add a terrain layer to the selected entity" />
+                                            <MenuItem
+                                                Command="{Binding AddFlatTerrainLayer}"
+                                                Header="Add Flat Terrain Layer"
+                                                IsEnabled="{Binding CanAddTerrainLayer}"
+                                                ToolTip.Tip="Add a flat terrain layer, with no procedural terrain" />
                                         </ContextMenu>
                                     </DropDownButton.ContextMenu>
                                 </DropDownButton>
@@ -2023,6 +2045,7 @@
                                                                     HorizontalAlignment="Right"
                                                                     VerticalAlignment="Center"
                                                                     Content="Add"
+                                                                    Classes="Primary"
                                                                     IsEnabled="{Binding HasAddableComponents}">
                                                                     <Button.Flyout>
                                                                         <MenuFlyout ItemsSource="{Binding AddableComponents}">
@@ -2612,6 +2635,13 @@
                                                         </StackPanel>
                                                     </Grid>
 
+                                                    <TextBlock
+                                                        Margin="12,8"
+                                                        FontSize="11"
+                                                        Foreground="{DynamicResource Brush.TextFaint}"
+                                                        IsVisible="{Binding Inspector.IsEmpty}"
+                                                        Text="No selection" />
+
                                                     <!--  Properties  -->
                                                     <Grid Margin="0" RowDefinitions="Auto, Auto, Auto">
                                                         <Border Grid.Row="0" Classes="panel-header">
@@ -2697,7 +2727,8 @@
                                         x:Name="AssetsPane"
                                         ActiveDockable="AssetsTool"
                                         Alignment="Left"
-                                        Id="AssetsPane">
+                                        Id="AssetsPane"
+                                        Proportion="0.66">
                                         <Tool
                                             x:Name="AssetsTool"
                                             Title="Assets"
@@ -2890,7 +2921,7 @@
                                                                 VerticalAlignment="Center"
                                                                 Command="{Binding ContentBrowser.ImportCommand}"
                                                                 IsEnabled="{Binding !IsSimulating}"
-                                                                ToolTip.Tip="Import into the current folder">
+                                                                ToolTip.Tip="Import content into the current folder.">
                                                                 <StackPanel Orientation="Horizontal" Spacing="5">
                                                                     <controls:Codicon
                                                                         VerticalAlignment="Center"
@@ -2903,13 +2934,14 @@
                                                                 Grid.Column="9"
                                                                 Padding="8,2"
                                                                 VerticalAlignment="Center"
-                                                                IsEnabled="{Binding !IsSimulating}">
+                                                                IsEnabled="{Binding !IsSimulating}"
+                                                                ToolTip.Tip="Create a new asset and add it to the current folder.">
                                                                 <StackPanel Orientation="Horizontal" Spacing="5">
                                                                     <controls:Codicon
                                                                         VerticalAlignment="Center"
                                                                         Kind="Add"
                                                                         Size="12" />
-                                                                    <TextBlock VerticalAlignment="Center" Text="Add..." />
+                                                                    <TextBlock VerticalAlignment="Center" Text="Add" />
                                                                 </StackPanel>
                                                                 <Button.Flyout>
                                                                     <MenuFlyout Opened="OnAddAssetMenuFlyoutOpened">
