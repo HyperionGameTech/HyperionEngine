@@ -17,6 +17,7 @@
 #include <Scene/WorldGrid/Terrain/TerrainGrass.hpp>
 #include <Scene/WorldGrid/Terrain/GroundCover.hpp>
 #include <Scene/WorldGrid/Terrain/TerrainBrush.hpp>
+#include <Scene/WorldGrid/Terrain/TerrainMemory.hpp>
 
 #include <Asset/AssetObject.hpp>
 
@@ -113,8 +114,6 @@ struct TerrainLayerSettings
     HYP_FORCE_INLINE bool operator!=(const TerrainLayerSettings& other) const = default;
 };
 
-/// @TODO: Make a TerrainAllocator - use it throughout here.
-
 HYP_CLASS()
 class ENGINE_API TerrainWorldGridLayer : public WorldGridLayer
 {
@@ -124,16 +123,78 @@ class ENGINE_API TerrainWorldGridLayer : public WorldGridLayer
 
 public:
     TerrainWorldGridLayer();
-
     explicit TerrainWorldGridLayer(Name name, const WorldGridLayerInfo& layerInfo = {});
 
     virtual ~TerrainWorldGridLayer() override;
+
+    // the terrain's material is made at run time, so a cook takes its attributes from here
+    static MaterialAttributes GetTerrainMaterialAttributes();
+
+    static Vec3f ComputeCellBoundsMin(const WorldGridLayerInfo& layerInfo, const Vec2i& coord);
+    static Vec2i ComputeCellCoord(const WorldGridLayerInfo& layerInfo, const Vec2f& worldXZ);
+
+    static uint32 RoundCellSizeForQuadtree(uint32 cellSize);
+
+    ///reads the Terrain.Lod cvars, so each tile keeps the layout it was built with
+    static TerrainQuadtreeLayout MakeQuadtreeLayout(uint32 cellSize);
+
+    static float GetLodRangeMultiplier();
+    static float CalculateLodRange(uint8 level, const TerrainQuadtreeLayout& layout, const Vec3f& scale);
+    static float CalculateLodMorphStart(uint8 level, const TerrainQuadtreeLayout& layout, const Vec3f& scale);
+
+    static uint64 GetCellFingerprint(const TerrainGenerationState& generationState, const Vec2i& coord);
+    static uint64 CombineCellFingerprint(uint64 baseFingerprint, const TerrainGenerator& generator, const Vec2i& coord);
+
+    ///thread safe when \p cellSize and \p cellFingerprint come from a GetGenerationState() snapshot
+    static bool AreCellHeightsCurrent(const TerrainCellData& cellData, uint32 cellSize, uint64 cellFingerprint);
+
+    ///thread safe when \p generator and \p layerInfo come from a GetGenerationState() snapshot
+    static void GenerateCellPaddedHeights(
+        const TerrainGenerator& generator,
+        const WorldGridLayerInfo& layerInfo,
+        const Vec2i& coord,
+        Array<float, TerrainAllocator>& outPaddedHeights,
+        Array<ubyte, TerrainAllocator>* outErosionMasks = nullptr);
 
     HYP_METHOD()
     HYP_FORCE_INLINE const Handle<Scene>& GetScene() const
     {
         return m_scene;
     }
+
+    ///not shown in editor because the editor for this shows LayerInfo's Seed property anyway
+    HYP_METHOD(Property = "Seed", Editor = false)
+    HYP_FORCE_INLINE uint32 GetSeed() const
+    {
+        return m_layerInfo.seed;
+    }
+
+    HYP_METHOD(Property = "Seed")
+    void SetSeed(uint32 seed);
+
+    HYP_METHOD(Property = "Settings", Editor, NoScriptBindings)
+    HYP_FORCE_INLINE const TerrainLayerSettings& GetSettings() const
+    {
+        return m_settings;
+    }
+
+    HYP_METHOD(Property = "Settings", Editor, NoScriptBindings)
+    void SetSettings(const TerrainLayerSettings& settings);
+
+    /// the heightmap when there's a single one - null for a tiled heightmap
+    HYP_METHOD(Property = "Heightmap", Editor)
+    const Handle<Texture>& GetHeightmap() const;
+
+    /// replaces any tiles with \p heightmap
+    HYP_METHOD(Property = "Heightmap", Editor)
+    void SetHeightmap(const Handle<Texture>& heightmap);
+
+    HYP_METHOD(Property = "HeightmapTiles", Editor, NoScriptBindings)
+    Array<TerrainHeightmapTile> GetHeightmapTiles() const;
+
+    /// setting any switches the height source to them
+    HYP_METHOD(Property = "HeightmapTiles", Editor, NoScriptBindings)
+    void SetHeightmapTiles(const Array<TerrainHeightmapTile>& tiles);
 
     ///sim thread only - other threads must use GetGenerationState()
     HYP_FORCE_INLINE const TerrainGenerator& GetGenerator() const
@@ -149,136 +210,11 @@ public:
         return m_generatorState.IsCurrent(epoch);
     }
 
-    ///not shown in editor because the editor for this shows LayerInfo's Seed property anyway
-    HYP_METHOD(Property = "Seed", Editor = false)
-    HYP_FORCE_INLINE uint32 GetSeed() const
-    {
-        return m_layerInfo.seed;
-    }
-
-    HYP_METHOD(Property = "Seed")
-    void SetSeed(uint32 seed);
-
-    HYP_METHOD()
-    virtual void SetLayerInfo(const WorldGridLayerInfo& layerInfo) override;
-
-    ///result is only cached while \p generationEpoch is still current
-    SharedPtr<const Array<float>> GetOrGenerateCellHeights(const TerrainGenerator& generator, uint32 generationEpoch, const Vec2i& coord) const;
-    SharedPtr<const Array<float>> TryGetCachedCellHeights(const Vec2i& coord) const;
-
-    void WarmHeightsCache(const Vec2i& coord) const;
-
-    HYP_METHOD(Property = "Settings", Editor, NoScriptBindings)
-    HYP_FORCE_INLINE const TerrainLayerSettings& GetSettings() const
-    {
-        return m_settings;
-    }
-
-    HYP_METHOD(Property = "Settings", Editor, NoScriptBindings)
-    void SetSettings(const TerrainLayerSettings& settings);
-
-    /// the heightmap when there's a single one - null for a tiled heightmap
-    HYP_METHOD(Property = "Heightmap", Editor)
-    Handle<Texture> GetHeightmap() const;
-
-    /// replaces any tiles with \p heightmap
-    HYP_METHOD(Property = "Heightmap", Editor)
-    void SetHeightmap(const Handle<Texture>& heightmap);
-
-    HYP_METHOD(Property = "HeightmapTiles", Editor, NoScriptBindings)
-    Array<TerrainHeightmapTile> GetHeightmapTiles() const;
-
-    /// setting any switches the height source to them
-    HYP_METHOD(Property = "HeightmapTiles", Editor, NoScriptBindings)
-    void SetHeightmapTiles(const Array<TerrainHeightmapTile>& tiles);
-
-    HYP_METHOD()
-    bool IsProceduralCell(const Vec2i& coord) const;
-
-    HYP_METHOD()
-    void MarkProceduralCell(const Vec3f& worldPos, bool isProcedural);
-
-    HYP_METHOD()
-    void SetProceduralCells(const Array<Vec2i>& proceduralCells);
-
-    bool TakeProceduralCellsEdit(Array<Vec2i>& outBefore, Array<Vec2i>& outAfter);
-
     uint64 GetCellFingerprint(const Vec2i& coord) const;
-    static uint64 GetCellFingerprint(const TerrainGenerationState& generationState, const Vec2i& coord);
-    static uint64 CombineCellFingerprint(uint64 baseFingerprint, const TerrainGenerator& generator, const Vec2i& coord);
-
-    ///first of the coord's references that resolves
-    Handle<TerrainCellData> FindCellData(const Vec2i& coord) const;
-
-    ///sim thread - the loaded tile at \p coord, if there is one
-    Handle<TerrainStreamingCell> FindLoadedCell(const Vec2i& coord) const;
-
-    ///saved heights are usable if they match the current generator, or were sculpted (frozen) at the current cell size
-    bool AreCellHeightsCurrent(const TerrainCellData& cellData) const;
-    ///thread safe when \p cellSize and \p cellFingerprint come from a GetGenerationState() snapshot
-    static bool AreCellHeightsCurrent(const TerrainCellData& cellData, uint32 cellSize, uint64 cellFingerprint);
-
-    void GenerateCellPaddedHeights(const Vec2i& coord, Array<float>& outPaddedHeights, Array<ubyte>* outErosionMasks = nullptr) const;
-    ///thread safe when \p generator and \p layerInfo come from a GetGenerationState() snapshot
-    static void GenerateCellPaddedHeights(
-        const TerrainGenerator& generator,
-        const WorldGridLayerInfo& layerInfo,
-        const Vec2i& coord,
-        Array<float>& outPaddedHeights,
-        Array<ubyte>* outErosionMasks = nullptr);
-
-    ///saves freshly generated heights and their erosion masks into the cell's data, creating it if needed; leaves current heights untouched
-    Handle<TerrainCellData> StoreGeneratedCellHeights(const Vec2i& coord, Span<const float> paddedHeights, Span<const ubyte> erosionMasks);
-
-    HYP_METHOD()
-    void ApplyBrush(const Vec3f& worldPos, float radius, float strength, bool raise);
-
-    
-    HYP_METHOD()
-    void PaintSplat(const Vec3f& worldPos, float radius, float strength, uint32 layerIndex, bool erase);
-
-    /// paints the painted GroundCover layer named \p groundCoverLayer - see GetPaintedGroundCoverLayers()
-    HYP_METHOD()
-    void PaintGroundCover(const Vec3f& worldPos, float radius, float strength, Name groundCoverLayer, bool erase);
-
-    /// sim thread only - the layers of the terrain's GroundCover that grow where painted
-    HYP_METHOD()
-    Array<Name> GetPaintedGroundCoverLayers();
-
-    Array<TerrainGroundCoverPaintEdit> TakeGroundCoverPaintEdits();
-    void SetGroundCoverPaintState(const Vec2i& coord, const TerrainGroundCoverPaintState& state);
-
-    ///world space height of the full resolution surface - the one the collider and the brush work on
-    float SampleHeightAt(const Vec2f& worldXZ) const;
-
-    ///world XZ rects (xy = min, zw = max) where SampleHeightAt() may return something new since the last call.
-    ///this method is thread safe
-    Array<Vec4f> TakeHeightDirtyRects();
-
-    ///sim thread only - SampleHeightAt(), but generates a cold cell's heights instead of returning the un-eroded stand-in
-    float SampleHeightAtBlocking(const Vec2f& worldXZ) const;
-
-    ///world space height of the surface currently drawn at \p worldXZ, CDLOD morph included. Falls back to
-    ///SampleHeightAt() where no tile is loaded. Editor picking uses this so the cursor lands on what's on screen
-    float SampleDrawnHeightAt(const Vec2f& worldXZ) const;
-
-    bool RaycastSurface(const Ray& ray, Vec3f& outHitPoint) const;
-
-    virtual bool IsCollisionPendingAt(const Vec3f& worldPosition) const override;
-
-    void EndBrushStroke();
-
-    void RegisterLoadedCell(const Vec2i& coord, const WeakHandle<TerrainStreamingCell>& cell);
-
-    ///only unregisters if \p cell is the one registered at \p coord
-    void UnregisterLoadedCell(const Vec2i& coord, const TerrainStreamingCell* cell);
 
     /// Discards all edits and regenerates the tiles procedurally
     HYP_METHOD(EditorAction = "Regenerate")
     void Regenerate();
-
-    // the terrain's material is made at run time, so a cook takes its attributes from here
-    static MaterialAttributes GetTerrainMaterialAttributes();
 
     /// Generate all tiles in the layer's defined range
     HYP_METHOD(EditorAction = "Generate All", EditCondition = "HasDiscreteRange")
@@ -291,28 +227,81 @@ public:
         return !m_layerInfo.infinite && m_layerInfo.range.x < m_layerInfo.range.y;
     }
 
-    static Vec3f ComputeCellBoundsMin(const WorldGridLayerInfo& layerInfo, const Vec2i& coord);
-    static Vec2i ComputeCellCoord(const WorldGridLayerInfo& layerInfo, const Vec2f& worldXZ);
+    ///result is only cached while \p generationEpoch is still current
+    SharedPtr<const Array<float, TerrainAllocator>> GetOrGenerateCellHeights(const TerrainGenerator& generator, uint32 generationEpoch, const Vec2i& coord) const;
+    SharedPtr<const Array<float, TerrainAllocator>> TryGetCachedCellHeights(const Vec2i& coord) const;
 
-    static uint32 RoundCellSizeForQuadtree(uint32 cellSize);
+    void WarmHeightsCache(const Vec2i& coord) const;
 
-    ///reads the Terrain.Lod cvars, so each tile keeps the layout it was built with
-    static TerrainQuadtreeLayout MakeQuadtreeLayout(uint32 cellSize);
+    ///first of the coord's references that resolves
+    Handle<TerrainCellData> FindCellData(const Vec2i& coord) const;
 
-    static float GetLodRangeMultiplier();
+    ///sim thread - the loaded tile at \p coord, if there is one
+    Handle<TerrainStreamingCell> FindLoadedCell(const Vec2i& coord) const;
 
-    static float CalculateLodRange(uint8 level, const TerrainQuadtreeLayout& layout, const Vec3f& scale);
-    static float CalculateLodMorphStart(uint8 level, const TerrainQuadtreeLayout& layout, const Vec3f& scale);
+    void RegisterLoadedCell(const Vec2i& coord, const WeakHandle<TerrainStreamingCell>& cell);
+
+    ///only unregisters if \p cell is the one registered at \p coord
+    void UnregisterLoadedCell(const Vec2i& coord, const TerrainStreamingCell* cell);
+
+    ///saved heights are usable if they match the current generator, or were sculpted (frozen) at the current cell size
+    bool AreCellHeightsCurrent(const TerrainCellData& cellData) const;
+
+    void GenerateCellPaddedHeights(const Vec2i& coord, Array<float, TerrainAllocator>& outPaddedHeights, Array<ubyte, TerrainAllocator>* outErosionMasks = nullptr) const;
+
+    ///saves freshly generated heights and their erosion masks into the cell's data, creating it if needed; leaves current heights untouched
+    Handle<TerrainCellData> StoreGeneratedCellHeights(const Vec2i& coord, Span<const float> paddedHeights, Span<const ubyte> erosionMasks);
+
+    ///world space height of the full resolution surface - the one the collider and the brush work on
+    float SampleHeightAt(const Vec2f& worldXZ) const;
+
+    ///sim thread only - SampleHeightAt(), but generates a cold cell's heights instead of returning the un-eroded stand-in
+    float SampleHeightAtBlocking(const Vec2f& worldXZ) const;
+
+    ///world space height of the surface currently drawn at \p worldXZ, CDLOD morph included. Falls back to
+    ///SampleHeightAt() where no tile is loaded. Editor picking uses this so the cursor lands on what's on screen
+    float SampleDrawnHeightAt(const Vec2f& worldXZ) const;
+
+    bool RaycastSurface(const Ray& ray, Vec3f& outHitPoint) const;
 
     void MarkHeightsDirty(const WorldGridLayerInfo& layerInfo, const Vec2i& coord) const;
     void MarkHeightsDirty(const Vec4f& worldRect) const;
 
-    void UpdateLodSelection(Span<const Vec3f> viewpoints);
+    ///world XZ rects (xy = min, zw = max) where SampleHeightAt() may return something new since the last call.
+    ///this method is thread safe
+    Array<Vec4f, TerrainAllocator> TakeHeightDirtyRects();
 
-    void SetLodViewpoints(Span<const Vec3f> viewpoints);
-    Array<Vec3f> GetLodViewpoints() const;
+    HYP_METHOD()
+    bool IsProceduralCell(const Vec2i& coord) const;
 
-    float GetNearestLodViewpointDistance(const BoundingBox& worldBounds) const;
+    HYP_METHOD()
+    void MarkProceduralCell(const Vec3f& worldPos, bool isProcedural);
+
+    HYP_METHOD()
+    void SetProceduralCells(const Array<Vec2i>& proceduralCells);
+
+    bool TakeProceduralCellsEdit(
+        Array<Vec2i, TerrainAllocator>& outBefore,
+        Array<Vec2i, TerrainAllocator>& outAfter);
+
+    HYP_METHOD()
+    void ApplyBrush(const Vec3f& worldPos, float radius, float strength, bool raise);
+
+    HYP_METHOD()
+    void PaintSplat(const Vec3f& worldPos, float radius, float strength, uint32 layerIndex, bool erase);
+
+    /// paints the painted GroundCover layer named \p groundCoverLayer - see GetPaintedGroundCoverLayers()
+    HYP_METHOD()
+    void PaintGroundCover(const Vec3f& worldPos, float radius, float strength, Name groundCoverLayer, bool erase);
+
+    void EndBrushStroke();
+
+    /// sim thread only - the layers of the terrain's GroundCover that grow where painted
+    HYP_METHOD()
+    Array<Name> GetPaintedGroundCoverLayers();
+
+    Array<TerrainGroundCoverPaintEdit, TerrainAllocator> TakeGroundCoverPaintEdits();
+    void SetGroundCoverPaintState(const Vec2i& coord, const TerrainGroundCoverPaintState& state);
 
     HYP_FORCE_INLINE TerrainGroundCoverResources& GetGroundCoverResources()
     {
@@ -333,15 +322,27 @@ public:
     HYP_METHOD(EditorAction = "Replant Ground Cover")
     void ReplantGroundCover();
 
+    void UpdateLodSelection(Span<const Vec3f> viewpoints);
+
+    void SetLodViewpoints(Span<const Vec3f> viewpoints);
+    Array<Vec3f, TerrainAllocator> GetLodViewpoints() const;
+
+    float GetNearestLodViewpointDistance(const BoundingBox& worldBounds) const;
+
+    HYP_METHOD()
+    virtual void SetLayerInfo(const WorldGridLayerInfo& layerInfo) override;
+
+    virtual bool IsCollisionPendingAt(const Vec3f& worldPosition) const override;
+
     virtual void GetDescAssets(Array<WGLayerAsset>& outAssets) const override;
     virtual void SetDescAssets(Span<const WGLayerAsset> assets) override;
 
     virtual BoxedValue GetDescSettings() const override;
     virtual void SetDescSettings(const BoxedValue& settings) override;
 
-    /////////////////////////
-
 protected:
+    static uint64 ComputeCellFingerprint(const TerrainGenerator& generator, const WorldGridLayerInfo& layerInfo);
+
     virtual void OnAdded(WorldGrid* worldGrid) override;
     virtual void OnRemoved(WorldGrid* worldGrid) override;
 
@@ -350,14 +351,10 @@ protected:
     virtual void StreamPrefetch(Span<const Vec2i> cellCoords) override;
 
     TerrainGenerationParams MakeGenerationParams() const;
-    
     TerrainHeightSourceDesc MakeHeightSourceDesc();
-    
-    static uint64 ComputeCellFingerprint(const TerrainGenerator& generator, const WorldGridLayerInfo& layerInfo);
 
     ///swaps in a freshly configured generator and bumps the epoch so work started with the old one is discarded
     void ReplaceGenerator();
-
     void RefreshGenerator();
 
     bool IsAddedToWorld() const;
@@ -366,6 +363,7 @@ protected:
     float SampleHeight(const Vec2f& worldXZ, bool generateColdCells) const;
 
     void DetachLoadedCells();
+
     void DiscardAllCellData();
     void DeletePersistedCellData(const AssetPath& assetPath);
 
@@ -379,26 +377,25 @@ protected:
     Handle<Material> m_material;
 
     TerrainGeneratorState m_generatorState;
-
     TerrainLayerSettings m_settings;
 
     ///in the order of m_settings.heightmapTiles
-    Array<AssetReference> m_heightmapTileTextures;
+    Array<AssetReference, TerrainAllocator> m_heightmapTileTextures;
 
     ///the copy the generator samples, kept while the heightmap's content is the same
     SharedPtr<const TerrainHeightmapSamples> m_heightmapSamples;
 
-    Optional<Array<Vec2i>> m_proceduralCellsBeforeStroke;
-    Optional<Array<Vec2i>> m_proceduralCellsEditBefore;
-
     mutable TerrainHeightsCache m_heightsCache;
 
     mutable Mutex m_heightDirtyMutex;
-    mutable Array<Vec4f> m_heightDirtyRects;
+    mutable Array<Vec4f, TerrainAllocator> m_heightDirtyRects;
 
     TerrainLoadedCells m_loadedCells;
 
     TerrainBrush m_brush { *this };
+
+    Optional<Array<Vec2i, TerrainAllocator>> m_proceduralCellsBeforeStroke;
+    Optional<Array<Vec2i, TerrainAllocator>> m_proceduralCellsEditBefore;
 
     TerrainLodViewpoints m_lodViewpoints;
 

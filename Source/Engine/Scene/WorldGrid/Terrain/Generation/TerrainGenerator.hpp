@@ -22,6 +22,8 @@
 
 #include <Core/Types.hpp>
 
+#include <Scene/WorldGrid/Terrain/TerrainMemory.hpp>
+
 namespace Hyperion {
 
 HYP_STRUCT()
@@ -145,7 +147,7 @@ struct TerrainHeightmapTileSamples
 {
     uint32 width = 0;
     uint32 depth = 0;
-    Array<uint16> samples;
+    Array<uint16, TerrainAllocator> samples;
     uint64 contentHash = 0;
 };
 
@@ -157,7 +159,7 @@ struct TerrainHeightmapSamples
     uint32 tileDepth = 0;
 
     ///tilesX * tilesZ elems
-    Array<SharedPtr<const TerrainHeightmapTileSamples>> tiles;
+    Array<SharedPtr<const TerrainHeightmapTileSamples>, TerrainAllocator> tiles;
 
     uint64 contentHash = 0;
 
@@ -192,7 +194,7 @@ struct TerrainHeightSourceDesc
 
     Vec2f cellOriginXZ;
     Vec2f cellWorldSize { 1.0f, 1.0f };
-    FlatSet<Vec2i> proceduralCells;
+    FlatSet<Vec2i, TerrainAllocator> proceduralCells;
 };
 
 class ENGINE_API TerrainGenerator
@@ -264,14 +266,14 @@ public:
         const Vec2f& cellWorldMinXZ,
         const Vec2f& scaleXZ,
         uint32 cellSize,
-        Array<float>& outHeights) const;
+        Array<float, TerrainAllocator>& outHeights) const;
 
     ///splits padded heights into the cell's heights plus local-space grid normals that see across the border
     static void ExtractCellHeightsAndNormals(
         Span<const float> paddedHeights,
         uint32 cellSize,
-        Array<float>& outHeights,
-        Array<Vec3f>& outNormals);
+        Array<float, TerrainAllocator>& outHeights,
+        Array<Vec3f, TerrainAllocator>& outNormals);
 
     ///appends the erosion regions GeneratePaddedCellHeights samples for the cell (none if erosion is disabled)
     void CollectRegionsForCell(
@@ -288,8 +290,8 @@ public:
         const Vec2f& cellWorldMinXZ,
         const Vec2f& scaleXZ,
         uint32 cellSize,
-        Array<float>& outPaddedHeights,
-        Array<ubyte>* outErosionMasks = nullptr) const;
+        Array<float, TerrainAllocator>& outPaddedHeights,
+        Array<ubyte, TerrainAllocator>* outErosionMasks = nullptr) const;
 
     ///\p erosionMasks may be empty (e.g. cells sculpted before masks were saved) - layers then follow slope and noise only
     void SynthesizeSplatWeights(
@@ -314,8 +316,8 @@ private:
         const Vec2f& cellWorldMinXZ,
         const Vec2f& scaleXZ,
         uint32 cellSize,
-        Array<float>& outPaddedHeights,
-        Array<ubyte>* outErosionMasks) const;
+        Array<float, TerrainAllocator>& outPaddedHeights,
+        Array<ubyte, TerrainAllocator>* outErosionMasks) const;
 
     float SampleHeightmap(const Vec2f& worldXZ) const;
     float ComputeProceduralCellWeight(const Vec2f& worldXZ) const;
@@ -327,7 +329,7 @@ private:
     SharedPtr<const ErosionRegion> BuildErosionRegion(const Vec2i& regionCoord) const;
 
     mutable Mutex m_erosionRegionsMutex;
-    mutable FlatMap<Vec2i, SharedPtr<ErosionRegionEntry>> m_erosionRegions;
+    mutable FlatMap<Vec2i, SharedPtr<ErosionRegionEntry>, TerrainAllocator> m_erosionRegions;
     mutable uint64 m_erosionRegionUseCounter = 0;
 
     AtomicVar<bool> m_cancelled { false };

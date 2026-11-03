@@ -17,6 +17,8 @@
 #include <Core/Name/Name.hpp>
 #include <Core/Types.hpp>
 
+#include <Scene/WorldGrid/Terrain/TerrainMemory.hpp>
+
 namespace Hyperion {
 
 class Texture;
@@ -27,19 +29,19 @@ struct StreamingCellInfo;
 /// per-cell textures the terrain material samples. Upload bytes are row-flipped so every map shares Terrain.hlsl's texcoords
 namespace TerrainCellTextures {
 
-Handle<Texture> CreateCellTexture(Name name, uint32 cellSize, const Array<ubyte>& uploadBytes);
-Handle<Texture> CreateSplatTexture(const Vec2i& coord, uint32 cellSize, const Array<ubyte>& uploadBytes);
+Handle<Texture> CreateCellTexture(Name name, uint32 cellSize, const Array<ubyte, TerrainAllocator>& uploadBytes);
+Handle<Texture> CreateSplatTexture(const Vec2i& coord, uint32 cellSize, const Array<ubyte, TerrainAllocator>& uploadBytes);
 
-void PrepareNormalMapBytes(Span<const float> paddedHeights, Span<const ubyte> erosionMasks, uint32 cellSize, const Vec3f& scale, Array<ubyte>& outUploadBytes);
+void PrepareNormalMapBytes(Span<const float> paddedHeights, Span<const ubyte> erosionMasks, uint32 cellSize, const Vec3f& scale, Array<ubyte, TerrainAllocator>& outUploadBytes);
 
-bool PreparePaintedSplatBytes(const Handle<TerrainCellData>& cellData, const Vec2i& coord, uint32 cellSize, Array<ubyte>& outUploadBytes);
+bool PreparePaintedSplatBytes(const Handle<TerrainCellData>& cellData, const Vec2i& coord, uint32 cellSize, Array<ubyte, TerrainAllocator>& outUploadBytes);
 
 bool PrepareAutoSplatBytes(
     const TerrainGenerator& generator,
     const StreamingCellInfo& cellInfo,
     Span<const float> paddedHeights,
     Span<const ubyte> erosionMasks,
-    Array<ubyte>& outUploadBytes);
+    Array<ubyte, TerrainAllocator>& outUploadBytes);
 
 Handle<Texture> BuildPaintedSplatTexture(const Handle<TerrainCellData>& cellData, const Vec2i& coord, uint32 cellSize);
 

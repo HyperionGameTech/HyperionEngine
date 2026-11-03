@@ -10,10 +10,12 @@
 
 #include <Core/Threading/Threads.hpp>
 
+#include <Scene/WorldGrid/Terrain/TerrainMemory.hpp>
+
 namespace Hyperion {
 
 TerrainGeneratorState::TerrainGeneratorState()
-    : m_generator(MakeShared<TerrainGenerator>())
+    : m_generator(MakeSharedWithAllocator<TerrainGenerator, TerrainAllocator>())
 {
 }
 

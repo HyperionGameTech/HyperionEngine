@@ -24,7 +24,7 @@ ENGINE_API HYP_DECLARE_LOG_CHANNEL(WorldGrid);
 
 namespace TerrainCellTextures {
 
-Handle<Texture> CreateCellTexture(Name name, uint32 cellSize, const Array<ubyte>& uploadBytes)
+Handle<Texture> CreateCellTexture(Name name, uint32 cellSize, const Array<ubyte, TerrainAllocator>& uploadBytes)
 {
     Handle<Texture> texture = MakeHandle<Texture>();
     texture->SetName(name);
@@ -45,12 +45,12 @@ Handle<Texture> CreateCellTexture(Name name, uint32 cellSize, const Array<ubyte>
     return texture;
 }
 
-Handle<Texture> CreateSplatTexture(const Vec2i& coord, uint32 cellSize, const Array<ubyte>& uploadBytes)
+Handle<Texture> CreateSplatTexture(const Vec2i& coord, uint32 cellSize, const Array<ubyte, TerrainAllocator>& uploadBytes)
 {
     return CreateCellTexture(NAME_FMT("TerrainCellSplatMap_{}", coord), cellSize, uploadBytes);
 }
 
-static void FlipSplatRowsForUpload(uint32 cellSize, const Array<ubyte>& splatBytes, Array<ubyte>& outUploadBytes)
+static void FlipSplatRowsForUpload(uint32 cellSize, const Array<ubyte, TerrainAllocator>& splatBytes, Array<ubyte, TerrainAllocator>& outUploadBytes)
 {
     const size_t requiredSize = size_t(cellSize) * size_t(cellSize) * 4;
 
@@ -67,9 +67,9 @@ static void FlipSplatRowsForUpload(uint32 cellSize, const Array<ubyte>& splatByt
     }
 }
 
-static Handle<Texture> BuildSplatTextureFromWeights(const Vec2i& coord, uint32 cellSize, const Array<ubyte>& splatBytes)
+static Handle<Texture> BuildSplatTextureFromWeights(const Vec2i& coord, uint32 cellSize, const Array<ubyte, TerrainAllocator>& splatBytes)
 {
-    Array<ubyte> uploadBytes;
+    Array<ubyte, TerrainAllocator> uploadBytes;
     FlipSplatRowsForUpload(cellSize, splatBytes, uploadBytes);
 
     return CreateSplatTexture(coord, cellSize, uploadBytes);
@@ -80,15 +80,15 @@ void PrepareNormalMapBytes(
     Span<const ubyte> erosionMasks,
     uint32 cellSize,
     const Vec3f& scale,
-    Array<ubyte>& outUploadBytes)
+    Array<ubyte, TerrainAllocator>& outUploadBytes)
 {
     const size_t texelCount = size_t(cellSize) * size_t(cellSize);
     const uint32 paddedSize = cellSize + TerrainGenerator::CellPadding * 2u;
 
     const bool hasErosionMasks = erosionMasks.Size() == texelCount * TerrainErosionMasks::NumChannels;
 
-    Array<float> heights;
-    Array<Vec3f> localNormals;
+    Array<float, TerrainAllocator> heights;
+    Array<Vec3f, TerrainAllocator> localNormals;
     TerrainGenerator::ExtractCellHeightsAndNormals(paddedHeights, cellSize, heights, localNormals);
 
     const auto paddedHeightAt = [&](int32 x, int32 z) -> float
@@ -96,7 +96,7 @@ void PrepareNormalMapBytes(
         return paddedHeights[size_t(z + int32(TerrainGenerator::CellPadding)) * paddedSize + size_t(x + int32(TerrainGenerator::CellPadding))];
     };
 
-    Array<ubyte> normalBytes;
+    Array<ubyte, TerrainAllocator> normalBytes;
     normalBytes.Resize(texelCount * 4);
 
     const auto encodeUnorm = [](float value) -> ubyte
@@ -142,16 +142,16 @@ void PrepareNormalMapBytes(
 
 ///copies a painted splat map out of cell data and prepares it for upload
 ///call from streaming thread!
-bool PreparePaintedSplatBytes(const Handle<TerrainCellData>& cellData, const Vec2i& coord, uint32 cellSize, Array<ubyte>& outUploadBytes)
+bool PreparePaintedSplatBytes(const Handle<TerrainCellData>& cellData, const Vec2i& coord, uint32 cellSize, Array<ubyte, TerrainAllocator>& outUploadBytes)
 {
     const size_t requiredSize = size_t(cellSize) * size_t(cellSize) * 4;
 
-    Array<ubyte> splatBytes;
+    Array<ubyte, TerrainAllocator> splatBytes;
 
     {
         auto readScope = cellData->GetReadScope();
 
-        ConstByteView splatData = static_cast<const TerrainCellData&>(*cellData).GetSplatMap();
+        ConstByteView splatData = cellData->GetSplatMap();
 
         if (splatData.Size() < requiredSize)
         {
@@ -183,7 +183,7 @@ bool PrepareAutoSplatBytes(
     const StreamingCellInfo& cellInfo,
     Span<const float> paddedHeights,
     Span<const ubyte> erosionMasks,
-    Array<ubyte>& outUploadBytes)
+    Array<ubyte, TerrainAllocator>& outUploadBytes)
 {
     const uint32 cellSize = cellInfo.extent.x;
     const uint32 paddedSize = cellSize + TerrainGenerator::CellPadding * 2u;
@@ -193,7 +193,7 @@ bool PrepareAutoSplatBytes(
         return false;
     }
 
-    Array<ubyte> splatWeights;
+    Array<ubyte, TerrainAllocator> splatWeights;
     splatWeights.Resize(size_t(cellSize) * size_t(cellSize) * 4);
 
     generator.SynthesizeSplatWeights(
@@ -213,12 +213,12 @@ Handle<Texture> BuildPaintedSplatTexture(const Handle<TerrainCellData>& cellData
 {
     const size_t requiredSize = size_t(cellSize) * size_t(cellSize) * 4;
 
-    Array<ubyte> splatBytes;
+    Array<ubyte, TerrainAllocator> splatBytes;
 
     {
         auto readScope = cellData->GetReadScope();
 
-        ConstByteView splatData = static_cast<const TerrainCellData&>(*cellData).GetSplatMap();
+        ConstByteView splatData = cellData->GetSplatMap();
 
         if (splatData.Size() < requiredSize)
         {

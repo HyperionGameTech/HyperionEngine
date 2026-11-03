@@ -107,8 +107,8 @@ struct TerrainGenerator::ErosionRegion
     int32 originX = 0;
     int32 originZ = 0;
     uint32 size = 0;
-    Array<float> heights;
-    Array<ubyte> erosionMasks;
+    Array<float, TerrainAllocator> heights;
+    Array<ubyte, TerrainAllocator> erosionMasks;
 
     ///adds the bilinearly sampled masks, scaled by \p weight, to \p outChannels
     void AccumulateErosionMasks(float sampleX, float sampleZ, float weight, float outChannels[TerrainErosionMasks::NumChannels]) const
@@ -215,7 +215,7 @@ void TerrainGenerator::ReuseErosionRegionsFrom(const TerrainGenerator& previous)
             continue;
         }
 
-        SharedPtr<ErosionRegionEntry> entry = MakeShared<ErosionRegionEntry>();
+        SharedPtr<ErosionRegionEntry> entry = MakeSharedWithAllocator<ErosionRegionEntry, TerrainAllocator>();
         entry->region = pair.second->region;
         entry->built.Set(1, MemoryOrder::RELEASE);
         entry->lastUse = pair.second->lastUse;
@@ -668,11 +668,11 @@ void TerrainGenerator::GenerateCellHeights(
     const Vec2f& cellWorldMinXZ,
     const Vec2f& scaleXZ,
     uint32 cellSize,
-    Array<float>& outHeights) const
+    Array<float, TerrainAllocator>& outHeights) const
 {
     outHeights.Resize(size_t(cellSize) * size_t(cellSize));
 
-    Array<float> paddedHeights;
+    Array<float, TerrainAllocator> paddedHeights;
     GeneratePaddedCellHeights(cellWorldMinXZ, scaleXZ, cellSize, paddedHeights);
 
     const uint32 paddedSize = cellSize + CellPadding * 2u;
@@ -689,8 +689,8 @@ void TerrainGenerator::GenerateCellHeights(
 void TerrainGenerator::ExtractCellHeightsAndNormals(
     Span<const float> paddedHeights,
     uint32 cellSize,
-    Array<float>& outHeights,
-    Array<Vec3f>& outNormals)
+    Array<float, TerrainAllocator>& outHeights,
+    Array<Vec3f, TerrainAllocator>& outNormals)
 {
     outHeights.Resize(size_t(cellSize) * size_t(cellSize));
     outNormals.Resize(size_t(cellSize) * size_t(cellSize));
@@ -734,8 +734,8 @@ void TerrainGenerator::GeneratePaddedCellHeights(
     const Vec2f& cellWorldMinXZ,
     const Vec2f& scaleXZ,
     uint32 cellSize,
-    Array<float>& outPaddedHeights,
-    Array<ubyte>* outErosionMasks) const
+    Array<float, TerrainAllocator>& outPaddedHeights,
+    Array<ubyte, TerrainAllocator>* outErosionMasks) const
 {
     HYP_SCOPE;
 
@@ -754,8 +754,8 @@ void TerrainGenerator::GeneratePaddedCellHeights(
 
     const bool hasProcedural = HasProceduralInfluence(paddedMinXZ, paddedMaxXZ);
 
-    Array<float> proceduralHeights;
-    Array<ubyte> proceduralErosionMasks;
+    Array<float, TerrainAllocator> proceduralHeights;
+    Array<ubyte, TerrainAllocator> proceduralErosionMasks;
 
     if (hasProcedural)
     {
@@ -822,8 +822,8 @@ void TerrainGenerator::GenerateProceduralPaddedCellHeights(
     const Vec2f& cellWorldMinXZ,
     const Vec2f& scaleXZ,
     uint32 cellSize,
-    Array<float>& outPaddedHeights,
-    Array<ubyte>* outErosionMasks) const
+    Array<float, TerrainAllocator>& outPaddedHeights,
+    Array<ubyte, TerrainAllocator>* outErosionMasks) const
 {
     HYP_SCOPE;
 
@@ -872,7 +872,7 @@ void TerrainGenerator::GenerateProceduralPaddedCellHeights(
     const int32 regionsWide = regionMaxX - regionMinX + 1;
     const int32 regionsDeep = regionMaxZ - regionMinZ + 1;
 
-    Array<SharedPtr<const ErosionRegion>> regions;
+    Array<SharedPtr<const ErosionRegion>, TerrainAllocator> regions;
     regions.Resize(size_t(regionsWide) * size_t(regionsDeep));
 
     for (int32 regionZ = regionMinZ; regionZ <= regionMaxZ; regionZ++)
@@ -988,7 +988,7 @@ bool TerrainGenerator::TryBeginRegionBuild(const Vec2i& regionCoord) const
         }
         else
         {
-            entry = MakeShared<ErosionRegionEntry>();
+            entry = MakeSharedWithAllocator<ErosionRegionEntry, TerrainAllocator>();
             m_erosionRegions.Set(regionCoord, entry);
         }
 
@@ -1068,7 +1068,7 @@ SharedPtr<TerrainGenerator::ErosionRegionEntry> TerrainGenerator::FindOrAddErosi
             m_erosionRegions.Erase(leastRecentIt);
         }
 
-        entry = MakeShared<ErosionRegionEntry>();
+        entry = MakeSharedWithAllocator<ErosionRegionEntry, TerrainAllocator>();
         m_erosionRegions.Set(regionCoord, entry);
     }
     else
@@ -1115,7 +1115,7 @@ SharedPtr<const TerrainGenerator::ErosionRegion> TerrainGenerator::BuildErosionR
     const TerrainGenerationParams& params = m_params;
     const ErosionLayout layout(params);
 
-    SharedPtr<ErosionRegion> region = MakeShared<ErosionRegion>();
+    SharedPtr<ErosionRegion> region = MakeSharedWithAllocator<ErosionRegion, TerrainAllocator>();
     region->originX = regionCoord.x * layout.stride - layout.blend / 2 - layout.apron;
     region->originZ = regionCoord.y * layout.stride - layout.blend / 2 - layout.apron;
     region->size = uint32(layout.size);
@@ -1140,12 +1140,12 @@ SharedPtr<const TerrainGenerator::ErosionRegion> TerrainGenerator::BuildErosionR
     settings.diffusion = params.hillslopeDiffusion;
     settings.talusSlope = std::tan(params.talusAngle * MathUtil::pi<float> / 180.0f);
 
-    const Array<float> baseHeights = region->heights;
+    const Array<float, TerrainAllocator> baseHeights = region->heights;
 
-    Array<float> upstreamSamples;
+    Array<float, TerrainAllocator> upstreamSamples;
     upstreamSamples.Resize(region->heights.Size());
 
-    Array<float> depositedDepth;
+    Array<float, TerrainAllocator> depositedDepth;
     depositedDepth.Resize(region->heights.Size());
 
     TerrainErosionOutputs outputs;
@@ -1186,8 +1186,8 @@ void TerrainGenerator::SynthesizeSplatWeights(
 
     const bool hasErosionMasks = erosionMasks.Size() == vertexCount * TerrainErosionMasks::NumChannels;
 
-    Array<float> heights;
-    Array<Vec3f> normals;
+    Array<float, TerrainAllocator> heights;
+    Array<Vec3f, TerrainAllocator> normals;
     ExtractCellHeightsAndNormals(paddedHeights, cellSize, heights, normals);
 
     const float snowLine = ComputeSnowLine();

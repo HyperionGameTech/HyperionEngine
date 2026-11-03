@@ -86,7 +86,7 @@ Span<const float> TerrainCellData::GetHeights() const
     return Span<const float>((const float*)m_heights.raw, m_heights.size / sizeof(float));
 }
 
-Span<float> TerrainCellData::GetHeights()
+Span<float> TerrainCellData::GetMutableHeights()
 {
     if (m_heights.raw == nullptr || m_heights.readOnly || m_heights.size == 0 || m_heights.size % sizeof(float) != 0)
     {
@@ -144,7 +144,7 @@ void TerrainCellData::ClearSplatMap()
     MarkDirty();
 }
 
-ByteView TerrainCellData::GetSplatMap()
+ByteView TerrainCellData::GetMutableSplatMap()
 {
     if (m_splatMap.raw == nullptr || m_splatMap.readOnly || m_splatMap.size == 0)
     {
@@ -188,7 +188,7 @@ ConstByteView TerrainCellData::GetErosionMasks() const
     return ConstByteView((const ubyte*)m_erosionMasks.raw, m_erosionMasks.size);
 }
 
-ByteView TerrainCellData::GetGroundCoverPaint()
+ByteView TerrainCellData::GetMutableGroundCoverPaint()
 {
     if (m_groundCoverPaint.raw == nullptr || m_groundCoverPaint.readOnly || m_groundCoverPaint.size == 0)
     {
@@ -208,12 +208,12 @@ ConstByteView TerrainCellData::GetGroundCoverPaint() const
     return ConstByteView((const ubyte*)m_groundCoverPaint.raw, m_groundCoverPaint.size);
 }
 
-void TerrainCellData::SetGroundCoverPaint(const Array<Name>& layers, ConstByteView paint)
+void TerrainCellData::SetGroundCoverPaint(Span<const Name> layers, ConstByteView paint)
 {
     FreeBlobData(m_groundCoverPaint);
     m_groundCoverPaint = BlobDataReference {};
 
-    if (paint.Size() != 0 && layers.Any())
+    if (paint.Size() != 0 && layers.Size() != 0)
     {
         AllocateBlobData(m_groundCoverPaint, paint.Data(), paint.Size(), 1);
 

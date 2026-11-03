@@ -31,7 +31,13 @@ namespace Hyperion {
 
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(WorldGrid);
 
+namespace TerrainGrass {
+
+
 namespace {
+
+// how far a patch tilts from vertical toward the slope it stands on - grass still grows mostly upward
+constexpr float SlopeAlignment = 0.6f;
 
 struct GrassRandom
 {
@@ -57,10 +63,7 @@ struct GrassRandom
     }
 };
 
-// how far a patch tilts from vertical toward the slope it stands on - grass still grows mostly upward
-static constexpr float s_slopeAlignment = 0.6f;
-
-static float SampleSplatWeight(const TerrainGrassTileInput& input, uint32 splatLayer, float gridX, float gridZ)
+float SampleSplatWeight(const TerrainGrassTileInput& input, uint32 splatLayer, float gridX, float gridZ)
 {
     const float maxCoord = float(input.cellSize - 1);
 
@@ -86,7 +89,7 @@ static float SampleSplatWeight(const TerrainGrassTileInput& input, uint32 splatL
         fz);
 }
 
-static float SamplePaintWeight(const TerrainGrassTileInput& input, int32 plane, float gridX, float gridZ)
+float SamplePaintWeight(const TerrainGrassTileInput& input, int32 plane, float gridX, float gridZ)
 {
     const size_t planeSize = size_t(input.cellSize) * input.cellSize;
 
@@ -121,7 +124,7 @@ static float SamplePaintWeight(const TerrainGrassTileInput& input, int32 plane, 
         fz);
 }
 
-static float HashToUnit(int32 x, int32 z, uint32 seed)
+float HashToUnit(int32 x, int32 z, uint32 seed)
 {
     uint32 state = (uint32(x) * 0x8DA6B343u) ^ (uint32(z) * 0xD8163841u) ^ (seed * 0xCB1AB31Fu);
     state = state * 747796405u + 2891336453u;
@@ -131,7 +134,7 @@ static float HashToUnit(int32 x, int32 z, uint32 seed)
     return float(state) * (1.0f / 4294967296.0f);
 }
 
-static float ValueNoise(float x, float z, uint32 seed)
+float ValueNoise(float x, float z, uint32 seed)
 {
     const int32 x0 = int32(MathUtil::Floor(x));
     const int32 z0 = int32(MathUtil::Floor(z));
@@ -149,14 +152,14 @@ static float ValueNoise(float x, float z, uint32 seed)
 }
 
 // weighted pick (Gumbel-max) whose draws come mostly from smooth noise, so each type grows in drifts
-static uint32 PickCoverType(const TerrainCoverLayerPlan& layer, uint32 layerIndex, float worldX, float worldZ, GrassRandom& random)
+uint32 PickCoverType(const TerrainCoverLayerPlan& layer, uint32 layerIndex, float worldX, float worldZ, GrassRandom& random)
 {
     if (layer.types.Size() <= 1)
     {
         return 0;
     }
 
-    static constexpr float s_clumpRandomness = 0.3f;
+    constexpr float ClumpRandomness = 0.3f;
 
     const float clumpSize = MathUtil::Max(layer.clumpSize, 0.5f);
 
@@ -166,7 +169,7 @@ static uint32 PickCoverType(const TerrainCoverLayerPlan& layer, uint32 layerInde
     for (uint32 typeIndex = 0; typeIndex < uint32(layer.types.Size()); typeIndex++)
     {
         const float noise = ValueNoise(worldX / clumpSize, worldZ / clumpSize, layerIndex * 131u + typeIndex * 7919u + 17u);
-        const float draw = MathUtil::Clamp(MathUtil::Lerp(noise, random.Next(), s_clumpRandomness), 0.001f, 0.999f);
+        const float draw = MathUtil::Clamp(MathUtil::Lerp(noise, random.Next(), ClumpRandomness), 0.001f, 0.999f);
 
         const float score = std::log(MathUtil::Max(layer.types[typeIndex].weight, 1e-6f)) - std::log(-std::log(draw));
 
@@ -181,8 +184,6 @@ static uint32 PickCoverType(const TerrainCoverLayerPlan& layer, uint32 layerInde
 }
 
 } // namespace
-
-namespace TerrainGrass {
 
 void GenerateTile(const TerrainGrassTileInput& input, TerrainGrassTileOutput& output)
 {
@@ -233,12 +234,16 @@ void GenerateTile(const TerrainGrassTileInput& input, TerrainGrassTileOutput& ou
     };
 
     uint32 layerFirstSlot = 0;
+    
+    // hoisted to preserve memory.
+    Array<uint32, TerrainAllocator> typeFirstSlots;
 
     for (uint32 layerIndex = 0; layerIndex < uint32(input.layers.Size()); layerIndex++)
     {
         const TerrainCoverLayerPlan& layer = input.layers[layerIndex];
 
-        Array<uint32> typeFirstSlots;
+        typeFirstSlots.Resize(0);
+
         uint32 layerNumSlots = 0;
 
         for (const TerrainCoverTypePlan& type : layer.types)
@@ -310,7 +315,7 @@ void GenerateTile(const TerrainGrassTileInput& input, TerrainGrassTileOutput& ou
                                                .Normalized();
 
                 // built as a basis rather than composed from quaternions: yaw about the tilted up axis
-                const Vec3f up = MathUtil::Lerp(Vec3f::UnitY(), groundNormal, s_slopeAlignment).Normalized();
+                const Vec3f up = MathUtil::Lerp(Vec3f::UnitY(), groundNormal, SlopeAlignment).Normalized();
                 const Vec3f right = up.Cross(Vec3f(MathUtil::Cos(yaw), 0.0f, MathUtil::Sin(yaw))).Normalized();
                 const Vec3f forward = right.Cross(up);
 
@@ -384,14 +389,14 @@ void TerrainGroundCoverResources::Invalidate()
     m_isResolved = false;
 }
 
-const Array<TerrainCoverLayer>& TerrainGroundCoverResources::GetLayers()
+const Array<TerrainCoverLayer, TerrainAllocator>& TerrainGroundCoverResources::GetLayers()
 {
     Resolve();
 
     return m_layers;
 }
 
-const Array<TerrainCoverLayerPlan>& TerrainGroundCoverResources::GetPlans()
+const Array<TerrainCoverLayerPlan, TerrainAllocator>& TerrainGroundCoverResources::GetPlans()
 {
     Resolve();
 
@@ -449,11 +454,12 @@ void TerrainGroundCoverResources::Refresh()
 const TerrainGroundCoverResources::CoverMaterial& TerrainGroundCoverResources::GetCoverMaterial(
     const Handle<Material>& source,
     const Vec4f& groundCoverParameters,
-    Array<CoverMaterial>& previousMaterials)
+    Array<CoverMaterial, TerrainAllocator>& inOutPreviousMaterials)
 {
     const auto matches = [&source, &groundCoverParameters](const CoverMaterial& coverMaterial)
     {
-        return coverMaterial.source == source && coverMaterial.groundCoverParameters == groundCoverParameters;
+        return coverMaterial.source == source
+            && coverMaterial.groundCoverParameters == groundCoverParameters;
     };
 
     if (const auto it = m_coverMaterials.FindIf(matches); it != m_coverMaterials.End())
@@ -461,10 +467,10 @@ const TerrainGroundCoverResources::CoverMaterial& TerrainGroundCoverResources::G
         return *it;
     }
 
-    if (const auto it = previousMaterials.FindIf(matches); it != previousMaterials.End())
+    if (const auto it = inOutPreviousMaterials.FindIf(matches); it != inOutPreviousMaterials.End())
     {
         m_coverMaterials.PushBack(std::move(*it));
-        previousMaterials.Erase(it);
+        inOutPreviousMaterials.Erase(it);
 
         return m_coverMaterials.Back();
     }
@@ -509,6 +515,9 @@ const TerrainGroundCoverResources::CoverMaterial& TerrainGroundCoverResources::G
 
 void TerrainGroundCoverResources::Resolve()
 {
+    // clumps are tufts with gaps between them, so they're planted overlapping to close those
+    constexpr float SpacingPerFootprint = 0.47f;
+
     HYP_SCOPE;
     AssertOnThread(g_simThread);
 
@@ -526,11 +535,8 @@ void TerrainGroundCoverResources::Resolve()
     m_contentHashCode = 0;
 
     // only the materials still planted are kept
-    Array<CoverMaterial> previousCoverMaterials = std::move(m_coverMaterials);
+    Array<CoverMaterial, TerrainAllocator> previousCoverMaterials = std::move(m_coverMaterials);
     m_coverMaterials.Clear();
-
-    // clumps are tufts with gaps between them, so they're planted overlapping to close those
-    static constexpr float s_spacingPerFootprint = 0.47f;
 
     if (const Handle<GroundCover>& ownGroundCover = GetGroundCover(); ownGroundCover.IsValid())
     {
@@ -547,7 +553,8 @@ void TerrainGroundCoverResources::Resolve()
 
             if (isPainted && !coverLayer.name.IsValid())
             {
-                HYP_LOG(WorldGrid, Warning, "Ground cover '{}' has a painted layer with no name - it can't be painted, skipping it", groundCover->GetName());
+                HYP_LOG(WorldGrid, Warning, "Ground cover '{}' has a painted layer with no name",
+                    groundCover->GetName());
 
                 continue;
             }
@@ -631,7 +638,7 @@ void TerrainGroundCoverResources::Resolve()
                 continue;
             }
 
-            plan.spacing = (weightedFootprint / totalWeight) * s_spacingPerFootprint / MathUtil::Sqrt(MathUtil::Max(coverLayer.density, 0.01f));
+            plan.spacing = (weightedFootprint / totalWeight) * SpacingPerFootprint / MathUtil::Sqrt(MathUtil::Max(coverLayer.density, 0.01f));
             plan.coverage = MathUtil::Clamp(coverLayer.density, 0.0f, 1.0f);
 
             m_layers.PushBack(std::move(layer));

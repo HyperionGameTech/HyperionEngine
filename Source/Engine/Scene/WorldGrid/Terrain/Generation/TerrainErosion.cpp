@@ -8,6 +8,7 @@
 
 #include <Scene/WorldGrid/Terrain/Generation/TerrainErosion.hpp>
 #include <Scene/WorldGrid/Terrain/Generation/TerrainNoise.hpp>
+#include <Scene/WorldGrid/Terrain/TerrainMemory.hpp>
 
 #include <Core/Containers/Array.hpp>
 #include <Core/Math/MathUtil.hpp>
@@ -85,29 +86,29 @@ void TerrainErodeHeightfield(
     const float cellArea = settings.spacing * settings.spacing;
     const uint32 routingInterval = MathUtil::Max(settings.routingInterval, 1u);
 
-    Array<float> filled;
+    Array<float, TerrainAllocator> filled;
     filled.Resize(count);
 
-    Array<int32> receivers;
+    Array<int32, TerrainAllocator> receivers;
     receivers.Resize(count);
 
     // erodibility * sqrt(drainage area) / receiver distance, cached between routing updates
-    Array<float> erosionFactors;
+    Array<float, TerrainAllocator> erosionFactors;
     erosionFactors.Resize(count);
 
-    Array<float> drainageArea;
+    Array<float, TerrainAllocator> drainageArea;
     drainageArea.Resize(count);
 
-    Array<int32> floodOrder;
+    Array<int32, TerrainAllocator> floodOrder;
     floodOrder.Resize(count);
 
-    Array<uint8> visited;
+    Array<uint8, TerrainAllocator> visited;
     visited.Resize(count);
 
-    Array<float> previousHeights;
+    Array<float, TerrainAllocator> previousHeights;
     previousHeights.Resize(count);
 
-    Array<FloodEntry> heap;
+    Array<FloodEntry, TerrainAllocator> heap;
     heap.Reserve(size_t(size) * 8u);
 
     const auto isBorder = [sizeSigned](int32 x, int32 z)
@@ -310,12 +311,12 @@ void TerrainErodeHeightfield(
 }
 
 // mean of values within radius (clamped at the edges), from a summed area table
-static void BoxBlurHeightfield(Span<const float> values, uint32 size, int32 radius, Array<float>& outBlurred)
+static void BoxBlurHeightfield(Span<const float> values, uint32 size, int32 radius, Array<float, TerrainAllocator>& outBlurred)
 {
     const int32 sizeSigned = int32(size);
     const size_t tablePitch = size_t(size) + 1;
 
-    Array<double> summedArea;
+    Array<double, TerrainAllocator> summedArea;
     summedArea.Resize(tablePitch * tablePitch);
     Memory::Zero(summedArea.Data(), summedArea.Size() * sizeof(double));
 
@@ -375,7 +376,7 @@ void TerrainBuildErosionMasks(
     const int32 sizeSigned = int32(size);
 
     // stream power lowers the whole region toward its fixed border, so only erosion deeper than its surroundings marks a gully
-    Array<float> carvedDepth;
+    Array<float, TerrainAllocator> carvedDepth;
     carvedDepth.Resize(count);
 
     for (size_t i = 0; i < count; i++)
@@ -383,7 +384,7 @@ void TerrainBuildErosionMasks(
         carvedDepth[i] = MathUtil::Max(baseHeights[i] - erodedHeights[i], 0.0f);
     }
 
-    Array<float> surroundingCarvedDepth;
+    Array<float, TerrainAllocator> surroundingCarvedDepth;
     BoxBlurHeightfield(carvedDepth, size, TerrainErosionMasks::IncisionRadius, surroundingCarvedDepth);
 
     const auto erodedHeightAt = [&](int32 x, int32 z) -> float

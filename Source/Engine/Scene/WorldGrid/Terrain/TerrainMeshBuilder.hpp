@@ -13,6 +13,8 @@
 
 #include <Rendering/Vertex.hpp>
 
+#include <Scene/WorldGrid/Terrain/TerrainMemory.hpp>
+
 namespace Hyperion {
 
 ///positions are in tile grid space. UV1: U = height on the next coarser level's surface, V = two levels coarser
@@ -49,8 +51,8 @@ float SampleLodSurfaceHeight(
 struct TerrainPatchMeshData
 {
     ///grid vertices followed by skirt vertices
-    Array<TerrainVertex> vertices;
-    Array<uint32> indices;
+    Array<TerrainVertex, TerrainAllocator> vertices;
+    Array<uint32, TerrainAllocator> indices;
 };
 
 class TerrainMeshBuilder

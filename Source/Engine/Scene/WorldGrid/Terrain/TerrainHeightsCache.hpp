@@ -22,6 +22,8 @@
 
 #include <Core/Math/Vector2.hpp>
 
+#include <Scene/WorldGrid/Terrain/TerrainMemory.hpp>
+
 namespace Hyperion {
 
 class TerrainCellData;
@@ -40,12 +42,12 @@ public:
         void Invalidate();
     };
 
-    SharedPtr<const Array<float>> FindByCoord(const Vec2i& coord) const;
+    SharedPtr<const Array<float, TerrainAllocator>> FindByCoord(const Vec2i& coord) const;
 
     /// returns what another thread cached first if it beat us to it. Nothing is cached once \p generationEpoch is stale
-    SharedPtr<const Array<float>> Insert(
+    SharedPtr<const Array<float, TerrainAllocator>> Insert(
         const Vec2i& coord,
-        const SharedPtr<Array<float>>& heights,
+        const SharedPtr<Array<float, TerrainAllocator>>& heights,
         const TerrainGeneratorState& generatorState,
         uint32 generationEpoch);
 
@@ -63,10 +65,10 @@ public:
 
 private:
     mutable Mutex m_heightsMutex;
-    FlatMap<Vec2i, SharedPtr<Array<float>>> m_heights;
+    FlatMap<Vec2i, SharedPtr<Array<float, TerrainAllocator>>> m_heights;
 
     mutable Mutex m_warmsMutex;
-    FlatMap<Vec2i, bool> m_pendingWarms;
+    FlatMap<Vec2i, bool, TerrainAllocator> m_pendingWarms;
 
     mutable SampleCache m_sampleCache;
 };

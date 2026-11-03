@@ -72,7 +72,7 @@ const Name g_terrainSceneName = NAME("TerrainScene");
 const Name g_groundCoverDescAssetKey = NAME("GroundCover");
 const Name g_heightmapTileDescAssetKey = NAME("HeightmapTile");
 
-const WorldGridLayerInfo s_defaultTerrainWorldGridLayerInfo = {
+const WorldGridLayerInfo g_defaultTerrainWorldGridLayerInfo = {
     .scale = Vec3f { 1.0f, 1.0f, 1.0f },
     .cellSize = 257,
     .maxDistance = 8.0f,
@@ -212,7 +212,7 @@ SharedPtr<const TerrainHeightmapTileSamples> MakeHeightmapTileSamples(const Text
         }
     }
 
-    SharedPtr<TerrainHeightmapTileSamples> samples = MakeShared<TerrainHeightmapTileSamples>();
+    SharedPtr<TerrainHeightmapTileSamples> samples = MakeSharedWithAllocator<TerrainHeightmapTileSamples, TerrainAllocator>();
     samples->width = width;
     samples->depth = depth;
     samples->contentHash = contentHash;
@@ -243,6 +243,8 @@ SharedPtr<const TerrainHeightmapSamples> MakeHeightmapSamples(
     Span<const AssetReference> tileTextures,
     const SharedPtr<const TerrainHeightmapSamples>& previousSamples)
 {
+    constexpr int64 MaxTiles = 64 * 64;
+
     HYP_SCOPE;
 
     const size_t numTiles = MathUtil::Min(tileCoords.Size(), tileTextures.Size());
@@ -261,19 +263,18 @@ SharedPtr<const TerrainHeightmapSamples> MakeHeightmapSamples(
         maxTile = Vec2i(MathUtil::Max(maxTile.x, tileCoords[index].x), MathUtil::Max(maxTile.y, tileCoords[index].y));
     }
 
-    static constexpr int64 MaxTiles = 64 * 64;
-
     const int64 tilesX = int64(maxTile.x) - int64(minTile.x) + 1;
     const int64 tilesZ = int64(maxTile.y) - int64(minTile.y) + 1;
 
     if (tilesX * tilesZ > MaxTiles)
     {
-        HYP_LOG(WorldGrid, Warning, "Heightmap tiles span {}x{}, more than the {} allowed", tilesX, tilesZ, MaxTiles);
+        HYP_LOG(WorldGrid, Warning, "max tiles is {}, got {} ({}x{})",
+            MaxTiles, tilesX * tilesZ, tilesX, tilesZ);
 
         return nullptr;
     }
 
-    SharedPtr<TerrainHeightmapSamples> samples = MakeShared<TerrainHeightmapSamples>();
+    SharedPtr<TerrainHeightmapSamples> samples = MakeSharedWithAllocator<TerrainHeightmapSamples, TerrainAllocator>();
     samples->tilesX = uint32(tilesX);
     samples->tilesZ = uint32(tilesZ);
     samples->tiles.Resize(size_t(tilesX * tilesZ));
@@ -307,15 +308,16 @@ SharedPtr<const TerrainHeightmapSamples> MakeHeightmapSamples(
         }
         else if (tileSamples->width != samples->tileWidth || tileSamples->depth != samples->tileDepth)
         {
-            HYP_LOG(WorldGrid, Warning, "Heightmap tile {} is {}x{} but the other tiles are {}x{} - leaving it out",
+            HYP_LOG(WorldGrid, Warning, "Heightmap tile {} is {}x{} but other tiles are {}x{}!",
                 tileCoords[index], tileSamples->width, tileSamples->depth, samples->tileWidth, samples->tileDepth);
 
             continue;
         }
 
         const Vec2i tile = tileCoords[index] - minTile;
+        const size_t tileIdx = size_t(tile.y) * size_t(tilesX) + size_t(tile.x);
 
-        samples->tiles[size_t(tile.y) * size_t(tilesX) + size_t(tile.x)] = tileSamples;
+        samples->tiles[tileIdx] = tileSamples;
 
         hashCode.Add(tile);
         hashCode.Add(tileSamples->contentHash);
@@ -393,7 +395,7 @@ SharedPtr<const TerrainHeightmapSamples> MakeHeightmapSamples(
 #pragma region TerrainWorldGridLayer
 
 TerrainWorldGridLayer::TerrainWorldGridLayer()
-    : WorldGridLayer(g_terrainWorldGridLayerName, s_defaultTerrainWorldGridLayerInfo),
+    : WorldGridLayer(g_terrainWorldGridLayerName, g_defaultTerrainWorldGridLayerInfo),
       m_scene(MakeTerrainScene())
 {
     m_layerInfo.seed = std::random_device()();
@@ -556,10 +558,12 @@ void TerrainWorldGridLayer::GetDescAssets(Array<WGLayerAsset>& outAssets) const
         outAssets.PushBack(WGLayerAsset { g_groundCoverDescAssetKey, groundCover.GetAssetPath() });
     }
 
-    // every tile is written, even unresolved ones, so they stay in step with m_settings.heightmapTiles
     for (const AssetReference& tileTexture : m_heightmapTileTextures)
     {
-        outAssets.PushBack(WGLayerAsset { g_heightmapTileDescAssetKey, tileTexture.GetAssetPath() });
+        outAssets.PushBack(WGLayerAsset {
+            g_heightmapTileDescAssetKey,
+            tileTexture.GetAssetPath()
+        });
     }
 }
 
@@ -651,7 +655,7 @@ void TerrainWorldGridLayer::SetSettings(const TerrainLayerSettings& settings)
     }
 }
 
-Handle<Texture> TerrainWorldGridLayer::GetHeightmap() const
+const Handle<Texture>& TerrainWorldGridLayer::GetHeightmap() const
 {
     if (m_heightmapTileTextures.Size() != 1)
     {
@@ -684,7 +688,10 @@ Array<TerrainHeightmapTile> TerrainWorldGridLayer::GetHeightmapTiles() const
 
     for (size_t index = 0; index < numTiles; index++)
     {
-        tiles.PushBack(TerrainHeightmapTile { m_settings.heightmapTiles[index], TryCast<Texture>(m_heightmapTileTextures[index].Resolve()) });
+        tiles.PushBack(TerrainHeightmapTile {
+            m_settings.heightmapTiles[index],
+            TryCast<Texture>(m_heightmapTileTextures[index].Resolve())
+        });
     }
 
     return tiles;
@@ -695,7 +702,7 @@ void TerrainWorldGridLayer::SetHeightmapTiles(const Array<TerrainHeightmapTile>&
     AssertOnThread(g_simThread);
 
     Array<Vec2i> tileCoords;
-    Array<AssetReference> tileTextures;
+    Array<AssetReference, TerrainAllocator> tileTextures;
 
     for (const TerrainHeightmapTile& tile : tiles)
     {
@@ -706,7 +713,7 @@ void TerrainWorldGridLayer::SetHeightmapTiles(const Array<TerrainHeightmapTile>&
 
         if (tileCoords.Contains(tile.tile))
         {
-            HYP_LOG(WorldGrid, Warning, "Terrain layer '{}' was given heightmap tile {} more than once - keeping the first", GetName(), tile.tile);
+            HYP_LOG(WorldGrid, Warning, "Terrain layer '{}' already has heightmap tile {}", GetName(), tile.tile);
 
             continue;
         }
@@ -770,7 +777,7 @@ void TerrainWorldGridLayer::MarkProceduralCell(const Vec3f& worldPos, bool isPro
 
     if (!m_proceduralCellsBeforeStroke.HasValue())
     {
-        m_proceduralCellsBeforeStroke = m_settings.proceduralCells;
+        m_proceduralCellsBeforeStroke = Array<Vec2i, TerrainAllocator>(m_settings.proceduralCells);
     }
 
     if (isProcedural)
@@ -793,7 +800,9 @@ void TerrainWorldGridLayer::SetProceduralCells(const Array<Vec2i>& proceduralCel
     SetSettings(settings);
 }
 
-bool TerrainWorldGridLayer::TakeProceduralCellsEdit(Array<Vec2i>& outBefore, Array<Vec2i>& outAfter)
+bool TerrainWorldGridLayer::TakeProceduralCellsEdit(
+    Array<Vec2i, TerrainAllocator>& outBefore,
+    Array<Vec2i, TerrainAllocator>& outAfter)
 {
     AssertOnThread(g_simThread);
 
@@ -810,7 +819,7 @@ bool TerrainWorldGridLayer::TakeProceduralCellsEdit(Array<Vec2i>& outBefore, Arr
     return true;
 }
 
-Array<Vec3f> TerrainWorldGridLayer::GetLodViewpoints() const
+Array<Vec3f, TerrainAllocator> TerrainWorldGridLayer::GetLodViewpoints() const
 {
     return m_lodViewpoints.Get();
 }
@@ -963,7 +972,7 @@ void TerrainWorldGridLayer::ReplaceGenerator()
     HYP_SCOPE;
     AssertOnThread(g_simThread);
 
-    SharedPtr<TerrainGenerator> generator = MakeShared<TerrainGenerator>();
+    SharedPtr<TerrainGenerator> generator = MakeSharedWithAllocator<TerrainGenerator, TerrainAllocator>();
     generator->Configure(MakeGenerationParams(), MakeHeightSourceDesc());
 
     if (const SharedPtr<TerrainGenerator>& currentGenerator = m_generatorState.GetGenerator())
@@ -1254,8 +1263,8 @@ void TerrainWorldGridLayer::GenerateAll()
     int64 numCellsGenerated = 0;
 #endif
 
-    Array<float> paddedHeights;
-    Array<ubyte> erosionMasks;
+    Array<float, TerrainAllocator> paddedHeights;
+    Array<ubyte, TerrainAllocator> erosionMasks;
 
     bool wasCancelled = false;
 
@@ -1492,31 +1501,31 @@ void TerrainWorldGridLayer::MarkHeightsDirty(const Vec4f& worldRect) const
     m_heightDirtyRects.PushBack(worldRect);
 }
 
-Array<Vec4f> TerrainWorldGridLayer::TakeHeightDirtyRects()
+Array<Vec4f, TerrainAllocator> TerrainWorldGridLayer::TakeHeightDirtyRects()
 {
     Mutex::Guard guard(m_heightDirtyMutex);
 
-    Array<Vec4f> rects = std::move(m_heightDirtyRects);
-    m_heightDirtyRects = Array<Vec4f>();
+    Array<Vec4f, TerrainAllocator> rects = std::move(m_heightDirtyRects);
+    m_heightDirtyRects = Array<Vec4f, TerrainAllocator>();
 
     return rects;
 }
 
-SharedPtr<const Array<float>> TerrainWorldGridLayer::GetOrGenerateCellHeights(const TerrainGenerator& generator, uint32 generationEpoch, const Vec2i& coord) const
+SharedPtr<const Array<float, TerrainAllocator>> TerrainWorldGridLayer::GetOrGenerateCellHeights(const TerrainGenerator& generator, uint32 generationEpoch, const Vec2i& coord) const
 {
     HYP_SCOPE;
 
     // runs on background threads; if the snapshot is newer than generationEpoch the result just isn't cached
     const WorldGridLayerInfo layerInfo = GetGenerationState().layerInfo;
 
-    if (SharedPtr<const Array<float>> cachedHeights = m_heightsCache.FindByCoord(coord))
+    if (SharedPtr<const Array<float, TerrainAllocator>> cachedHeights = m_heightsCache.FindByCoord(coord))
     {
         return cachedHeights;
     }
 
     const Vec3f cellBoundsMin = ComputeCellBoundsMin(layerInfo, coord);
 
-    auto heights = MakeShared<Array<float>>();
+    auto heights = MakeSharedWithAllocator<Array<float, TerrainAllocator>, TerrainAllocator>();
 
     generator.GenerateCellHeights(
         Vec2f(cellBoundsMin.x, cellBoundsMin.z),
@@ -1524,14 +1533,14 @@ SharedPtr<const Array<float>> TerrainWorldGridLayer::GetOrGenerateCellHeights(co
         layerInfo.cellSize,
         *heights);
 
-    SharedPtr<const Array<float>> insertedHeights = m_heightsCache.Insert(coord, heights, m_generatorState, generationEpoch);
+    SharedPtr<const Array<float, TerrainAllocator>> insertedHeights = m_heightsCache.Insert(coord, heights, m_generatorState, generationEpoch);
 
     MarkHeightsDirty(layerInfo, coord);
 
     return insertedHeights;
 }
 
-SharedPtr<const Array<float>> TerrainWorldGridLayer::TryGetCachedCellHeights(const Vec2i& coord) const
+SharedPtr<const Array<float, TerrainAllocator>> TerrainWorldGridLayer::TryGetCachedCellHeights(const Vec2i& coord) const
 {
     return m_heightsCache.FindByCoord(coord);
 }
@@ -1762,7 +1771,7 @@ bool TerrainWorldGridLayer::AreCellHeightsCurrent(const TerrainCellData& cellDat
         && (cellData.isSculpted || cellData.generatorFingerprint == cellFingerprint);
 }
 
-void TerrainWorldGridLayer::GenerateCellPaddedHeights(const Vec2i& coord, Array<float>& outPaddedHeights, Array<ubyte>* outErosionMasks) const
+void TerrainWorldGridLayer::GenerateCellPaddedHeights(const Vec2i& coord, Array<float, TerrainAllocator>& outPaddedHeights, Array<ubyte, TerrainAllocator>* outErosionMasks) const
 {
     AssertDebug(m_generatorState.GetGenerator() != nullptr);
 
@@ -1773,8 +1782,8 @@ void TerrainWorldGridLayer::GenerateCellPaddedHeights(
     const TerrainGenerator& generator,
     const WorldGridLayerInfo& layerInfo,
     const Vec2i& coord,
-    Array<float>& outPaddedHeights,
-    Array<ubyte>* outErosionMasks)
+    Array<float, TerrainAllocator>& outPaddedHeights,
+    Array<ubyte, TerrainAllocator>* outErosionMasks)
 {
     HYP_SCOPE;
 
@@ -1896,7 +1905,7 @@ float TerrainWorldGridLayer::SampleHeight(const Vec2f& worldXZ, bool generateCol
 
             sampleCache.scope.Reset(*cellData);
             sampleCache.cell = cellData;
-            sampleCache.heights = static_cast<const TerrainCellData&>(*cellData).GetHeights();
+            sampleCache.heights = cellData->GetHeights();
         }
 
         const uint32 paddedSize = cellSize + TerrainGenerator::CellPadding * 2u;
@@ -1908,7 +1917,7 @@ float TerrainWorldGridLayer::SampleHeight(const Vec2f& worldXZ, bool generateCol
         }
     }
 
-    SharedPtr<const Array<float>> heights = generateColdCells
+    SharedPtr<const Array<float, TerrainAllocator>> heights = generateColdCells
         ? GetOrGenerateCellHeights(*m_generatorState.GetGenerator(), m_generatorState.GetEpoch(), coord)
         : TryGetCachedCellHeights(coord);
 
@@ -2104,7 +2113,7 @@ Array<Name> TerrainWorldGridLayer::GetPaintedGroundCoverLayers()
     return m_groundCoverResources.GetPaintedLayerNames();
 }
 
-Array<TerrainGroundCoverPaintEdit> TerrainWorldGridLayer::TakeGroundCoverPaintEdits()
+Array<TerrainGroundCoverPaintEdit, TerrainAllocator> TerrainWorldGridLayer::TakeGroundCoverPaintEdits()
 {
     AssertOnThread(g_simThread);
 
@@ -2140,7 +2149,7 @@ void TerrainWorldGridLayer::SetGroundCoverPaintState(const Vec2i& coord, const T
     {
         auto cellDataWriteScope = cellData->GetWriteScope();
 
-        cellData->SetGroundCoverPaint(state.layers, ConstByteView(state.paint.Data(), state.paint.Size()));
+        cellData->SetGroundCoverPaint(state.layers.ToSpan(), ConstByteView(state.paint.Data(), state.paint.Size()));
     }
 
     if (isNewCellData)
@@ -2163,7 +2172,7 @@ void TerrainWorldGridLayer::EndBrushStroke()
         return;
     }
 
-    Array<Vec2i> proceduralCellsBefore = std::move(*m_proceduralCellsBeforeStroke);
+    Array<Vec2i, TerrainAllocator> proceduralCellsBefore = std::move(*m_proceduralCellsBeforeStroke);
     m_proceduralCellsBeforeStroke.Unset();
 
     if (proceduralCellsBefore == m_settings.proceduralCells)

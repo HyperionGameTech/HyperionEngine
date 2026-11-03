@@ -12,6 +12,8 @@
 
 #include <Core/Math/Vector2.hpp>
 
+#include <Scene/WorldGrid/Terrain/TerrainMemory.hpp>
+
 namespace Hyperion {
 
 class TerrainStreamingCell;
@@ -42,7 +44,7 @@ public:
     void Clear();
 
 private:
-    FlatMap<Vec2i, WeakHandle<TerrainStreamingCell>> m_cells;
+    FlatMap<Vec2i, WeakHandle<TerrainStreamingCell>, TerrainAllocator> m_cells;
 };
 
 } // namespace Hyperion

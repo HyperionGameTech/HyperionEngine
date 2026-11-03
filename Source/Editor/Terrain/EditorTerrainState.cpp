@@ -653,8 +653,8 @@ void EditorTerrainState::PushProceduralCellsAction(const Handle<TerrainWorldGrid
 {
     AssertOnThread(g_simThread);
 
-    Array<Vec2i> before;
-    Array<Vec2i> after;
+    Array<Vec2i, TerrainAllocator> before;
+    Array<Vec2i, TerrainAllocator> after;
 
     if (!terrainLayer->TakeProceduralCellsEdit(before, after))
     {
@@ -689,7 +689,7 @@ void EditorTerrainState::PushProceduralCellsAction(const Handle<TerrainWorldGrid
                                 return;
                             }
 
-                            layer->SetProceduralCells(after);
+                            layer->SetProceduralCells(Array<Vec2i>(after));
 
                             *isApplied = true;
                         }),
@@ -703,7 +703,7 @@ void EditorTerrainState::PushProceduralCellsAction(const Handle<TerrainWorldGrid
                                 return;
                             }
 
-                            layer->SetProceduralCells(before);
+                            layer->SetProceduralCells(Array<Vec2i>(before));
 
                             *isApplied = false;
                         })
@@ -719,7 +719,7 @@ void EditorTerrainState::PushGroundCoverPaintAction(const Handle<TerrainWorldGri
 {
     AssertOnThread(g_simThread);
 
-    Array<TerrainGroundCoverPaintEdit> edits = terrainLayer->TakeGroundCoverPaintEdits();
+    Array<TerrainGroundCoverPaintEdit, TerrainAllocator> edits = terrainLayer->TakeGroundCoverPaintEdits();
 
     const Handle<EditorProject>& currentProject = m_subsystem->GetCurrentProject();
 
@@ -728,7 +728,7 @@ void EditorTerrainState::PushGroundCoverPaintAction(const Handle<TerrainWorldGri
         return;
     }
 
-    SharedPtr<const Array<TerrainGroundCoverPaintEdit>> sharedEdits = MakeShared<Array<TerrainGroundCoverPaintEdit>>(std::move(edits));
+    SharedPtr<const Array<TerrainGroundCoverPaintEdit, TerrainAllocator>> sharedEdits = MakeShared<Array<TerrainGroundCoverPaintEdit, TerrainAllocator>>(std::move(edits));
     SharedPtr<bool> isApplied = MakeShared<bool>(true);
 
     const WeakHandle<TerrainWorldGridLayer> weakTerrainLayer = terrainLayer;
