@@ -18,10 +18,12 @@
 
 #include <Asset/Assets.hpp>
 #include <Asset/AssetRegistry.hpp>
-#include <Framework/EngineDefaults.hpp>
 #include <Asset/AssetReference.hpp>
+#include <Asset/SerializationUtils.hpp>
 
 #include <Streaming/StreamingManager.hpp>
+
+#include <Core/DataProcessing/HMF/HMF.hpp>
 
 #include <Rendering/Material.hpp>
 #include <Rendering/Mesh.hpp>
@@ -29,9 +31,11 @@
 
 #include <Core/Math/MathUtil.hpp>
 #include <Core/HashCode.hpp>
+#include <Core/Reflection/Enum.hpp>
 #include <Core/Memory/Memory.hpp>
 #include <Core/Threading/TaskSystem.hpp>
 
+#include <Framework/EngineDefaults.hpp>
 #include <Framework/EngineGlobals.hpp>
 #include <Framework/CVarManager.hpp>
 
@@ -44,7 +48,8 @@
 
 #include <TerrainWorldGridLayer.generated.inl>
 
-namespace Hyperion {
+namespace Hyperion
+{
 
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(WorldGrid);
 
@@ -59,17 +64,22 @@ CVar<float> g_cvTerrainLodRangeMultiplier("Terrain.Lod.RangeMultiplier", 2.0f);
 // fraction of each level's band at full detail before morphing toward the next - lower is a longer, smoother transition
 CVar<float> g_cvTerrainLodMorphStartRatio("Terrain.Lod.MorphStartRatio", 0.5f);
 
-static const Name s_terrainWorldGridLayerName = NAME("TerrainWorldGridLayer");
-static const Name s_terrainSceneName = NAME("TerrainScene");
+namespace {
 
-static const WorldGridLayerInfo s_defaultTerrainWorldGridLayerInfo = {
+const Name g_terrainWorldGridLayerName = NAME("TerrainWorldGridLayer");
+const Name g_terrainSceneName = NAME("TerrainScene");
+
+const Name g_groundCoverDescAssetKey = NAME("GroundCover");
+const Name g_heightmapDescAssetKey = NAME("Heightmap");
+
+const WorldGridLayerInfo s_defaultTerrainWorldGridLayerInfo = {
     .scale = Vec3f { 1.0f, 1.0f, 1.0f },
     .cellSize = 257,
     .maxDistance = 8.0f,
     .seed = 1951233096
 };
 
-static Handle<Texture> LoadTerrainTexture(const AssetPath& defaultPath)
+Handle<Texture> LoadTerrainTexture(const AssetPath& defaultPath)
 {
     const Name name = defaultPath.assetName;
 
@@ -108,9 +118,9 @@ static Handle<Texture> LoadTerrainTexture(const AssetPath& defaultPath)
     return texture;
 }
 
-static void LoadTerrainMaterialTextures(MaterialTextures& textures)
+void LoadTerrainMaterialTextures(MaterialTextures& textures)
 {
-    static constexpr MaterialTextureKey LayerTextureKeys[][2] = {
+    constexpr MaterialTextureKey LayerTextureKeys[][2] = {
         { MaterialTextureKey::TerrainLayer0, MaterialTextureKey::TerrainNormal0 },
         { MaterialTextureKey::TerrainLayer1, MaterialTextureKey::TerrainNormal1 },
         { MaterialTextureKey::TerrainLayer2, MaterialTextureKey::TerrainNormal2 },
@@ -126,9 +136,9 @@ static void LoadTerrainMaterialTextures(MaterialTextures& textures)
     }
 }
 
-static Handle<Scene> MakeTerrainScene()
+Handle<Scene> MakeTerrainScene()
 {
-    Handle<Scene> scene = MakeHandle<Scene>(s_terrainSceneName, SceneFlags::FOREGROUND | SceneFlags::HAS_OCTREE | SceneFlags::NO_EDITOR_WIREFRAME);
+    Handle<Scene> scene = MakeHandle<Scene>(g_terrainSceneName, SceneFlags::FOREGROUND | SceneFlags::HAS_OCTREE | SceneFlags::NO_EDITOR_WIREFRAME);
 
     // don't save; it's generated at runtime by the terrain layer
     scene->SetIsTransient(true);
@@ -136,10 +146,115 @@ static Handle<Scene> MakeTerrainScene()
     return scene;
 }
 
+SharedPtr<const TerrainHeightmapSamples> MakeHeightmapSamples(const Texture& texture, const SharedPtr<const TerrainHeightmapSamples>& previousSamples)
+{
+    HYP_SCOPE;
+
+    auto readScope = texture.GetReadScope();
+
+    const TextureDesc& desc = texture.GetTextureDesc();
+    const ConstByteView imageData = texture.GetImageData();
+
+    const uint32 width = desc.extent.x;
+    const uint32 depth = desc.extent.y;
+
+    const TextureFormat format = TextureUtils::ChangeFormatSRGB(desc.format, false);
+
+    uint32 componentSize = 0;
+
+    switch (format)
+    {
+    case TextureFormat::R8:
+    case TextureFormat::RG8:
+    case TextureFormat::RGB8:
+    case TextureFormat::RGBA8:
+        componentSize = 1;
+        break;
+    case TextureFormat::R32F:
+    case TextureFormat::RG32F:
+    case TextureFormat::RGB32F:
+    case TextureFormat::RGBA32F:
+        componentSize = 4;
+        break;
+    default:
+        HYP_LOG(WorldGrid, Warning, "Cannot read heightmap data for '{}'! Format: {}",
+                texture.GetName(), EnumToString(desc.format));
+
+        return nullptr;
+    }
+
+    const size_t pixelSize = size_t(TextureUtils::NumComponents(format)) * componentSize;
+    const size_t baseMipSize = size_t(width) * size_t(depth) * pixelSize;
+
+    if (desc.type != TextureType::Texture2D || width < 2 || depth < 2 || imageData.Size() < baseMipSize)
+    {
+        HYP_LOG(WorldGrid, Warning, "Heightmap '{}' ({}x{}, {} bytes of image data) can't be used", texture.GetName(), width, depth, imageData.Size());
+
+        return nullptr;
+    }
+
+    HashCode hashCode;
+    hashCode.Add(uint32(format));
+    hashCode.Add(width);
+    hashCode.Add(depth);
+    hashCode.Add(FNV1::DoHashWords(imageData.Data(), baseMipSize));
+
+    const uint64 contentHash = uint64(hashCode.Value());
+
+    if (previousSamples && previousSamples->contentHash == contentHash)
+    {
+        return previousSamples;
+    }
+
+    SharedPtr<TerrainHeightmapSamples> samples = MakeShared<TerrainHeightmapSamples>();
+    samples->width = width;
+    samples->depth = depth;
+    samples->contentHash = contentHash;
+    samples->samples.Resize(size_t(width) * size_t(depth));
+
+    for (size_t index = 0; index < samples->samples.Size(); index++)
+    {
+        const ubyte* pixel = imageData.Data() + index * pixelSize;
+
+        if (componentSize == 1)
+        {
+            samples->samples[index] = uint16(pixel[0]) * 257u;
+        }
+        else
+        {
+            float value;
+            Memory::Copy(&value, pixel, sizeof(float));
+
+            samples->samples[index] = uint16(MathUtil::Clamp(value, 0.0f, 1.0f) * 65535.0f + 0.5f);
+        }
+    }
+
+    double borderSum = 0.0;
+    uint32 numBorderSamples = 0;
+
+    for (uint32 x = 0; x < width; x++)
+    {
+        borderSum += double(samples->samples[x]) + double(samples->samples[size_t(depth - 1) * width + x]);
+        numBorderSamples += 2;
+    }
+
+    for (uint32 z = 1; z + 1 < depth; z++)
+    {
+        borderSum += double(samples->samples[size_t(z) * width]) + double(samples->samples[size_t(z) * width + width - 1]);
+        numBorderSamples += 2;
+    }
+
+    samples->borderMean = float(borderSum / double(numBorderSamples) / 65535.0);
+
+    return samples;
+}
+
+} // namespace
+
 #pragma region TerrainWorldGridLayer
 
 TerrainWorldGridLayer::TerrainWorldGridLayer()
-    : WorldGridLayer(s_terrainWorldGridLayerName, s_defaultTerrainWorldGridLayerInfo),
+    : WorldGridLayer(g_terrainWorldGridLayerName, s_defaultTerrainWorldGridLayerInfo),
       m_scene(MakeTerrainScene())
 {
     m_layerInfo.seed = std::random_device()();
@@ -197,6 +312,12 @@ void TerrainWorldGridLayer::SetLayerInfo(const WorldGridLayerInfo& layerInfo)
     if (cellGeometryChanged)
     {
         m_heightsCache.Clear();
+
+        if (m_settings.heightSource != TerrainHeightSource::Procedural
+            && IsAddedToWorld())
+        {
+            ReplaceGenerator();
+        }
     }
 }
 
@@ -289,13 +410,16 @@ void TerrainWorldGridLayer::ReplantGroundCover()
     m_groundCoverResources.Invalidate();
 }
 
-static const Name s_groundCoverDescAssetKey = NAME("GroundCover");
-
 void TerrainWorldGridLayer::GetDescAssets(Array<WGLayerAsset>& outAssets) const
 {
     if (const AssetReference& groundCover = m_groundCoverResources.GetGroundCoverReference(); groundCover.IsValid())
     {
-        outAssets.PushBack(WGLayerAsset { s_groundCoverDescAssetKey, groundCover.GetAssetPath() });
+        outAssets.PushBack(WGLayerAsset { g_groundCoverDescAssetKey, groundCover.GetAssetPath() });
+    }
+
+    if (m_heightmap.IsValid())
+    {
+        outAssets.PushBack(WGLayerAsset { g_heightmapDescAssetKey, m_heightmap.GetAssetPath() });
     }
 }
 
@@ -303,11 +427,180 @@ void TerrainWorldGridLayer::SetDescAssets(Span<const WGLayerAsset> assets)
 {
     for (const WGLayerAsset& asset : assets)
     {
-        if (asset.key == s_groundCoverDescAssetKey)
+        if (asset.key == g_groundCoverDescAssetKey)
         {
             m_groundCoverResources.SetGroundCoverPath(asset.path);
         }
+        else if (asset.key == g_heightmapDescAssetKey)
+        {
+            m_heightmap = AssetReference(asset.path);
+        }
     }
+}
+
+BoxedValue TerrainWorldGridLayer::GetDescSettings() const
+{
+    if (m_settings == TerrainLayerSettings())
+    {
+        return BoxedValue();
+    }
+
+    TerrainLayerSettings settings = m_settings;
+
+    HMF::UnresolvedValue unresolvedValue;
+
+    if (Result result = BoxedToHMF(BoxedValue(std::move(settings)), unresolvedValue.source, &TypeInfo::ForType<TerrainLayerSettings>()); result.HasError())
+    {
+        HYP_LOG(WorldGrid, Error, "Failed to save the settings of terrain layer '{}': {}", GetName(), result.GetError().GetMessage());
+
+        return BoxedValue();
+    }
+
+    return BoxedValue(std::move(unresolvedValue));
+}
+
+void TerrainWorldGridLayer::SetDescSettings(const BoxedValue& settings)
+{
+    if (!settings.IsValid())
+    {
+        return;
+    }
+
+    TResult<BoxedValue> settingsResult = BoxedAsType(settings, TypeInfo::ForType<TerrainLayerSettings>());
+
+    if (settingsResult.HasError())
+    {
+        HYP_LOG(WorldGrid, Error, "Error in saved terrain layer settings for '{}': {}",
+            GetName(), settingsResult.GetError().GetMessage());
+
+        return;
+    }
+
+    m_settings = settingsResult.GetValue().Get<TerrainLayerSettings>();
+}
+
+bool TerrainWorldGridLayer::IsAddedToWorld() const
+{
+    return m_scene.IsValid() && m_scene->GetWorld() != nullptr;
+}
+
+void TerrainWorldGridLayer::MarkWorldDirty() const
+{
+    if (World* world = m_scene.IsValid() ? m_scene->GetWorld() : nullptr)
+    {
+        world->MarkDirty();
+    }
+}
+
+void TerrainWorldGridLayer::SetSettings(const TerrainLayerSettings& settings)
+{
+    AssertOnThread(g_simThread);
+
+    if (settings == m_settings)
+    {
+        return;
+    }
+
+    m_settings = settings;
+
+    MarkWorldDirty();
+
+    if (IsAddedToWorld())
+    {
+        RefreshGenerator();
+    }
+}
+
+Handle<Texture> TerrainWorldGridLayer::GetHeightmap() const
+{
+    return TryCast<Texture>(m_heightmap.Resolve());
+}
+
+void TerrainWorldGridLayer::SetHeightmap(const Handle<Texture>& heightmap)
+{
+    AssertOnThread(g_simThread);
+
+    if (heightmap == GetHeightmap())
+    {
+        return;
+    }
+
+    m_heightmap = heightmap.IsValid() ? AssetReference(Handle<AssetObject>(heightmap)) : AssetReference();
+
+    MarkWorldDirty();
+
+    if (heightmap.IsValid() && m_settings.heightSource != TerrainHeightSource::Heightmap)
+    {
+        TerrainLayerSettings settings = m_settings;
+        settings.heightSource = TerrainHeightSource::Heightmap;
+
+        SetSettings(settings);
+
+        return;
+    }
+
+    if (IsAddedToWorld() && m_settings.heightSource == TerrainHeightSource::Heightmap)
+    {
+        RefreshGenerator();
+    }
+}
+
+bool TerrainWorldGridLayer::IsProceduralCell(const Vec2i& coord) const
+{
+    return m_settings.proceduralCells.Contains(coord);
+}
+
+void TerrainWorldGridLayer::MarkProceduralCell(const Vec3f& worldPos, bool isProcedural)
+{
+    AssertOnThread(g_simThread);
+
+    const Vec2i coord = ComputeCellCoord(m_layerInfo, Vec2f(worldPos.x, worldPos.z));
+
+    if (IsProceduralCell(coord) == isProcedural)
+    {
+        return;
+    }
+
+    if (!m_proceduralCellsBeforeStroke.HasValue())
+    {
+        m_proceduralCellsBeforeStroke = m_settings.proceduralCells;
+    }
+
+    if (isProcedural)
+    {
+        m_settings.proceduralCells.PushBack(coord);
+    }
+    else
+    {
+        m_settings.proceduralCells.Erase(coord);
+    }
+}
+
+void TerrainWorldGridLayer::SetProceduralCells(const Array<Vec2i>& proceduralCells)
+{
+    AssertOnThread(g_simThread);
+
+    TerrainLayerSettings settings = m_settings;
+    settings.proceduralCells = proceduralCells;
+
+    SetSettings(settings);
+}
+
+bool TerrainWorldGridLayer::TakeProceduralCellsEdit(Array<Vec2i>& outBefore, Array<Vec2i>& outAfter)
+{
+    AssertOnThread(g_simThread);
+
+    if (!m_proceduralCellsEditBefore.HasValue())
+    {
+        return false;
+    }
+
+    outBefore = std::move(*m_proceduralCellsEditBefore);
+    outAfter = m_settings.proceduralCells;
+
+    m_proceduralCellsEditBefore.Unset();
+
+    return true;
 }
 
 Array<Vec3f> TerrainWorldGridLayer::GetLodViewpoints() const
@@ -365,13 +658,107 @@ TerrainGenerationState TerrainWorldGridLayer::GetGenerationState() const
     return m_generatorState.Snapshot(m_layerInfo);
 }
 
+TerrainHeightSourceDesc TerrainWorldGridLayer::MakeHeightSourceDesc()
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    TerrainHeightSourceDesc heightSourceDesc;
+    heightSourceDesc.heightSource = m_settings.heightSource;
+
+    if (heightSourceDesc.heightSource == TerrainHeightSource::Procedural)
+    {
+        m_heightmapSamples.Reset();
+
+        return heightSourceDesc;
+    }
+
+    const WorldGridLayerInfo& layerInfo = m_layerInfo;
+
+    heightSourceDesc.flatHeight = m_settings.flatHeight;
+    heightSourceDesc.proceduralEdges = m_settings.proceduralEdges;
+    heightSourceDesc.blendDistance = MathUtil::Max(m_settings.blendDistance, 0.0f);
+
+    heightSourceDesc.cellWorldSize = Vec2f((float(layerInfo.cellSize) - 1.0f) * layerInfo.scale.x, (float(layerInfo.cellSize) - 1.0f) * layerInfo.scale.z);
+    heightSourceDesc.cellOriginXZ = Vec2f(layerInfo.offset.x, layerInfo.offset.z) - heightSourceDesc.cellWorldSize * 0.5f;
+
+    for (const Vec2i& coord : m_settings.proceduralCells)
+    {
+        heightSourceDesc.proceduralCells.Insert(coord);
+    }
+
+    if (heightSourceDesc.heightSource != TerrainHeightSource::Heightmap)
+    {
+        m_heightmapSamples.Reset();
+
+        return heightSourceDesc;
+    }
+
+    Handle<Texture> heightmap = GetHeightmap();
+
+    if (!heightmap.IsValid())
+    {
+        m_heightmapSamples.Reset();
+
+        HYP_LOG(WorldGrid, Warning, "No height map on terrain layer '{}' but it is set to use heightmap source.", GetName());
+
+        return heightSourceDesc;
+    }
+
+    m_heightmapSamples = MakeHeightmapSamples(*heightmap, m_heightmapSamples);
+
+    if (!m_heightmapSamples)
+    {
+        return heightSourceDesc;
+    }
+
+    Vec2f heightmapSize = m_settings.heightmapSize;
+
+    if (heightmapSize.x <= 0.0f)
+    {
+        heightmapSize.x = float(m_heightmapSamples->width - 1) * layerInfo.scale.x;
+    }
+
+    if (heightmapSize.y <= 0.0f)
+    {
+        heightmapSize.y = float(m_heightmapSamples->depth - 1) * layerInfo.scale.z;
+    }
+
+    heightSourceDesc.heightmap = m_heightmapSamples;
+    heightSourceDesc.heightmapMinXZ = m_settings.heightmapCenter - heightmapSize * 0.5f;
+    heightSourceDesc.heightmapMaxXZ = m_settings.heightmapCenter + heightmapSize * 0.5f;
+    heightSourceDesc.heightmapHeightRange = m_settings.heightmapHeightRange;
+
+    return heightSourceDesc;
+}
+
+void TerrainWorldGridLayer::RefreshGenerator()
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    ReplaceGenerator();
+
+    DetachLoadedCells();
+
+    if (Handle<TerrainWorldGridLayer> strongThis = HandleFromThis(); strongThis.IsValid())
+    {
+        g_streamingManager->RequestLayerRefresh(strongThis.Get());
+    }
+}
+
 void TerrainWorldGridLayer::ReplaceGenerator()
 {
     HYP_SCOPE;
     AssertOnThread(g_simThread);
 
     SharedPtr<TerrainGenerator> generator = MakeShared<TerrainGenerator>();
-    generator->Configure(MakeGenerationParams());
+    generator->Configure(MakeGenerationParams(), MakeHeightSourceDesc());
+
+    if (const SharedPtr<TerrainGenerator>& currentGenerator = m_generatorState.GetGenerator())
+    {
+        generator->ReuseErosionRegionsFrom(*currentGenerator);
+    }
 
     const uint64 cellFingerprint = ComputeCellFingerprint(*generator, m_layerInfo);
 
@@ -1034,6 +1421,44 @@ uint64 TerrainWorldGridLayer::ComputeCellFingerprint(const TerrainGenerator& gen
     return uint64(hashCode.Value());
 }
 
+uint64 TerrainWorldGridLayer::CombineCellFingerprint(uint64 baseFingerprint, const TerrainGenerator& generator, const Vec2i& coord)
+{
+    const uint64 localFingerprint = generator.ComputeLocalFingerprint(coord);
+
+    if (localFingerprint == 0)
+    {
+        return baseFingerprint;
+    }
+
+    HashCode hashCode;
+    hashCode.Add(baseFingerprint);
+    hashCode.Add(localFingerprint);
+
+    return uint64(hashCode.Value());
+}
+
+uint64 TerrainWorldGridLayer::GetCellFingerprint(const Vec2i& coord) const
+{
+    const SharedPtr<TerrainGenerator>& generator = m_generatorState.GetGenerator();
+
+    if (!generator)
+    {
+        return m_generatorState.GetCellFingerprint();
+    }
+
+    return CombineCellFingerprint(m_generatorState.GetCellFingerprint(), *generator, coord);
+}
+
+uint64 TerrainWorldGridLayer::GetCellFingerprint(const TerrainGenerationState& generationState, const Vec2i& coord)
+{
+    if (!generationState.generator)
+    {
+        return generationState.cellFingerprint;
+    }
+
+    return CombineCellFingerprint(generationState.cellFingerprint, *generationState.generator, coord);
+}
+
 Handle<TerrainCellData> TerrainWorldGridLayer::FindCellData(const Vec2i& coord) const
 {
     // also runs on streaming threads. loaded references are read under the lock; unloaded ones are copied out since
@@ -1116,7 +1541,7 @@ Handle<TerrainStreamingCell> TerrainWorldGridLayer::FindLoadedCell(const Vec2i& 
 
 bool TerrainWorldGridLayer::AreCellHeightsCurrent(const TerrainCellData& cellData) const
 {
-    return AreCellHeightsCurrent(cellData, m_layerInfo.cellSize, m_generatorState.GetCellFingerprint());
+    return AreCellHeightsCurrent(cellData, m_layerInfo.cellSize, GetCellFingerprint(cellData.coord));
 }
 
 bool TerrainWorldGridLayer::AreCellHeightsCurrent(const TerrainCellData& cellData, uint32 cellSize, uint64 cellFingerprint)
@@ -1188,7 +1613,7 @@ Handle<TerrainCellData> TerrainWorldGridLayer::StoreGeneratedCellHeights(const V
         auto cellDataWriteScope = cellData->GetWriteScope();
 
         cellData->extent = Vec3u(cellSize);
-        cellData->generatorFingerprint = m_generatorState.GetCellFingerprint();
+        cellData->generatorFingerprint = GetCellFingerprint(coord);
         cellData->isSculpted = false;
         cellData->SetHeights(paddedHeights);
         cellData->SetErosionMasks(ConstByteView(erosionMasks.Data(), erosionMasks.Size()));
@@ -1327,7 +1752,11 @@ bool TerrainWorldGridLayer::RaycastSurface(const Ray& ray, Vec3f& outHitPoint) c
         ? generator->GetMaxHeightEstimate()
         : 256.0f;
 
-    const float slabMinY = layerInfo.offset.y - 256.0f;
+    const float minHeight = generator
+        ? MathUtil::Min(generator->GetMinHeightEstimate(), 0.0f)
+        : 0.0f;
+
+    const float slabMinY = layerInfo.offset.y + minHeight - 256.0f;
     const float slabMaxY = layerInfo.offset.y + maxHeight * 2.0f + 256.0f;
 
     float tEnter = 0.0f;
@@ -1517,6 +1946,28 @@ void TerrainWorldGridLayer::SetGroundCoverPaintState(const Vec2i& coord, const T
 void TerrainWorldGridLayer::EndBrushStroke()
 {
     m_brush.EndStroke();
+
+    if (!m_proceduralCellsBeforeStroke.HasValue())
+    {
+        return;
+    }
+
+    Array<Vec2i> proceduralCellsBefore = std::move(*m_proceduralCellsBeforeStroke);
+    m_proceduralCellsBeforeStroke.Unset();
+
+    if (proceduralCellsBefore == m_settings.proceduralCells)
+    {
+        return;
+    }
+
+    m_proceduralCellsEditBefore = std::move(proceduralCellsBefore);
+
+    MarkWorldDirty();
+
+    if (IsAddedToWorld())
+    {
+        RefreshGenerator();
+    }
 }
 
 #pragma endregion TerrainWorldGridLayer

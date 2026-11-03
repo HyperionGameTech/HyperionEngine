@@ -224,7 +224,8 @@ void AssetManager::RegisterDefaultLoaders()
     Register<OgreXMLSkeletonLoader, Skeleton>("skeleton.xml");
     Register<TextureLoader, Texture>(
         "png", "jpg", "jpeg", "tga",
-        "bmp", "psd", "gif", "hdr", "tif");
+        "bmp", "psd", "gif", "hdr", "tif",
+        "r16", "raw");
     Register<WAVAudioLoader, Sound>("wav");
     Register<FBXModelLoader, Prefab>("fbx");
     Register<GLTFModelLoader, Prefab>("gltf", "glb");

@@ -513,6 +513,9 @@ void EditorTerrainState::ApplyBrushAt(const Handle<TerrainWorldGridLayer>& layer
     case TerrainSculptMode::Lower:
         layer->ApplyBrush(worldPos, m_radius, brushStrength, /* raise */ invert);
         break;
+    case TerrainSculptMode::MarkProcedural:
+        layer->MarkProceduralCell(worldPos, /* isProcedural */ !invert);
+        break;
     case TerrainSculptMode::Raise:
     default:
         layer->ApplyBrush(worldPos, m_radius, brushStrength, /* raise */ !invert);
@@ -641,8 +644,75 @@ void EditorTerrainState::EndStroke()
             terrainLayer->EndBrushStroke();
 
             PushGroundCoverPaintAction(terrainLayer);
+            PushProceduralCellsAction(terrainLayer);
         }
     }
+}
+
+void EditorTerrainState::PushProceduralCellsAction(const Handle<TerrainWorldGridLayer>& terrainLayer)
+{
+    AssertOnThread(g_simThread);
+
+    Array<Vec2i> before;
+    Array<Vec2i> after;
+
+    if (!terrainLayer->TakeProceduralCellsEdit(before, after))
+    {
+        return;
+    }
+
+    const Handle<EditorProject>& currentProject = m_subsystem->GetCurrentProject();
+
+    if (!currentProject.IsValid())
+    {
+        return;
+    }
+
+    SharedPtr<bool> isApplied = MakeShared<bool>(true);
+
+    const WeakHandle<TerrainWorldGridLayer> weakTerrainLayer = terrainLayer;
+
+    Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
+        "Mark Procedural Cells",
+        Proc<EditorActionFunctions()>(
+            [weakTerrainLayer, before = std::move(before), after = std::move(after), isApplied]() -> EditorActionFunctions
+            {
+                return EditorActionFunctions {
+                    .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
+                        [weakTerrainLayer, after, isApplied](EditorSubsystem*, EditorProject*)
+                        {
+                            Handle<TerrainWorldGridLayer> layer = weakTerrainLayer.Lock();
+
+                            // the stroke already applied it
+                            if (*isApplied || !layer.IsValid())
+                            {
+                                return;
+                            }
+
+                            layer->SetProceduralCells(after);
+
+                            *isApplied = true;
+                        }),
+                    .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
+                        [weakTerrainLayer, before, isApplied](EditorSubsystem*, EditorProject*)
+                        {
+                            Handle<TerrainWorldGridLayer> layer = weakTerrainLayer.Lock();
+
+                            if (!layer.IsValid())
+                            {
+                                return;
+                            }
+
+                            layer->SetProceduralCells(before);
+
+                            *isApplied = false;
+                        })
+                };
+            }));
+
+    InitObject(action);
+
+    currentProject->GetActionStack()->PushAction(action);
 }
 
 void EditorTerrainState::PushGroundCoverPaintAction(const Handle<TerrainWorldGridLayer>& terrainLayer)
@@ -831,10 +901,116 @@ static void DrawTerrainRibbon(
     }
 }
 
+static void DrawCellOutline(
+    DebugDrawCommandList& debugDrawCommandList,
+    const RenderableAttributeSet& attributes,
+    const Handle<TerrainWorldGridLayer>& layer,
+    const Vec2i& coord,
+    const Color& color)
+{
+    const WorldGridLayerInfo& layerInfo = layer->GetLayerInfo();
+
+    const Vec3f cellBoundsMin = TerrainWorldGridLayer::ComputeCellBoundsMin(layerInfo, coord);
+    const Vec2f cellMinXZ(cellBoundsMin.x, cellBoundsMin.z);
+    const Vec2f cellSizeXZ((float(layerInfo.cellSize) - 1.0f) * layerInfo.scale.x, (float(layerInfo.cellSize) - 1.0f) * layerInfo.scale.z);
+
+    const float ribbonWidth = MathUtil::Clamp(MathUtil::Max(cellSizeXZ.x, cellSizeXZ.y) * 0.004f, 0.1f, 4.0f);
+    const float surfaceOffset = ribbonWidth * 0.5f;
+
+    static constexpr uint32 SegmentsPerSide = 128;
+
+    const Vec2f corners[4] = {
+        cellMinXZ,
+        cellMinXZ + Vec2f(cellSizeXZ.x, 0.0f),
+        cellMinXZ + cellSizeXZ,
+        cellMinXZ + Vec2f(0.0f, cellSizeXZ.y)
+    };
+
+    Array<Vec3f> edgeInner;
+    Array<Vec3f> edgeOuter;
+
+    edgeInner.Resize(SegmentsPerSide * 4);
+    edgeOuter.Resize(SegmentsPerSide * 4);
+
+    const Vec2f inwardDirections[4] = {
+        Vec2f(0.0f, 1.0f),
+        Vec2f(-1.0f, 0.0f),
+        Vec2f(0.0f, -1.0f),
+        Vec2f(1.0f, 0.0f)
+    };
+
+    for (uint32 side = 0; side < 4; side++)
+    {
+        const Vec2f& from = corners[side];
+        const Vec2f& to = corners[(side + 1) % 4];
+
+        const Vec2f inward = inwardDirections[side] * (ribbonWidth * 0.5f);
+
+        for (uint32 i = 0; i < SegmentsPerSide; i++)
+        {
+            const Vec2f point = MathUtil::Lerp(from, to, float(i) / float(SegmentsPerSide));
+
+            Vec3f inner = ProjectOntoTerrain(layer, point + inward);
+            Vec3f outer = ProjectOntoTerrain(layer, point - inward);
+
+            inner.y += surfaceOffset;
+            outer.y += surfaceOffset;
+
+            edgeInner[side * SegmentsPerSide + i] = inner;
+            edgeOuter[side * SegmentsPerSide + i] = outer;
+        }
+    }
+
+    DrawTerrainRibbon(
+        debugDrawCommandList,
+        attributes,
+        Span<const Vec3f>(edgeInner.Data(), edgeInner.Size()),
+        Span<const Vec3f>(edgeOuter.Data(), edgeOuter.Size()),
+        /* closed */ true,
+        color);
+}
+
+void EditorTerrainState::DebugDrawProceduralCells(DebugDrawCommandList& debugDrawCommandList, const Handle<TerrainWorldGridLayer>& layer)
+{
+    static constexpr int32 DrawnCellRadius = 3;
+
+    const RenderableAttributeSet attributes = TerrainCursorDrawAttributes();
+
+    const Vec2i hoveredCoord = TerrainWorldGridLayer::ComputeCellCoord(layer->GetLayerInfo(), Vec2f(m_hoverWorldPos.x, m_hoverWorldPos.z));
+
+    for (const Vec2i& coord : layer->GetSettings().proceduralCells)
+    {
+        if (coord == hoveredCoord
+            || MathUtil::Abs(coord.x - hoveredCoord.x) > DrawnCellRadius
+            || MathUtil::Abs(coord.y - hoveredCoord.y) > DrawnCellRadius)
+        {
+            continue;
+        }
+
+        DrawCellOutline(debugDrawCommandList, attributes, layer, coord, Color(1.0f, 0.45f, 0.2f, 1.0f));
+    }
+
+    const Color hoveredColor = m_isStroking
+        ? Color(1.0f, 0.55f, 0.1f, 1.0f)
+        : (layer->IsProceduralCell(hoveredCoord) ? Color(1.0f, 0.75f, 0.4f, 1.0f) : Color(0.85f, 0.85f, 0.85f, 1.0f));
+
+    DrawCellOutline(debugDrawCommandList, attributes, layer, hoveredCoord, hoveredColor);
+}
+
 void EditorTerrainState::DebugDrawCursor(DebugDrawCommandList& debugDrawCommandList)
 {
     if (!m_enabled || !m_hasHover)
     {
+        return;
+    }
+
+    if (m_mode == TerrainSculptMode::MarkProcedural)
+    {
+        if (const Handle<TerrainWorldGridLayer> layer = m_hoveredLayer.Lock(); layer.IsValid())
+        {
+            DebugDrawProceduralCells(debugDrawCommandList, layer);
+        }
+
         return;
     }
 

@@ -184,7 +184,7 @@ static constexpr const char* PlayNetCachePortConfigKey = "PlayInEditor.CachePort
 static constexpr ANSIStringView ImportFileFilter[] = {
     "obj", "fbx", "gltf", "glb", "mesh.xml",
     "skeleton.xml",
-    "jpg", "jpeg", "png", "tga", "bmp",
+    "jpg", "jpeg", "png", "tga", "bmp", "tif", "r16", "raw",
     "wav"
 };
 

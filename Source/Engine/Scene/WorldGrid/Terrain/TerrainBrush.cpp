@@ -262,7 +262,7 @@ void TerrainBrush::Sculpt(const Vec3f& worldPos, float radius, float strength, b
                 auto cellDataWriteScope = cellData->GetWriteScope();
 
                 cellData->extent = Vec3u(cellSize);
-                cellData->generatorFingerprint = m_layer.m_generatorState.GetCellFingerprint();
+                cellData->generatorFingerprint = m_layer.GetCellFingerprint(coord);
                 cellData->isSculpted = true;
                 cellData->SetHeights(generatedHeights);
                 cellData->SetErosionMasks(ConstByteView(generatedErosionMasks.Data(), generatedErosionMasks.Size()));

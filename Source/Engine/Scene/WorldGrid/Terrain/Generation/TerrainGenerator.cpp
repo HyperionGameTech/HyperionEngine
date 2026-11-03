@@ -179,12 +179,95 @@ TerrainGenerator::TerrainGenerator() = default;
 
 TerrainGenerator::~TerrainGenerator() = default;
 
-void TerrainGenerator::Configure(const TerrainGenerationParams& params)
+void TerrainGenerator::Configure(const TerrainGenerationParams& params, TerrainHeightSourceDesc&& heightSourceDesc)
 {
     Mutex::Guard guard(m_erosionRegionsMutex);
 
     m_params = params;
+    m_heightSourceDesc = std::move(heightSourceDesc);
     m_erosionRegions.Clear();
+}
+
+void TerrainGenerator::ReuseErosionRegionsFrom(const TerrainGenerator& previous)
+{
+    if (&previous == this)
+    {
+        return;
+    }
+
+    Mutex::Guard previousGuard(previous.m_erosionRegionsMutex);
+    Mutex::Guard guard(m_erosionRegionsMutex);
+
+    if (previous.m_params != m_params)
+    {
+        return;
+    }
+
+    for (const KeyValuePair<Vec2i, SharedPtr<ErosionRegionEntry>>& pair : previous.m_erosionRegions)
+    {
+        if (m_erosionRegions.Size() >= MaxCachedErosionRegions)
+        {
+            break;
+        }
+
+        if (!pair.second->built.Get(MemoryOrder::ACQUIRE))
+        {
+            continue;
+        }
+
+        SharedPtr<ErosionRegionEntry> entry = MakeShared<ErosionRegionEntry>();
+        entry->region = pair.second->region;
+        entry->built.Set(1, MemoryOrder::RELEASE);
+        entry->lastUse = pair.second->lastUse;
+
+        m_erosionRegions.Set(pair.first, std::move(entry));
+    }
+
+    m_erosionRegionUseCounter = MathUtil::Max(m_erosionRegionUseCounter, previous.m_erosionRegionUseCounter);
+}
+
+float TerrainGenerator::GetMaxHeightEstimate() const
+{
+    const float proceduralMax = m_params.baseAmplitude + m_params.mountainAmplitude;
+
+    if (IsFullyProcedural())
+    {
+        return proceduralMax;
+    }
+
+    const TerrainHeightSourceDesc& heightSourceDesc = m_heightSourceDesc;
+
+    float sourceMax = heightSourceDesc.flatHeight;
+    bool hasProcedural = heightSourceDesc.proceduralCells.Any();
+
+    if (heightSourceDesc.heightSource == TerrainHeightSource::Heightmap && heightSourceDesc.heightmap)
+    {
+        sourceMax = MathUtil::Max(heightSourceDesc.heightmapHeightRange.x, heightSourceDesc.heightmapHeightRange.y);
+        hasProcedural |= heightSourceDesc.proceduralEdges;
+    }
+
+    return sourceMax + (hasProcedural ? proceduralMax : 0.0f);
+}
+
+float TerrainGenerator::GetMinHeightEstimate() const
+{
+    if (IsFullyProcedural())
+    {
+        return -m_params.baseAmplitude;
+    }
+
+    const TerrainHeightSourceDesc& heightSourceDesc = m_heightSourceDesc;
+
+    float sourceMin = heightSourceDesc.flatHeight;
+    bool hasProcedural = heightSourceDesc.proceduralCells.Any();
+
+    if (heightSourceDesc.heightSource == TerrainHeightSource::Heightmap && heightSourceDesc.heightmap)
+    {
+        sourceMin = MathUtil::Min(heightSourceDesc.heightmapHeightRange.x, heightSourceDesc.heightmapHeightRange.y);
+        hasProcedural |= heightSourceDesc.proceduralEdges;
+    }
+
+    return sourceMin - (hasProcedural ? m_params.baseAmplitude : 0.0f);
 }
 
 uint64 TerrainGenerator::ComputeFingerprint(uint32 cellSize, const Vec2f& scaleXZ) const
@@ -226,10 +309,297 @@ uint64 TerrainGenerator::ComputeFingerprint(uint32 cellSize, const Vec2f& scaleX
     hashCode.Add(params.hillslopeDiffusion);
     hashCode.Add(params.talusAngle);
 
+    // left out for procedural terrain so its saved heights stay current
+    if (!IsFullyProcedural())
+    {
+        const TerrainHeightSourceDesc& heightSourceDesc = m_heightSourceDesc;
+
+        hashCode.Add(uint32(heightSourceDesc.heightSource));
+        hashCode.Add(heightSourceDesc.flatHeight);
+        hashCode.Add(heightSourceDesc.proceduralEdges);
+        hashCode.Add(heightSourceDesc.blendDistance);
+
+        if (heightSourceDesc.heightmap)
+        {
+            hashCode.Add(heightSourceDesc.heightmap->contentHash);
+            hashCode.Add(heightSourceDesc.heightmap->width);
+            hashCode.Add(heightSourceDesc.heightmap->depth);
+            hashCode.Add(heightSourceDesc.heightmapMinXZ);
+            hashCode.Add(heightSourceDesc.heightmapMaxXZ);
+            hashCode.Add(heightSourceDesc.heightmapHeightRange);
+        }
+    }
+
     return uint64(hashCode.Value());
 }
 
+uint64 TerrainGenerator::ComputeLocalFingerprint(const Vec2i& coord) const
+{
+    const TerrainHeightSourceDesc& heightSourceDesc = m_heightSourceDesc;
+
+    if (IsFullyProcedural() || heightSourceDesc.proceduralCells.Empty())
+    {
+        return 0;
+    }
+
+    // the blend reaches this far across cells, plus one for the padding ring
+    const int32 ringsX = int32(MathUtil::Ceil(heightSourceDesc.blendDistance / MathUtil::Max(heightSourceDesc.cellWorldSize.x, 1.0f))) + 1;
+    const int32 ringsZ = int32(MathUtil::Ceil(heightSourceDesc.blendDistance / MathUtil::Max(heightSourceDesc.cellWorldSize.y, 1.0f))) + 1;
+
+    HashCode hashCode;
+    bool anyNearby = false;
+
+    for (int32 dz = -ringsZ; dz <= ringsZ; dz++)
+    {
+        for (int32 dx = -ringsX; dx <= ringsX; dx++)
+        {
+            if (heightSourceDesc.proceduralCells.Contains(coord + Vec2i(dx, dz)))
+            {
+                // offset so the cell itself, (0, 0), doesn't hash to zero
+                hashCode.Add(Vec2i(dx + ringsX + 1, dz + ringsZ + 1));
+                anyNearby = true;
+            }
+        }
+    }
+
+    if (!anyNearby)
+    {
+        return 0;
+    }
+
+    return MathUtil::Max(uint64(hashCode.Value()), uint64(1));
+}
+
 float TerrainGenerator::SampleBaseHeight(const Vec2f& worldXZ) const
+{
+    if (IsFullyProcedural())
+    {
+        return SampleProceduralBaseHeight(worldXZ);
+    }
+
+    float height = SampleSourceHeight(worldXZ);
+
+    if (const float proceduralWeight = ComputeProceduralWeight(worldXZ); proceduralWeight > 0.0f)
+    {
+        height += proceduralWeight * SampleProceduralBaseHeight(worldXZ);
+    }
+
+    return height;
+}
+
+float TerrainGenerator::SampleHeightmap(const Vec2f& worldXZ) const
+{
+    const TerrainHeightSourceDesc& heightSourceDesc = m_heightSourceDesc;
+    const TerrainHeightmapSamples& heightmap = *heightSourceDesc.heightmap;
+
+    const Vec2f extent = heightSourceDesc.heightmapMaxXZ - heightSourceDesc.heightmapMinXZ;
+
+    const float sampleX = MathUtil::Clamp((worldXZ.x - heightSourceDesc.heightmapMinXZ.x) / MathUtil::Max(extent.x, 1e-3f), 0.0f, 1.0f) * float(heightmap.width - 1);
+    const float sampleZ = MathUtil::Clamp((worldXZ.y - heightSourceDesc.heightmapMinXZ.y) / MathUtil::Max(extent.y, 1e-3f), 0.0f, 1.0f) * float(heightmap.depth - 1);
+
+    const uint32 x0 = MathUtil::Min(uint32(sampleX), heightmap.width - 1);
+    const uint32 z0 = MathUtil::Min(uint32(sampleZ), heightmap.depth - 1);
+    const uint32 x1 = MathUtil::Min(x0 + 1, heightmap.width - 1);
+    const uint32 z1 = MathUtil::Min(z0 + 1, heightmap.depth - 1);
+
+    const float fractionX = sampleX - float(x0);
+    const float fractionZ = sampleZ - float(z0);
+
+    const auto sampleAt = [&heightmap](uint32 x, uint32 z) -> float
+    {
+        return float(heightmap.samples[size_t(z) * heightmap.width + x]);
+    };
+
+    const float top = MathUtil::Lerp(sampleAt(x0, z0), sampleAt(x1, z0), fractionX);
+    const float bottom = MathUtil::Lerp(sampleAt(x0, z1), sampleAt(x1, z1), fractionX);
+
+    float normalized = MathUtil::Lerp(top, bottom, fractionZ) / 65535.0f;
+
+    // past the border the edge heights are stretched outward, settling to the border's mean height
+    const float outsideX = MathUtil::Max(MathUtil::Max(heightSourceDesc.heightmapMinXZ.x - worldXZ.x, worldXZ.x - heightSourceDesc.heightmapMaxXZ.x), 0.0f);
+    const float outsideZ = MathUtil::Max(MathUtil::Max(heightSourceDesc.heightmapMinXZ.y - worldXZ.y, worldXZ.y - heightSourceDesc.heightmapMaxXZ.y), 0.0f);
+
+    if (outsideX > 0.0f || outsideZ > 0.0f)
+    {
+        const float outsideDistance = MathUtil::Sqrt(outsideX * outsideX + outsideZ * outsideZ);
+        const float settleDistance = MathUtil::Max(heightSourceDesc.blendDistance, 1.0f) * 2.0f;
+
+        normalized = MathUtil::Lerp(normalized, heightmap.borderMean, MathUtil::SmoothStep(0.0f, settleDistance, outsideDistance));
+    }
+
+    return MathUtil::Lerp(heightSourceDesc.heightmapHeightRange.x, heightSourceDesc.heightmapHeightRange.y, normalized);
+}
+
+float TerrainGenerator::SampleSourceHeight(const Vec2f& worldXZ) const
+{
+    switch (m_heightSourceDesc.heightSource)
+    {
+    case TerrainHeightSource::Heightmap:
+        if (m_heightSourceDesc.heightmap)
+        {
+            return SampleHeightmap(worldXZ);
+        }
+
+        return m_heightSourceDesc.flatHeight;
+    case TerrainHeightSource::Flat:
+        return m_heightSourceDesc.flatHeight;
+    case TerrainHeightSource::Procedural:
+    default:
+        return 0.0f;
+    }
+}
+
+float TerrainGenerator::ComputeProceduralCellWeight(const Vec2f& worldXZ) const
+{
+    const TerrainHeightSourceDesc& heightSourceDesc = m_heightSourceDesc;
+
+    if (heightSourceDesc.proceduralCells.Empty())
+    {
+        return 0.0f;
+    }
+
+    const Vec2f cellPosition = (worldXZ - heightSourceDesc.cellOriginXZ) / heightSourceDesc.cellWorldSize;
+    const Vec2i cell(int32(MathUtil::Floor(cellPosition.x)), int32(MathUtil::Floor(cellPosition.y)));
+
+    if (!heightSourceDesc.proceduralCells.Contains(cell))
+    {
+        return 0.0f;
+    }
+
+    if (heightSourceDesc.blendDistance <= 0.0f)
+    {
+        return 1.0f;
+    }
+
+    // fades in from the nearest cell that isn't procedural, so neighboring procedural cells join without a seam
+    const int32 ringsX = int32(MathUtil::Ceil(heightSourceDesc.blendDistance / heightSourceDesc.cellWorldSize.x));
+    const int32 ringsZ = int32(MathUtil::Ceil(heightSourceDesc.blendDistance / heightSourceDesc.cellWorldSize.y));
+
+    float nearestDistance = heightSourceDesc.blendDistance;
+
+    for (int32 dz = -ringsZ; dz <= ringsZ; dz++)
+    {
+        for (int32 dx = -ringsX; dx <= ringsX; dx++)
+        {
+            const Vec2i neighbor = cell + Vec2i(dx, dz);
+
+            if (heightSourceDesc.proceduralCells.Contains(neighbor))
+            {
+                continue;
+            }
+
+            const Vec2f neighborMin = heightSourceDesc.cellOriginXZ + Vec2f(float(neighbor.x), float(neighbor.y)) * heightSourceDesc.cellWorldSize;
+            const Vec2f neighborMax = neighborMin + heightSourceDesc.cellWorldSize;
+
+            const float distanceX = MathUtil::Max(MathUtil::Max(neighborMin.x - worldXZ.x, worldXZ.x - neighborMax.x), 0.0f);
+            const float distanceZ = MathUtil::Max(MathUtil::Max(neighborMin.y - worldXZ.y, worldXZ.y - neighborMax.y), 0.0f);
+
+            nearestDistance = MathUtil::Min(nearestDistance, MathUtil::Sqrt(distanceX * distanceX + distanceZ * distanceZ));
+        }
+    }
+
+    return MathUtil::SmoothStep(0.0f, heightSourceDesc.blendDistance, nearestDistance);
+}
+
+float TerrainGenerator::ComputeProceduralWeight(const Vec2f& worldXZ) const
+{
+    const TerrainHeightSourceDesc& heightSourceDesc = m_heightSourceDesc;
+
+    if (IsFullyProcedural())
+    {
+        return 1.0f;
+    }
+
+    float weight = ComputeProceduralCellWeight(worldXZ);
+
+    if (heightSourceDesc.heightSource == TerrainHeightSource::Heightmap && heightSourceDesc.heightmap && heightSourceDesc.proceduralEdges && weight < 1.0f)
+    {
+        const float outsideX = MathUtil::Max(MathUtil::Max(heightSourceDesc.heightmapMinXZ.x - worldXZ.x, worldXZ.x - heightSourceDesc.heightmapMaxXZ.x), 0.0f);
+        const float outsideZ = MathUtil::Max(MathUtil::Max(heightSourceDesc.heightmapMinXZ.y - worldXZ.y, worldXZ.y - heightSourceDesc.heightmapMaxXZ.y), 0.0f);
+
+        if (outsideX > 0.0f || outsideZ > 0.0f)
+        {
+            const float outsideDistance = MathUtil::Sqrt(outsideX * outsideX + outsideZ * outsideZ);
+
+            const float edgeWeight = heightSourceDesc.blendDistance > 0.0f
+                ? MathUtil::SmoothStep(0.0f, heightSourceDesc.blendDistance, outsideDistance)
+                : 1.0f;
+
+            weight = MathUtil::Max(weight, edgeWeight);
+        }
+    }
+
+    return weight;
+}
+
+bool TerrainGenerator::HasProceduralInfluence(const Vec2f& worldMinXZ, const Vec2f& worldMaxXZ) const
+{
+    const TerrainHeightSourceDesc& heightSourceDesc = m_heightSourceDesc;
+
+    if (IsFullyProcedural())
+    {
+        return true;
+    }
+
+    if (heightSourceDesc.heightSource == TerrainHeightSource::Heightmap && heightSourceDesc.heightmap && heightSourceDesc.proceduralEdges)
+    {
+        const bool isInsideHeightmap = worldMinXZ.x >= heightSourceDesc.heightmapMinXZ.x && worldMinXZ.y >= heightSourceDesc.heightmapMinXZ.y
+            && worldMaxXZ.x <= heightSourceDesc.heightmapMaxXZ.x && worldMaxXZ.y <= heightSourceDesc.heightmapMaxXZ.y;
+
+        if (!isInsideHeightmap)
+        {
+            return true;
+        }
+    }
+
+    if (heightSourceDesc.proceduralCells.Empty())
+    {
+        return false;
+    }
+
+    const Vec2f minCellPosition = (worldMinXZ - heightSourceDesc.cellOriginXZ) / heightSourceDesc.cellWorldSize;
+    const Vec2f maxCellPosition = (worldMaxXZ - heightSourceDesc.cellOriginXZ) / heightSourceDesc.cellWorldSize;
+
+    for (int32 z = int32(MathUtil::Floor(minCellPosition.y)); z <= int32(MathUtil::Floor(maxCellPosition.y)); z++)
+    {
+        for (int32 x = int32(MathUtil::Floor(minCellPosition.x)); x <= int32(MathUtil::Floor(maxCellPosition.x)); x++)
+        {
+            if (heightSourceDesc.proceduralCells.Contains(Vec2i(x, z)))
+            {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+float TerrainGenerator::ComputeSnowLine() const
+{
+    const float relief = MathUtil::Max(m_params.mountainAmplitude, 1.0f) * m_params.snowLineFraction;
+
+    switch (m_heightSourceDesc.heightSource)
+    {
+    case TerrainHeightSource::Heightmap:
+        if (m_heightSourceDesc.heightmap)
+        {
+            const float heightmapMin = MathUtil::Min(m_heightSourceDesc.heightmapHeightRange.x, m_heightSourceDesc.heightmapHeightRange.y);
+            const float heightmapMax = MathUtil::Max(m_heightSourceDesc.heightmapHeightRange.x, m_heightSourceDesc.heightmapHeightRange.y);
+
+            // low maps stay clear of snow, tall ones get it on their upper reaches
+            return heightmapMin + MathUtil::Max(relief, (heightmapMax - heightmapMin) * m_params.snowLineFraction);
+        }
+
+        return m_heightSourceDesc.flatHeight + relief;
+    case TerrainHeightSource::Flat:
+        return m_heightSourceDesc.flatHeight + relief;
+    case TerrainHeightSource::Procedural:
+    default:
+        return relief;
+    }
+}
+
+float TerrainGenerator::SampleProceduralBaseHeight(const Vec2f& worldXZ) const
 {
     const TerrainGenerationParams& params = m_params;
 
@@ -335,7 +705,104 @@ void TerrainGenerator::ExtractCellHeightsAndNormals(
     }
 }
 
+static void ComputePaddedCellWorldBounds(const Vec2f& cellWorldMinXZ, const Vec2f& scaleXZ, uint32 cellSize, Vec2f& outMinXZ, Vec2f& outMaxXZ)
+{
+    const Vec2f worldCornerA = cellWorldMinXZ - Vec2f(float(TerrainGenerator::CellPadding)) * scaleXZ;
+    const Vec2f worldCornerB = cellWorldMinXZ + Vec2f(float(cellSize + TerrainGenerator::CellPadding - 1)) * scaleXZ;
+
+    outMinXZ = Vec2f(MathUtil::Min(worldCornerA.x, worldCornerB.x), MathUtil::Min(worldCornerA.y, worldCornerB.y));
+    outMaxXZ = Vec2f(MathUtil::Max(worldCornerA.x, worldCornerB.x), MathUtil::Max(worldCornerA.y, worldCornerB.y));
+}
+
 void TerrainGenerator::GeneratePaddedCellHeights(
+    const Vec2f& cellWorldMinXZ,
+    const Vec2f& scaleXZ,
+    uint32 cellSize,
+    Array<float>& outPaddedHeights,
+    Array<ubyte>* outErosionMasks) const
+{
+    HYP_SCOPE;
+
+    if (IsFullyProcedural())
+    {
+        GenerateProceduralPaddedCellHeights(cellWorldMinXZ, scaleXZ, cellSize, outPaddedHeights, outErosionMasks);
+
+        return;
+    }
+
+    const uint32 paddedSize = cellSize + CellPadding * 2u;
+
+    Vec2f paddedMinXZ;
+    Vec2f paddedMaxXZ;
+    ComputePaddedCellWorldBounds(cellWorldMinXZ, scaleXZ, cellSize, paddedMinXZ, paddedMaxXZ);
+
+    const bool hasProcedural = HasProceduralInfluence(paddedMinXZ, paddedMaxXZ);
+
+    Array<float> proceduralHeights;
+    Array<ubyte> proceduralErosionMasks;
+
+    if (hasProcedural)
+    {
+        GenerateProceduralPaddedCellHeights(cellWorldMinXZ, scaleXZ, cellSize, proceduralHeights, outErosionMasks ? &proceduralErosionMasks : nullptr);
+    }
+
+    outPaddedHeights.Resize(size_t(paddedSize) * size_t(paddedSize));
+
+    if (outErosionMasks)
+    {
+        outErosionMasks->Resize(size_t(cellSize) * size_t(cellSize) * TerrainErosionMasks::NumChannels);
+
+        TerrainErosionMasks::FillNeutral(*outErosionMasks);
+    }
+
+    ubyte neutralMasks[TerrainErosionMasks::NumChannels];
+    TerrainErosionMasks::FillNeutral(Span<ubyte>(neutralMasks, TerrainErosionMasks::NumChannels));
+
+    for (uint32 pz = 0; pz < paddedSize; pz++)
+    {
+        for (uint32 px = 0; px < paddedSize; px++)
+        {
+            const size_t paddedIndex = size_t(pz) * paddedSize + px;
+
+            const Vec2f worldXZ = cellWorldMinXZ + Vec2f(float(int32(px) - int32(CellPadding)), float(int32(pz) - int32(CellPadding))) * scaleXZ;
+
+            float height = SampleSourceHeight(worldXZ);
+
+            if (!hasProcedural)
+            {
+                outPaddedHeights[paddedIndex] = height;
+
+                continue;
+            }
+
+            const float proceduralWeight = ComputeProceduralWeight(worldXZ);
+
+            outPaddedHeights[paddedIndex] = height + proceduralWeight * proceduralHeights[paddedIndex];
+
+            const bool isCellSample = outErosionMasks != nullptr
+                && proceduralWeight > 0.0f
+                && px >= CellPadding && px < cellSize + CellPadding
+                && pz >= CellPadding && pz < cellSize + CellPadding;
+
+            if (!isCellSample)
+            {
+                continue;
+            }
+
+            const size_t maskOffset = (size_t(pz - CellPadding) * cellSize + size_t(px - CellPadding)) * TerrainErosionMasks::NumChannels;
+
+            for (uint32 channel = 0; channel < TerrainErosionMasks::NumChannels; channel++)
+            {
+                const float neutral = float(neutralMasks[channel]);
+                const float procedural = float(proceduralErosionMasks[maskOffset + channel]);
+
+                (*outErosionMasks)[maskOffset + channel] = ubyte(MathUtil::Clamp(neutral + (procedural - neutral) * proceduralWeight + 0.5f, 0.0f, 255.0f));
+            }
+        }
+    }
+}
+
+void TerrainGenerator::GenerateProceduralPaddedCellHeights(
     const Vec2f& cellWorldMinXZ,
     const Vec2f& scaleXZ,
     uint32 cellSize,
@@ -364,7 +831,7 @@ void TerrainGenerator::GeneratePaddedCellHeights(
         {
             for (uint32 px = 0; px < paddedSize; px++)
             {
-                outPaddedHeights[size_t(pz) * paddedSize + px] = SampleBaseHeight(worldPositionAt(px, pz));
+                outPaddedHeights[size_t(pz) * paddedSize + px] = SampleProceduralBaseHeight(worldPositionAt(px, pz));
             }
         }
 
@@ -465,6 +932,18 @@ void TerrainGenerator::CollectRegionsForCell(
     if (m_params.erosionIterations == 0)
     {
         return;
+    }
+
+    if (!IsFullyProcedural())
+    {
+        Vec2f paddedMinXZ;
+        Vec2f paddedMaxXZ;
+        ComputePaddedCellWorldBounds(cellWorldMinXZ, scaleXZ, cellSize, paddedMinXZ, paddedMaxXZ);
+
+        if (!HasProceduralInfluence(paddedMinXZ, paddedMaxXZ))
+        {
+            return;
+        }
     }
 
     const ErosionRegionRange regionRange = ComputePaddedCellRegionRange(ErosionLayout(m_params), cellWorldMinXZ, scaleXZ, cellSize);
@@ -632,7 +1111,7 @@ SharedPtr<const TerrainGenerator::ErosionRegion> TerrainGenerator::BuildErosionR
         {
             const Vec2f worldXZ = Vec2f(float(region->originX + x), float(region->originZ + z)) * layout.spacing;
 
-            region->heights[size_t(z) * size_t(layout.size) + size_t(x)] = SampleBaseHeight(worldXZ);
+            region->heights[size_t(z) * size_t(layout.size) + size_t(x)] = SampleProceduralBaseHeight(worldXZ);
         }
     }
 
@@ -695,7 +1174,7 @@ void TerrainGenerator::SynthesizeSplatWeights(
     Array<Vec3f> normals;
     ExtractCellHeightsAndNormals(paddedHeights, cellSize, heights, normals);
 
-    const float snowLine = MathUtil::Max(params.mountainAmplitude, 1.0f) * params.snowLineFraction;
+    const float snowLine = ComputeSnowLine();
 
     for (uint32 z = 0; z < cellSize; z++)
     {

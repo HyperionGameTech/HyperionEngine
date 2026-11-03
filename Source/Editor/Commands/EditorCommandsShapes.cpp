@@ -407,6 +407,36 @@ public:
 
         layer->SetName(CreateLayerName(layerClass));
 
+        // eg. "TerrainWorldGridLayer Flat"
+        if (Handle<TerrainWorldGridLayer> terrainLayer = TryCast<TerrainWorldGridLayer>(layer); terrainLayer.IsValid() && NumArguments() >= 2)
+        {
+            const ANSIString heightSourceName(GetArgument(1));
+
+            Optional<TerrainHeightSource> heightSource;
+
+            ForEachEnumMember<TerrainHeightSource>(
+                [&heightSourceName, &heightSource](Name name, TerrainHeightSource value, bool* stopIteration)
+                {
+                    if (heightSourceName == name.LookupString())
+                    {
+                        heightSource = value;
+                        *stopIteration = true;
+                    }
+                });
+
+            if (heightSource.HasValue())
+            {
+                TerrainLayerSettings settings = terrainLayer->GetSettings();
+                settings.heightSource = *heightSource;
+
+                terrainLayer->SetSettings(settings);
+            }
+            else
+            {
+                HYP_LOG(Editor, Warning, "EditorCommandAddWorldGridLayer: unknown terrain height source '{}'", GetArgument(1));
+            }
+        }
+
         Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
             HYP_FORMAT("Add {} Layer", GetArgument(0)),
             Proc<EditorActionFunctions()>(

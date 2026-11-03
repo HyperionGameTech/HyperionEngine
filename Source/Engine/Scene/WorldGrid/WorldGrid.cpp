@@ -263,6 +263,7 @@ void WorldGrid::SetStreamingLayersFromDescs(Span<const WGLayerDesc> descs)
         layer->m_layerInfo = layerDesc.info;
 
         layer->SetDescAssets(layerDesc.assets.ToSpan());
+        layer->SetDescSettings(layerDesc.settings);
 
         {
             Mutex::Guard guard(layer->m_objectsByCoordMutex);
@@ -299,6 +300,7 @@ Array<WGLayerDesc> WorldGrid::GetStreamingLayerDescs() const
         layerDesc.info = layer->GetLayerInfo();
 
         layer->GetDescAssets(layerDesc.assets);
+        layerDesc.settings = layer->GetDescSettings();
 
         Mutex::Guard guard(layer->m_objectsByCoordMutex);
 

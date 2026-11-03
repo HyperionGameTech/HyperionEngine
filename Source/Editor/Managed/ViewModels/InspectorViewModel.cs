@@ -250,6 +250,7 @@ namespace Hyperion.Editor.ViewModels
                 {
                     OnPropertyChanged(nameof(HasAsset));
                     OnPropertyChanged(nameof(HasEditModeContent));
+                    OnPropertyChanged(nameof(IsEmpty));
                 }
             }
         }
@@ -274,6 +275,8 @@ namespace Hyperion.Editor.ViewModels
 
         /// <summary>The asset an edit mode is editing is shown while no node is selected.</summary>
         public bool HasAsset => _assetProperties != null && _selectedNode == null && _editModeContent == null;
+
+        public bool IsEmpty => _selectedNode == null && _assetProperties == null && _editModeContent == null;
 
         private object? _editModeContent;
         public object? EditModeContent
@@ -300,6 +303,7 @@ namespace Hyperion.Editor.ViewModels
 
             OnPropertyChanged(nameof(HasEditModeContent));
             OnPropertyChanged(nameof(HasAsset));
+            OnPropertyChanged(nameof(IsEmpty));
         }
 
         public void SetEditedAsset(AssetObject? asset)
@@ -321,6 +325,7 @@ namespace Hyperion.Editor.ViewModels
 
             OnPropertyChanged(nameof(AssetHeading));
             OnPropertyChanged(nameof(HasAsset));
+            OnPropertyChanged(nameof(IsEmpty));
         }
 
         // Every node shown, SelectedNode first.

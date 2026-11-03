@@ -9,40 +9,15 @@ namespace Hyperion.Editor.ViewModels
     {
         private readonly EditorTerrainState _terrainState;
 
-        private bool _isRaiseMode;
-        public bool IsRaiseMode
-        {
-            get => _isRaiseMode;
-            private set
-            {
-                if (SetProperty(ref _isRaiseMode, value) && value)
-                {
-                    _isLowerMode = false;
-                    OnPropertyChanged(nameof(IsLowerMode));
+        private TerrainSculptMode _mode;
 
-                    _terrainState.SetMode(TerrainSculptMode.Raise);
-                }
-            }
-        }
-
-        private bool _isLowerMode;
-        public bool IsLowerMode
-        {
-            get => _isLowerMode;
-            private set
-            {
-                if (SetProperty(ref _isLowerMode, value) && value)
-                {
-                    _isRaiseMode = false;
-                    OnPropertyChanged(nameof(IsRaiseMode));
-
-                    _terrainState.SetMode(TerrainSculptMode.Lower);
-                }
-            }
-        }
+        public bool IsRaiseMode => _mode == TerrainSculptMode.Raise;
+        public bool IsLowerMode => _mode == TerrainSculptMode.Lower;
+        public bool IsProceduralMode => _mode == TerrainSculptMode.MarkProcedural;
 
         public ICommand SetRaiseModeCommand { get; }
         public ICommand SetLowerModeCommand { get; }
+        public ICommand SetProceduralModeCommand { get; }
 
         private double _radius = 5.0;
         public double Radius
@@ -81,11 +56,32 @@ namespace Hyperion.Editor.ViewModels
         {
             _terrainState = terrainState ?? throw new ArgumentNullException(nameof(terrainState));
 
-            SetRaiseModeCommand = new RelayCommand(() => IsRaiseMode = true);
-            SetLowerModeCommand = new RelayCommand(() => IsLowerMode = true);
+            SetRaiseModeCommand = new RelayCommand(() => SetMode(TerrainSculptMode.Raise));
+            SetLowerModeCommand = new RelayCommand(() => SetMode(TerrainSculptMode.Lower));
+            SetProceduralModeCommand = new RelayCommand(() => SetMode(TerrainSculptMode.MarkProcedural));
 
-            _isRaiseMode = terrainState.GetMode() != TerrainSculptMode.Lower;
-            _isLowerMode = !_isRaiseMode;
+            _mode = terrainState.GetMode();
+
+            if (_mode != TerrainSculptMode.Lower && _mode != TerrainSculptMode.MarkProcedural)
+            {
+                _mode = TerrainSculptMode.Raise;
+            }
+        }
+
+        private void SetMode(TerrainSculptMode mode)
+        {
+            if (_mode == mode)
+            {
+                return;
+            }
+
+            _mode = mode;
+
+            _terrainState.SetMode(mode);
+
+            OnPropertyChanged(nameof(IsRaiseMode));
+            OnPropertyChanged(nameof(IsLowerMode));
+            OnPropertyChanged(nameof(IsProceduralMode));
         }
     }
 }

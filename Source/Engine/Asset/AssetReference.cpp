@@ -38,7 +38,11 @@ const AssetPath& AssetReference::GetAssetPath() const
     if (m_data.Is<Handle<AssetObject>>())
     {
         const Handle<AssetObject>& assetObject = m_data.GetUnchecked<Handle<AssetObject>>();
-        AssertDebug(assetObject != nullptr);
+
+        if (!assetObject.IsValid())
+        {
+            return s_invalidAssetPath;
+        }
 
         const AssetPath& assetPath = assetObject->GetPath();
         AssertDebug(assetPath.IsValid());
