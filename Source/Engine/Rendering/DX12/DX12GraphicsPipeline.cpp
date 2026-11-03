@@ -214,7 +214,7 @@ void DX12GraphicsPipeline::BuildVertexAttributes(
         // Tree and foliage data are halves packed into uints, read as integers so the bits arrive untouched
         if (vertexType == VT_Tree)
         {
-            static_assert(sizeof(TVertexPacket<VT_Tree>) == sizeof(uint32) * 6);
+            static_assert(sizeof(TVertexPacket<VT_Tree>) == sizeof(uint32) * 7);
 
             outInputElementDescs.Resize(outInputElementDescs.Size() + 1);
 
@@ -233,18 +233,18 @@ void DX12GraphicsPipeline::BuildVertexAttributes(
 
             ++attrIndex;
 
-            // Twig sway:
+            // Twig sway and vertex color:
             outInputElementDescs[attrIndex] = {
                 .SemanticName = "TEXCOORD",
                 .SemanticIndex = 3,
-                .Format = DXGI_FORMAT_R32G32_UINT,
+                .Format = DXGI_FORMAT_R32G32B32_UINT,
                 .InputSlot = 0,
                 .AlignedByteOffset = UINT(offset),
                 .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
                 .InstanceDataStepRate = 0
             };
 
-            offset += sizeof(uint32) * 2;
+            offset += sizeof(uint32) * 3;
 
             ++attrIndex;
 

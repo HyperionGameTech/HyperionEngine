@@ -949,16 +949,23 @@ void View::BeginAsyncCollection(TaskBatch& batch)
             // Write cached entry list hashes
             GetEntryHashes(rpl.cachedEntryHashes);
 
-            CollectCameras(rpl);
-            CollectLights(rpl);
-            CollectLightmapVolumes(rpl);
-            CollectParticleVolumes(rpl);
-            CollectFogVolumes(rpl);
-            CollectDecalProxies(rpl);
-            CollectEffectVolumes(rpl);
-            CollectEnvProbes(rpl);
-            CollectSprites(rpl);
-            CollectMeshEntities(rpl);
+            if (m_isCollectionPaused)
+            {
+                rpl.hasAnimatedMeshEntities = false;
+            }
+            else
+            {
+                CollectCameras(rpl);
+                CollectLights(rpl);
+                CollectLightmapVolumes(rpl);
+                CollectParticleVolumes(rpl);
+                CollectFogVolumes(rpl);
+                CollectDecalProxies(rpl);
+                CollectEffectVolumes(rpl);
+                CollectEnvProbes(rpl);
+                CollectSprites(rpl);
+                CollectMeshEntities(rpl);
+            }
 
             rpl.EndWrite();
         });
@@ -1051,6 +1058,8 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
 
     rpl.hasAnimatedMeshEntities = false;
 
+    const bool collectSkeletons = !(flags & ViewFlags::NO_DRAW_CALLS);
+
     for (Scene* scene : m_scenes)
     {
         if (scene->GetSceneFlags() & SceneFlags::DETACHED)
@@ -1123,7 +1132,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
                         }
                     }
 
-                    if (const Handle<Skeleton>& renderSkeleton = meshComponent.GetRenderSkeleton(); renderSkeleton != nullptr)
+                    if (const Handle<Skeleton>& renderSkeleton = meshComponent.GetRenderSkeleton(); collectSkeletons && renderSkeleton != nullptr)
                     {
                         rpl.GetSkeletons().Track(renderSkeleton->Id(), renderSkeleton, GET_RESOURCE_VERSION(renderSkeleton));
                     }
@@ -1198,7 +1207,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
                         }
                     }
 
-                    if (const Handle<Skeleton>& renderSkeleton = meshComponent.GetRenderSkeleton(); renderSkeleton != nullptr)
+                    if (const Handle<Skeleton>& renderSkeleton = meshComponent.GetRenderSkeleton(); collectSkeletons && renderSkeleton != nullptr)
                     {
                         rpl.GetSkeletons().Track(renderSkeleton->Id(), renderSkeleton, GET_RESOURCE_VERSION(renderSkeleton));
                     }
@@ -1256,7 +1265,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
                         }
                     }
 
-                    if (const Handle<Skeleton>& renderSkeleton = meshComponent.GetRenderSkeleton(); renderSkeleton != nullptr)
+                    if (const Handle<Skeleton>& renderSkeleton = meshComponent.GetRenderSkeleton(); collectSkeletons && renderSkeleton != nullptr)
                     {
                         rpl.GetSkeletons().Track(renderSkeleton->Id(), renderSkeleton, GET_RESOURCE_VERSION(renderSkeleton));
                     }
@@ -1332,7 +1341,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
                         }
                     }
 
-                    if (const Handle<Skeleton>& renderSkeleton = meshComponent.GetRenderSkeleton(); renderSkeleton != nullptr)
+                    if (const Handle<Skeleton>& renderSkeleton = meshComponent.GetRenderSkeleton(); collectSkeletons && renderSkeleton != nullptr)
                     {
                         rpl.GetSkeletons().Track(renderSkeleton->Id(), renderSkeleton, GET_RESOURCE_VERSION(renderSkeleton));
                     }
@@ -1389,7 +1398,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
                         }
                     }
 
-                    if (const Handle<Skeleton>& renderSkeleton = meshComponent.GetRenderSkeleton(); renderSkeleton != nullptr)
+                    if (const Handle<Skeleton>& renderSkeleton = meshComponent.GetRenderSkeleton(); collectSkeletons && renderSkeleton != nullptr)
                     {
                         rpl.GetSkeletons().Track(renderSkeleton->Id(), renderSkeleton, GET_RESOURCE_VERSION(renderSkeleton));
                     }
@@ -1464,7 +1473,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
                         }
                     }
 
-                    if (const Handle<Skeleton>& renderSkeleton = meshComponent.GetRenderSkeleton(); renderSkeleton != nullptr)
+                    if (const Handle<Skeleton>& renderSkeleton = meshComponent.GetRenderSkeleton(); collectSkeletons && renderSkeleton != nullptr)
                     {
                         rpl.GetSkeletons().Track(renderSkeleton->Id(), renderSkeleton, GET_RESOURCE_VERSION(renderSkeleton));
                     }

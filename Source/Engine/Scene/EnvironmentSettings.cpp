@@ -18,6 +18,11 @@ namespace Hyperion {
 
 using Mat3x3f = float[3][3];
 
+static constexpr float AutoExposureKey = 3.4f;
+static constexpr float AutoExposureAdaptation = 0.82f;
+static constexpr float AutoExposureMin = 0.05f;
+static constexpr float AutoExposureMax = 14.0f;
+
 static constexpr Mat3x3f LinearToLmsMatrix = {
     { 3.90405e-1f, 5.49941e-1f, 8.92632e-3f },
     { 7.08416e-2f, 9.63172e-1f, 1.35775e-3f },
@@ -66,6 +71,15 @@ static void BuildWhiteBalanceMatrix(float temperature, float tint, Mat3x3f& outM
             outMatrix[row][column] = sum;
         }
     }
+}
+
+// adapts most of the way, not all of it, so noon still reads brighter than dawn and night stays night
+float ComputeAutoExposure(float whiteSurfaceLuminance)
+{
+    return MathUtil::Clamp(
+        MathUtil::Pow(AutoExposureKey / MathUtil::Max(whiteSurfaceLuminance, 1e-4f), AutoExposureAdaptation),
+        AutoExposureMin,
+        AutoExposureMax);
 }
 
 void WriteEnvironmentShaderData(const EnvironmentSettings& settings, WorldShaderData& outShaderData)

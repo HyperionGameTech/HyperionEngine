@@ -11,7 +11,7 @@ struct VSInput
     HYP_ATTRIBUTE_OPTIONAL uint a_bone_indices : BLENDINDICES;
     HYP_ATTRIBUTE_OPTIONAL float4 a_bone_weights : BLENDWEIGHT;
     HYP_ATTRIBUTE_OPTIONAL uint4 a_tree_limb_branch : TEXCOORD2;
-    HYP_ATTRIBUTE_OPTIONAL uint2 a_tree_twig : TEXCOORD3;
+    HYP_ATTRIBUTE_OPTIONAL uint3 a_tree_twig : TEXCOORD3;
     HYP_ATTRIBUTE_OPTIONAL uint2 a_foliage : TEXCOORD4;
 };
 
@@ -142,7 +142,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID, uint vertexId : 
 #ifdef VT_Tree
     wind.limb = UnpackWindHalves(input.a_tree_limb_branch.xy);
     wind.branch = UnpackWindHalves(input.a_tree_limb_branch.zw);
-    wind.twig = UnpackWindHalves(input.a_tree_twig);
+    wind.twig = UnpackWindHalves(input.a_tree_twig.xy);
 #endif // VT_Tree
 #ifdef VT_Foliage
     wind.foliage = UnpackWindHalves(input.a_foliage);
@@ -186,7 +186,11 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID, uint vertexId : 
         output.position_cs.xy += camera.jitter.xy * output.position_cs.w;
     }
 
+#ifdef VT_Tree
+    output.color = float4((~input.a_tree_twig.zzzz >> uint4(0u, 8u, 16u, 24u)) & 0xFFu) / 255.0;
+#else // !VT_Tree
     output.color = float4(1.0, 1.0, 1.0, 1.0);
+#endif // VT_Tree
 
     // up axis of the instance at rest, before any sway
     output.ground_normal = normalize(float3(model_matrix[0][1], model_matrix[1][1], model_matrix[2][1]));
@@ -195,8 +199,8 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID, uint vertexId : 
     {
         const float3 instanceOrigin = float3(model_matrix[0][3], model_matrix[1][3], model_matrix[2][3]);
 
-        output.color.rgb = GroundCoverTint(instanceOrigin, material.ground_cover.x);
-        output.color.a = GroundCoverBaseOcclusion(local_position.y, material.ground_cover.z, material.ground_cover.w);
+        output.color.rgb *= GroundCoverTint(instanceOrigin, material.ground_cover.x);
+        output.color.a *= GroundCoverBaseOcclusion(local_position.y, material.ground_cover.z, material.ground_cover.w);
     }
     
 #ifdef SHADING_TYPE_LIGHTMAPPED

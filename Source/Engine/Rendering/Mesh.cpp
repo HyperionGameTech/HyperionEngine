@@ -379,6 +379,63 @@ void Mesh::PageBlobData()
 
     bool isPlaceholder = false;
 
+    const VertexInputLayoutDesc inputLayout = m_meshDesc.meshAttributes.inputLayout;
+
+    // tree vertices gained a color after their sway data; blobs saved before then lack it, and a zeroed color leaves the albedo as is.
+    // Their files keep the old size until the mesh is saved again, so every page in reads them at that size and widens them
+    const size_t vertexSize = inputLayout.VertexSize();
+    const size_t legacyVertexSize = vertexSize - sizeof(uint32);
+
+    const auto getLegacyTreeVertexDataSize = [this, &inputLayout, legacyVertexSize](uint8 lodIndex) -> uint64
+    {
+        if (!(inputLayout.mask & VT_Tree))
+        {
+            return 0;
+        }
+
+        return uint64(m_meshDesc.lods[lodIndex].numVertices) * legacyVertexSize;
+    };
+
+    const auto widenLegacyTreeVertices = [this, &inputLayout, vertexSize, legacyVertexSize](uint8 lodIndex)
+    {
+        BlobDataReference& vertexData = m_lodData[lodIndex].vertexData;
+
+        const size_t numVertices = m_meshDesc.lods[lodIndex].numVertices;
+
+        size_t colorOffset = NumTreeSwayOrders * 4 * sizeof(Float16);
+
+        FOR_EACH_BIT(inputLayout.mask & (VT_Tree - 1), bit)
+        {
+            colorOffset += VertexUtils::PacketSize(VertexType(1 << bit));
+        }
+
+        Array<ubyte> widened;
+        widened.Resize(numVertices * vertexSize);
+        Memory::Zero(widened.Data(), widened.ByteSize());
+
+        const ubyte* legacy = static_cast<const ubyte*>(vertexData.raw);
+
+        for (size_t vertexIndex = 0; vertexIndex < numVertices; vertexIndex++)
+        {
+            const ubyte* src = legacy + vertexIndex * legacyVertexSize;
+            ubyte* dst = widened.Data() + vertexIndex * vertexSize;
+
+            Memory::Copy(dst, src, colorOffset);
+            Memory::Copy(dst + colorOffset + sizeof(uint32), src + colorOffset, legacyVertexSize - colorOffset);
+        }
+
+        if (vertexData.readOnly)
+        {
+            vertexData.raw = nullptr;
+        }
+        else
+        {
+            FreeBlobData(vertexData);
+        }
+
+        AllocateBlobData(vertexData, widened.Data(), widened.ByteSize(), 16);
+    };
+
     for (uint8 lodIndex = 0; lodIndex < MaxMeshLods; lodIndex++)
     {
         BlobDataReference& vertexData = m_lodData[lodIndex].vertexData;
@@ -393,6 +450,13 @@ void Mesh::PageBlobData()
             continue;
         }
 
+        const uint64 legacyTreeVertexDataSize = getLegacyTreeVertexDataSize(lodIndex);
+
+        if (legacyTreeVertexDataSize != 0 && GetLocalBlobDataSize(GetVertexBufferBlobMagic(lodIndex)) == legacyTreeVertexDataSize)
+        {
+            vertexData.size = legacyTreeVertexDataSize;
+        }
+
         const bool vertexLoaded = PageBlobDataFromStorage(vertexData)
             || PageBlobDataFromLocalFile(vertexData, GetVertexBufferBlobMagic(lodIndex), 16);
 
@@ -401,6 +465,11 @@ void Mesh::PageBlobData()
 
         if (vertexLoaded && indexLoaded)
         {
+            if (legacyTreeVertexDataSize != 0 && vertexData.size == legacyTreeVertexDataSize)
+            {
+                widenLegacyTreeVertices(lodIndex);
+            }
+
             continue;
         }
 

@@ -574,7 +574,7 @@ void VulkanGraphicsPipeline::BuildVertexAttributes(
         // Tree and foliage data are halves packed into uints, read as integers so the bits arrive untouched
         if (vertexType == VT_Tree)
         {
-            static_assert(sizeof(TVertexPacket<VT_Tree>) == sizeof(uint32) * 6);
+            static_assert(sizeof(TVertexPacket<VT_Tree>) == sizeof(uint32) * 7);
 
             outVkVertexAttributes.Resize(outVkVertexAttributes.Size() + 1);
 
@@ -590,15 +590,15 @@ void VulkanGraphicsPipeline::BuildVertexAttributes(
 
             ++attrIndex;
 
-            // Twig sway:
+            // Twig sway and vertex color:
             outVkVertexAttributes[attrIndex] = VkVertexInputAttributeDescription {
                 .location = attrIndex,
                 .binding = binding,
-                .format = VK_FORMAT_R32G32_UINT,
+                .format = VK_FORMAT_R32G32B32_UINT,
                 .offset = bindingSizes[binding]
             };
 
-            bindingSizes[binding] += sizeof(uint32) * 2;
+            bindingSizes[binding] += sizeof(uint32) * 3;
 
             ++attrIndex;
 

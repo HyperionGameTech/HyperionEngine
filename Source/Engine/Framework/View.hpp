@@ -331,6 +331,16 @@ public:
         m_overrideCollectFunctor = ref;
     }
 
+    HYP_FORCE_INLINE bool IsCollectionPaused() const
+    {
+        return m_isCollectionPaused;
+    }
+
+    HYP_FORCE_INLINE void SetCollectionPaused(bool paused)
+    {
+        m_isCollectionPaused = paused;
+    }
+
     bool TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTestFlags> flags = RayTestFlags::TestBVH) const;
 
     /*! \brief Sync changes to the Viewport so the render thread can see updates to it for the next frame */
@@ -410,7 +420,8 @@ protected:
     AtomicVar<uint32> m_outputWindowId { 0u };
     AtomicVar<bool> m_redrawRequested { true };
 
-    bool m_markAllAsDirty = false;
+    bool m_markAllAsDirty : 1 = false;
+    bool m_isCollectionPaused : 1 = false;
 };
 
 } // namespace Hyperion

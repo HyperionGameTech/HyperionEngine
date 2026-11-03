@@ -67,7 +67,7 @@ static uint32 BuildVertexAttributes(const VertexInputLayoutDesc& inputLayout, WG
         if (vertexType == VT_Tree)
         {
             addAttribute(WGPUVertexFormat_Uint32x4, sizeof(uint32) * 4);
-            addAttribute(WGPUVertexFormat_Uint32x2, sizeof(uint32) * 2);
+            addAttribute(WGPUVertexFormat_Uint32x3, sizeof(uint32) * 3);
 
             continue;
         }

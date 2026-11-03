@@ -298,10 +298,43 @@ template <> struct TVertexPacket<VT_Skeletal>
 };
 
 // Per sway order (limb, branch, twig), in halves: the pivot it bends about (xyz, mesh space) and how far a point here swings (w, metres).
-// Shaders read these as packed uints, limb and branch in one uint4, twig in a uint2
+// Then the vertex color as RGBA8, stored inverted so zeroed tree data leaves the albedo untouched.
+// Shaders read these as packed uints, limb and branch in one uint4, twig and color in a uint3
 template <> struct TVertexPacket<VT_Tree>
 {
     Float16 swayOrders[NumTreeSwayOrders * 4] {};
+    uint32 invertedColor = 0;
+
+    HYP_FORCE_INLINE Vec4f GetColor() const
+    {
+        const uint32 color = ~invertedColor;
+
+        return Vec4f(
+            float(color & 0xFFu),
+            float((color >> 8u) & 0xFFu),
+            float((color >> 16u) & 0xFFu),
+            float((color >> 24u) & 0xFFu)) / 255.0f;
+    }
+
+    HYP_FORCE_INLINE void SetColor(const Vec4f& color)
+    {
+        const auto toByte = [](float value) -> uint32
+        {
+            if (!(value > 0.0f))
+            {
+                return 0u;
+            }
+
+            if (value >= 1.0f)
+            {
+                return 255u;
+            }
+
+            return uint32(value * 255.0f + 0.5f);
+        };
+
+        invertedColor = ~(toByte(color.x) | (toByte(color.y) << 8u) | (toByte(color.z) << 16u) | (toByte(color.w) << 24u));
+    }
 
     HYP_FORCE_INLINE Vec4f GetSwayOrder(uint32 order) const
     {
@@ -327,7 +360,7 @@ template <> struct TVertexPacket<VT_Tree>
             hc = hc.Combine(HashCode::GetHashCode(value.Raw()));
         }
 
-        return hc;
+        return hc.Combine(HashCode::GetHashCode(invertedColor));
     }
 };
 

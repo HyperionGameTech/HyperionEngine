@@ -1302,6 +1302,14 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
             continue;
         }
 
+        const uint32 skeletonBinding = Resources::GetBinding(meshProxy.skeleton);
+
+        // the skeleton didn't get a slot this frame
+        if (meshProxy.skeleton != nullptr && skeletonBinding == ~0u)
+        {
+            continue;
+        }
+
         const uint32 numIndices = meshProxy.mesh->NumIndices(lodIndex);
 
         { // Write constants for the draw
@@ -1317,7 +1325,7 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
 
         if (meshProxy.skeleton != nullptr)
         {
-            cr << SetShaderUniform(numDrawCallUniforms++, "SkeletonsBuffer"_sh, RI.namedBuffers[NamedBuffer::Skeletons], Resources::GetBinding(meshProxy.skeleton));
+            cr << SetShaderUniform(numDrawCallUniforms++, "SkeletonsBuffer"_sh, RI.namedBuffers[NamedBuffer::Skeletons], skeletonBinding);
         }
 
         if (!useBindlessTextures)
@@ -1404,6 +1412,13 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
             continue;
         }
 
+        const uint32 skeletonBinding = Resources::GetBinding(meshProxy.skeleton);
+
+        if (meshProxy.skeleton != nullptr && skeletonBinding == ~0u)
+        {
+            continue;
+        }
+
         const uint32 numIndices = meshProxy.mesh->NumIndices(lodIndex);
 
         { // Write constants for the draw
@@ -1426,7 +1441,7 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
 
         if (meshProxy.skeleton != nullptr)
         {
-            cr << SetShaderUniform(numDrawCallUniforms++, "SkeletonsBuffer"_sh, RI.namedBuffers[NamedBuffer::Skeletons], Resources::GetBinding(meshProxy.skeleton));
+            cr << SetShaderUniform(numDrawCallUniforms++, "SkeletonsBuffer"_sh, RI.namedBuffers[NamedBuffer::Skeletons], skeletonBinding);
         }
 
         if (!useBindlessTextures)

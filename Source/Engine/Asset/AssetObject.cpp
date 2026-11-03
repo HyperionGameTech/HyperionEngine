@@ -688,6 +688,25 @@ bool AssetObject::PageBlobDataFromLocalFile(BlobDataReference& reference, const 
     return true;
 }
 
+uint64 AssetObject::GetLocalBlobDataSize(const char* magic) const
+{
+    Handle<AssetRegistry> registry = GetAssetRegistry();
+
+    if (!registry.IsValid() || !GetPath().IsValid())
+    {
+        return 0;
+    }
+
+    const FilePath blobPath = registry->FindManifestPath(GetPath()).BasePath() / (String(*GetName()) + "." + magic + ".raw.blob");
+
+    if (!blobPath.Exists())
+    {
+        return 0;
+    }
+
+    return blobPath.FileSize();
+}
+
 void AssetObject::AllocateBlobData(BlobDataReference& reference, const void* inData, size_t count, size_t alignment)
 {
     Assert(reference.raw == nullptr || reference.readOnly);

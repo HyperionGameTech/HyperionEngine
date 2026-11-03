@@ -86,6 +86,9 @@ ScriptableDelegate<void, const EnvironmentSettings&> World::OnEnvironmentSetting
 // #define HYP_SYSTEM_LOG_PERFORMANCE
 
 extern CVar<bool> g_cvRayTracingEnabled;
+extern CVar<bool> g_cvDDGI;
+extern CVar<bool> g_cvRayTracedReflections;
+extern CVar<bool> g_cvPathTracing;
 extern CVar<float> g_cvCutoutDitherAmount;
 extern CVar<bool> g_cvTAA;
 
@@ -230,7 +233,7 @@ void World::Initialize()
     // Create a View that is intended to collect objects used by RT gi/reflections
     // since we'll need to have resources bound even if they aren't directly in any camera's view frustum.
     // (for example there could be some stuff behind the player we want to see reflections of)
-    if (!EngineGlobals::IsHeadless() && g_cvRayTracingEnabled.Get())
+    if (!EngineGlobals::IsHeadless() && g_cvRayTracingEnabled.Get() && RI.GetRenderConfig().rayTracing)
     {
         // dummy output target
         FramebufferDesc framebufferDesc;
@@ -1298,8 +1301,25 @@ void World::CollectCameras(Array<Camera*, SceneTempAllocator>& outCameras)
     }
 }
 
+static bool IsRayTracingInUse(const EnvironmentSettings& environmentSettings)
+{
+    const GlobalIlluminationSettings& globalIllumination = environmentSettings.globalIllumination;
+
+    if (g_cvDDGI.Get() && globalIllumination.ddgiEnabled)
+    {
+        return true;
+    }
+
+    return (g_cvRayTracedReflections.Get() || g_cvPathTracing.Get()) && globalIllumination.rayTracedReflectionsEnabled;
+}
+
 void World::CollectViews(Array<View*, SceneTempAllocator>& outViews)
 {
+    if (m_rayTracingView != nullptr)
+    {
+        m_rayTracingView->SetCollectionPaused(!IsRayTracingInUse(m_environmentSettings));
+    }
+
     const uint32 slot = GetRingIndex();
 
     m_viewsPerFrame[slot].Resize(m_views.Size() + m_processViews.Size());
@@ -2515,6 +2535,16 @@ void World::FillWorldShaderData(WorldShaderData& outShaderData) const
 
     outShaderData.skyLightParams.w = 0.0f;
 
+    float whiteSurfaceLuminance = 0.0f;
+
+    if (hasSun)
+    {
+        const Vec3f sunRadiance = outShaderData.sunColor.GetXYZ() * outShaderData.sunAtmosphereTint.GetXYZ()
+            * (outShaderData.sunDirectionIntensity.w * MathUtil::Max(outShaderData.sunDirectionIntensity.y, 0.0f) / MathUtil::pi<float>);
+
+        whiteSurfaceLuminance += sunRadiance.Dot(Vec3f(0.2126f, 0.7152f, 0.0722f));
+    }
+
     if (DynamicSkySystem* skySystem = GetSystem<DynamicSkySystem>())
     {
         if (CloudEffectVolume* cloudEffectVolume = skySystem->GetCloudEffectVolume();
@@ -2522,6 +2552,30 @@ void World::FillWorldShaderData(WorldShaderData& outShaderData) const
         {
             outShaderData.skyLightParams.w = MathUtil::Clamp(cloudEffectVolume->GetSettings().shape.coverage, 0.0f, 1.0f);
         }
+
+        if (const Handle<EnvProbe>& skyProbe = skySystem->GetEnvProbe(); skyProbe.IsValid())
+        {
+            const float* sh = skyProbe->GetSphericalHarmonicsData().values;
+            
+            Vec3f skyRadiance;
+
+            for (uint32 channel = 0; channel < 3; channel++)
+            {
+                skyRadiance[channel] = sh[0 * 3 + channel] * 0.282095f
+                    + sh[1 * 3 + channel] * 0.488603f
+                    - sh[6 * 3 + channel] * 0.315392f
+                    - sh[8 * 3 + channel] * 0.546274f;
+            }
+
+            skyRadiance = MathUtil::Max(skyRadiance, Vec3f::Zero()) * (skyProbe->GetDiffuseStrength() * outShaderData.skyLightParams.x);
+
+            whiteSurfaceLuminance += skyRadiance.Dot(Vec3f(0.2126f, 0.7152f, 0.0722f));
+        }
+    }
+
+    if (m_environmentSettings.exposure.autoExposure && whiteSurfaceLuminance > 0.0f)
+    {
+        outShaderData.exposureGrading.x *= ComputeAutoExposure(whiteSurfaceLuminance);
     }
 }
 

@@ -175,8 +175,11 @@ struct ExposureSettings
 {
     HYP_STRUCT_BODY(ExposureSettings);
 
-    HYP_FIELD(Property = "ExposureCompensation", Serialize, Label = "Exposure Compensation")
-    float exposureCompensation = 0.7f;
+    HYP_FIELD(Property = "AutoExposure", Serialize, Label = "Auto Exposure")
+    bool autoExposure = true;
+
+    HYP_FIELD(Property = "ExposureCompensation", Serialize, Label = "Exposure Compensation (stops)")
+    float exposureCompensation = 0.0f;
 
     HYP_FIELD(Property = "TonemapOperator", Serialize, Label = "Tonemapper")
     TonemapOperator tonemapOperator = TonemapOperator::AgXPunchy;
@@ -295,5 +298,7 @@ struct EnvironmentSettings
 void WriteEnvironmentShaderData(
     const EnvironmentSettings& settings,
     WorldShaderData& outShaderData);
+
+float ComputeAutoExposure(float whiteSurfaceLuminance);
 
 } // namespace Hyperion

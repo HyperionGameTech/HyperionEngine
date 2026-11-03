@@ -123,6 +123,9 @@ struct GltfMaterialEntry
     MaterialParameters parameters;
     MaterialTextures textures;
     Array<Handle<Material>> variants;
+
+    /// KHR_materials_diffuse_transmission
+    float diffuseTransmission = 0.0f;
 };
 
 struct GltfLoadContext
@@ -1637,12 +1640,22 @@ GltfMaterialEntry BuildMaterialEntry(LoaderState& state, GltfLoadContext& ctx, c
     entry.parameters = parameters;
     entry.textures = std::move(textures);
 
+    if (gltfMaterial->has_diffuse_transmission)
+    {
+        entry.diffuseTransmission = MathUtil::Clamp(float(gltfMaterial->diffuse_transmission.diffuse_transmission_factor), 0.0f, 1.0f);
+    }
+
     return entry;
 }
 
-void ApplyPrimitiveMaterialSettings(const PrimitiveBuildOutput& primitive, MaterialAttributes& attributes, MaterialParameters& parameters)
+void ApplyPrimitiveMaterialSettings(const PrimitiveBuildOutput& primitive, float diffuseTransmission, MaterialAttributes& attributes, MaterialParameters& parameters)
 {
     parameters.foliage = primitive.foliage;
+
+    if (primitive.foliage && diffuseTransmission > 0.0f)
+    {
+        parameters.transmission = diffuseTransmission;
+    }
     parameters.terrainColorMatch = primitive.groundCover;
     parameters.windFrequency = primitive.windFrequency;
     parameters.windTrunkFlexibility = primitive.windTrunkFlexibility;
@@ -1671,7 +1684,7 @@ Handle<Material> AcquireMaterial(LoaderState& state, GltfLoadContext& ctx, const
 
     MaterialAttributes attributes = entry.attributes;
     MaterialParameters parameters = entry.parameters;
-    ApplyPrimitiveMaterialSettings(primitive, attributes, parameters);
+    ApplyPrimitiveMaterialSettings(primitive, entry.diffuseTransmission, attributes, parameters);
 
     for (const Handle<Material>& variant : entry.variants)
     {
@@ -1825,6 +1838,8 @@ void BuildTreeVertices(
     const ArborTreeWind& wind,
     const Array<FatVertex>& vertices,
     const Array<float>& branchCoordinates,
+    const Array<float>& colors,
+    uint32 colorComponents,
     Array<TVertex<TMask>>& outVertices)
 {
     const uint32 numBranches = uint32(wind.branches.Size() / ArborBranchFloats);
@@ -1845,6 +1860,13 @@ void BuildTreeVertices(
         vertex.SetPosition(source.GetPosition());
         vertex.SetNormal(source.GetNormal());
         vertex.SetUV0(source.GetUV0());
+
+        if (colorComponents != 0)
+        {
+            const float* color = &colors[vertexIndex * colorComponents];
+
+            vertex.SetColor(Vec4f(color[0], color[1], color[2], colorComponents == 4 ? color[3] : 1.0f));
+        }
 
         uint32 branchIndex = uint32(branchCoordinates[vertexIndex * 2]);
         float along = branchCoordinates[vertexIndex * 2 + 1];
@@ -2090,16 +2112,33 @@ bool BuildPrimitive(GltfLoadContext& ctx,
         out.localTranslation = center;
     }
 
+    Array<float> colorData;
+    uint32 colorComponents = 0;
+
+    if (hasWind)
+    {
+        if (const cgltf_accessor* colorAccessor = FindAttribute(primitive, cgltf_attribute_type_color, 0))
+        {
+            const uint32 components = colorAccessor->type == cgltf_type_vec4 ? 4u : 3u;
+
+            if ((colorAccessor->type == cgltf_type_vec3 || colorAccessor->type == cgltf_type_vec4)
+                && UnpackAccessorFloats(colorAccessor, colorData) >= vertexCount * components)
+            {
+                colorComponents = components;
+            }
+        }
+    }
+
     Array<TreeVertex> treeVertices;
     Array<FoliageVertex> foliageVertices;
 
     if (hasFoliage)
     {
-        BuildTreeVertices(wind, vertices, texcoord1Data, foliageVertices);
+        BuildTreeVertices(wind, vertices, texcoord1Data, colorData, colorComponents, foliageVertices);
     }
     else if (hasWind)
     {
-        BuildTreeVertices(wind, vertices, texcoord1Data, treeVertices);
+        BuildTreeVertices(wind, vertices, texcoord1Data, colorData, colorComponents, treeVertices);
     }
 
     Array<StaticVertex> staticVertices;
