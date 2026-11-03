@@ -14,9 +14,11 @@
 #include <Rendering/GraphicsPipelineCache.hpp>
 #include <Rendering/RenderTypes.hpp>
 #include <Rendering/RenderProxy.hpp>
+#include <Rendering/RawBuffer.hpp>
 
 #include <Core/Reflection/ObjectBase.hpp>
 #include <Core/Reflection/Handle.hpp>
+#include <Core/Utilities/ClockTimer.hpp>
 
 #include <Scene/Light/Light.hpp> // For LightType
 
@@ -65,6 +67,13 @@ struct RenderSetup;
 enum class LightType : uint32;
 enum EnvProbeType : uint32;
 
+struct EyeAdaptationState
+{
+    RWStructuredBuffer buffer;
+    ClockTimer timer;
+    bool restartNext = true;
+};
+
 HYP_CLASS(NoScriptBindings)
 class DeferredPassData : public PassData
 {
@@ -83,6 +92,8 @@ public:
     
     /// One framebuffer per mip level for downsampling
     Array<FramebufferRef, RenderAllocator> mipChainFramebuffers;
+
+    EyeAdaptationState eyeAdaptationState;
 
     UniquePtr<LightingPass> indirectLightingPass;
     UniquePtr<LightingPass> directLightingPass;
@@ -198,6 +209,7 @@ private:
 
     void ExecuteDrawCalls(Frame* frame, const RenderSetup& rs, RenderCollector& renderCollector, uint32 bucketMask);
     void GenerateMipChain(Frame* frame, const RenderSetup& rs, RenderCollector& renderCollector, GpuImage* srcImage);
+    void MeterEyeAdaptation(Frame* frame, const RenderSetup& rs);
 
     void BeginRenderedViewOutputs();
     void AddRenderedViewOutput(View* view, GpuImageViewRef&& imageView, int priority, bool isUpdated = true);

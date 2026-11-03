@@ -69,9 +69,9 @@ float3 GlimmerGroundNormal(GlimmerGroundParams params, float2 worldXZ, uint leve
     uint unusedLevel;
 
     const bool valid = GlimmerSampleGround(params, worldXZ - float2(texelSize, 0.0), level, hL, unusedLevel)
-        && GlimmerSampleGround(params, worldXZ + float2(texelSize, 0.0), level, hR, unusedLevel)
-        && GlimmerSampleGround(params, worldXZ - float2(0.0, texelSize), level, hD, unusedLevel)
-        && GlimmerSampleGround(params, worldXZ + float2(0.0, texelSize), level, hU, unusedLevel);
+                    && GlimmerSampleGround(params, worldXZ + float2(texelSize, 0.0), level, hR, unusedLevel)
+                    && GlimmerSampleGround(params, worldXZ - float2(0.0, texelSize), level, hD, unusedLevel)
+                    && GlimmerSampleGround(params, worldXZ + float2(0.0, texelSize), level, hU, unusedLevel);
 
     if (!valid)
     {

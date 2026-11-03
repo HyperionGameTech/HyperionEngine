@@ -12,7 +12,9 @@
 
 struct GlimmerRelightParams
 {
-    int4 levels[GLIMMER_GROUND_LEVELS]; // xy = absolute texel of the lit window's origin, z = 1 once all of it has been lit
+    /// xy = absolute texel of the lit window's origin
+    /// z = 1 once all of it has been lit
+    int4 levels[GLIMMER_GROUND_LEVELS];
 };
 
 uint3 GlimmerRelightTexel(int2 texel, uint level, uint surface, uint part)
@@ -27,7 +29,8 @@ uint3 GlimmerRelightTexel(int2 texel, uint level, uint surface, uint part)
         level * GLIMMER_RELIGHT_LAYERS + (index >> 2));
 }
 
-// the texel of each 2x2 block that lights the block (the ground's windows start on even texels, so it's always in with its block)
+/// the texel of each 2x2 block that lights the block.
+/// the ground's windows start on even texels, so it's always in with its block.
 bool GlimmerRelightLightsBlock(int2 texel)
 {
     return all((texel & 1) == 0);
@@ -43,7 +46,13 @@ bool GlimmerRelightCovers(bool isGroundHit, float3 hitNormal)
 #if defined(GLIMMER_RELIGHT_WITH_SAMPLING) && !defined(GLIMMER_RELIGHT_SAMPLING_HLSLI)
 #define GLIMMER_RELIGHT_SAMPLING_HLSLI
 
-bool GlimmerSampleRelight(GlimmerRelightParams params, GlimmerGroundParams ground, uint level, float2 worldXZ, uint surface, out GlimmerLight outReceived)
+bool GlimmerSampleRelight(
+    GlimmerRelightParams params,
+    GlimmerGroundParams ground,
+    uint level,
+    float2 worldXZ,
+    uint surface,
+    out GlimmerLight outReceived)
 {
     outReceived = GlimmerNoLight();
 

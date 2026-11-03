@@ -126,6 +126,7 @@ struct GltfMaterialEntry
 
     /// KHR_materials_diffuse_transmission
     float diffuseTransmission = 0.0f;
+    MaterialTransmissionMask diffuseTransmissionMask = MaterialTransmissionMask::None;
 };
 
 struct GltfLoadContext
@@ -1303,13 +1304,15 @@ struct SplitMetalnessRoughnessResult
 {
     Handle<Texture> metalness;
     Handle<Texture> roughness;
+    bool transmissionInG = false;
 };
 
 SplitMetalnessRoughnessResult SplitMetalnessRoughnessTexture(
     GltfLoadContext& ctx,
     const Handle<Texture>& combinedTexture,
     const Name& baseName,
-    bool splitMetalness)
+    bool splitMetalness,
+    bool keepTransmissionAlpha)
 {
     if (!combinedTexture)
     {
@@ -1342,15 +1345,27 @@ SplitMetalnessRoughnessResult SplitMetalnessRoughnessTexture(
     const ubyte* src = static_cast<const ubyte*>(imageData.Data());
     const uint32 stride = numComponents;
 
-    Bitmap<TextureFormat::R8> roughnessBitmap(width, height);
+    const bool transmissionInG = keepTransmissionAlpha && numComponents == 4;
+    const uint32 roughnessComponents = transmissionInG ? 2u : 1u;
+
+    ByteBuffer roughnessData(size_t(width) * height * roughnessComponents);
+    ubyte* roughnessDst = roughnessData.Data();
+
     Bitmap<TextureFormat::R8> metalnessBitmap = splitMetalness ? Bitmap<TextureFormat::R8>(width, height) : Bitmap<TextureFormat::R8>();
 
     for (uint32 row = 0; row < height; ++row)
     {
         for (uint32 col = 0; col < width; ++col)
         {
-            const ubyte* pixel = src + (row * width + col) * stride;
-            roughnessBitmap.GetPixelReference(col, row).SetR(float(pixel[1]) / 255.0f);
+            const size_t pixelIndex = size_t(row) * width + col;
+            const ubyte* pixel = src + pixelIndex * stride;
+
+            roughnessDst[pixelIndex * roughnessComponents] = pixel[1];
+
+            if (transmissionInG)
+            {
+                roughnessDst[pixelIndex * roughnessComponents + 1] = pixel[3];
+            }
 
             if (splitMetalness)
             {
@@ -1367,10 +1382,12 @@ SplitMetalnessRoughnessResult SplitMetalnessRoughnessTexture(
     channelDesc.filterModeMag = srcDesc.filterModeMag;
     channelDesc.wrapMode = srcDesc.wrapMode;
 
-    ByteBuffer roughnessData(roughnessBitmap.ToByteView());
-    Texture::GenerateMipmaps(channelDesc, roughnessData);
+    TextureDesc roughnessDesc = channelDesc;
+    roughnessDesc.format = transmissionInG ? TextureFormat::RG8 : TextureFormat::R8;
 
-    Handle<Texture> roughnessTexture = MakeHandle<Texture>(channelDesc, roughnessData.ToByteView());
+    Texture::GenerateMipmaps(roughnessDesc, roughnessData);
+
+    Handle<Texture> roughnessTexture = MakeHandle<Texture>(roughnessDesc, roughnessData.ToByteView());
     roughnessTexture->SetName(NAME_FMT("{}_Roughness", baseName));
 
     Handle<Texture> metalnessTexture;
@@ -1385,7 +1402,7 @@ SplitMetalnessRoughnessResult SplitMetalnessRoughnessTexture(
         metalnessTexture->SetName(NAME_FMT("{}_Metalness", baseName));
     }
 
-    return { metalnessTexture, roughnessTexture };
+    return { metalnessTexture, roughnessTexture, transmissionInG };
 }
 
 struct PrimitiveBuildOutput
@@ -1472,6 +1489,7 @@ GltfMaterialEntry BuildMaterialEntry(LoaderState& state, GltfLoadContext& ctx, c
     float metallic = 0.0f;
     float roughness = 1.0f;
     float transmission = 0.0f;
+    MaterialTransmissionMask diffuseTransmissionMask = MaterialTransmissionMask::None;
 
     MaterialTextures textures;
 
@@ -1495,11 +1513,28 @@ GltfMaterialEntry BuildMaterialEntry(LoaderState& state, GltfLoadContext& ctx, c
             textures[MaterialTextureKey::Diffuse] = baseColorTexture;
         }
 
+        // KHR_materials_diffuse_transmission reads its texture's alpha; only one sharing the roughness map's texture has a slot to go in
+        const cgltf_texture* diffuseTransmissionTexture = gltfMaterial->has_diffuse_transmission
+            ? gltfMaterial->diffuse_transmission.diffuse_transmission_texture.texture
+            : nullptr;
+        const bool transmissionInRoughnessAlpha = diffuseTransmissionTexture != nullptr
+            && diffuseTransmissionTexture == pbr.metallic_roughness_texture.texture;
+
+        if (diffuseTransmissionTexture != nullptr && !transmissionInRoughnessAlpha)
+        {
+            HYP_LOG(Assets, Warning, "GLTF material {} has a diffuse transmission texture apart from its metallic-roughness texture; transmission is uniform", materialName);
+        }
+
         if (Handle<Texture> metallicRoughnessTexture = AcquireTexture(state, ctx, pbr.metallic_roughness_texture, false); metallicRoughnessTexture.IsValid())
         {
             if constexpr (SeparateMetalnessRoughnessTextures)
             {
-                auto [metalnessTexture, roughnessTexture] = SplitMetalnessRoughnessTexture(ctx, metallicRoughnessTexture, materialName, /* splitMetalness */ metallic > 0.0f);
+                auto [metalnessTexture, roughnessTexture, transmissionInG] = SplitMetalnessRoughnessTexture(
+                    ctx,
+                    metallicRoughnessTexture,
+                    materialName,
+                    /* splitMetalness */ metallic > 0.0f,
+                    transmissionInRoughnessAlpha);
 
                 if (metalnessTexture)
                 {
@@ -1509,6 +1544,11 @@ GltfMaterialEntry BuildMaterialEntry(LoaderState& state, GltfLoadContext& ctx, c
                 if (roughnessTexture)
                 {
                     textures[MaterialTextureKey::Roughness] = roughnessTexture;
+
+                    if (transmissionInG)
+                    {
+                        diffuseTransmissionMask = MaterialTransmissionMask::RoughnessMapG;
+                    }
                 }
             }
             else
@@ -1519,6 +1559,11 @@ GltfMaterialEntry BuildMaterialEntry(LoaderState& state, GltfLoadContext& ctx, c
                 }
 
                 textures[MaterialTextureKey::Roughness] = metallicRoughnessTexture;
+
+                if (transmissionInRoughnessAlpha)
+                {
+                    diffuseTransmissionMask = MaterialTransmissionMask::RoughnessMapA;
+                }
             }
         }
     }
@@ -1643,18 +1688,20 @@ GltfMaterialEntry BuildMaterialEntry(LoaderState& state, GltfLoadContext& ctx, c
     if (gltfMaterial->has_diffuse_transmission)
     {
         entry.diffuseTransmission = MathUtil::Clamp(float(gltfMaterial->diffuse_transmission.diffuse_transmission_factor), 0.0f, 1.0f);
+        entry.diffuseTransmissionMask = diffuseTransmissionMask;
     }
 
     return entry;
 }
 
-void ApplyPrimitiveMaterialSettings(const PrimitiveBuildOutput& primitive, float diffuseTransmission, MaterialAttributes& attributes, MaterialParameters& parameters)
+void ApplyPrimitiveMaterialSettings(const PrimitiveBuildOutput& primitive, const GltfMaterialEntry& entry, MaterialAttributes& attributes, MaterialParameters& parameters)
 {
     parameters.foliage = primitive.foliage;
 
-    if (primitive.foliage && diffuseTransmission > 0.0f)
+    if (primitive.foliage && entry.diffuseTransmission > 0.0f)
     {
-        parameters.transmission = diffuseTransmission;
+        parameters.transmission = entry.diffuseTransmission;
+        parameters.transmissionMask = entry.diffuseTransmissionMask;
     }
     parameters.terrainColorMatch = primitive.groundCover;
     parameters.windFrequency = primitive.windFrequency;
@@ -1684,7 +1731,7 @@ Handle<Material> AcquireMaterial(LoaderState& state, GltfLoadContext& ctx, const
 
     MaterialAttributes attributes = entry.attributes;
     MaterialParameters parameters = entry.parameters;
-    ApplyPrimitiveMaterialSettings(primitive, entry.diffuseTransmission, attributes, parameters);
+    ApplyPrimitiveMaterialSettings(primitive, entry, attributes, parameters);
 
     for (const Handle<Material>& variant : entry.variants)
     {
@@ -1717,6 +1764,7 @@ using FoliageVertex = TVertex<VT_Simple | VT_Tree | VT_Foliage>;
 
 static constexpr const char* ArborTreeWindExtension = "ARBOR_tree_wind";
 static constexpr const char* ArborGroundCoverExtension = "ARBOR_ground_cover";
+static constexpr const char* ArborOcclusionAttribute = "_OCCLUSION";
 static constexpr uint32 ArborBranchFloats = 8;
 
 struct ArborTreeWind
@@ -1840,6 +1888,7 @@ void BuildTreeVertices(
     const Array<float>& branchCoordinates,
     const Array<float>& colors,
     uint32 colorComponents,
+    const Array<float>& occlusion,
     Array<TVertex<TMask>>& outVertices)
 {
     const uint32 numBranches = uint32(wind.branches.Size() / ArborBranchFloats);
@@ -1861,12 +1910,22 @@ void BuildTreeVertices(
         vertex.SetNormal(source.GetNormal());
         vertex.SetUV0(source.GetUV0());
 
+        Vec4f color = Vec4f::One();
+
         if (colorComponents != 0)
         {
-            const float* color = &colors[vertexIndex * colorComponents];
+            const float* rgba = &colors[vertexIndex * colorComponents];
 
-            vertex.SetColor(Vec4f(color[0], color[1], color[2], colorComponents == 4 ? color[3] : 1.0f));
+            color = Vec4f(rgba[0], rgba[1], rgba[2], colorComponents == 4 ? rgba[3] : 1.0f);
         }
+
+        // alpha is the vertex's ambient occlusion
+        if (!occlusion.Empty())
+        {
+            color.w = occlusion[vertexIndex];
+        }
+
+        vertex.SetColor(color);
 
         uint32 branchIndex = uint32(branchCoordinates[vertexIndex * 2]);
         float along = branchCoordinates[vertexIndex * 2 + 1];
@@ -2129,16 +2188,38 @@ bool BuildPrimitive(GltfLoadContext& ctx,
         }
     }
 
+    // Arbor's crown depth shade on leaf cards, kept out of COLOR_0 because glTF reads its alpha as opacity
+    Array<float> occlusionData;
+
+    if (hasWind)
+    {
+        for (cgltf_size attributeIndex = 0; attributeIndex < primitive.attributes_count; ++attributeIndex)
+        {
+            const cgltf_attribute& attribute = primitive.attributes[attributeIndex];
+
+            if (attribute.name != nullptr && std::strcmp(attribute.name, ArborOcclusionAttribute) == 0
+                && attribute.data != nullptr && attribute.data->type == cgltf_type_scalar)
+            {
+                if (UnpackAccessorFloats(attribute.data, occlusionData) < vertexCount)
+                {
+                    occlusionData.Clear();
+                }
+
+                break;
+            }
+        }
+    }
+
     Array<TreeVertex> treeVertices;
     Array<FoliageVertex> foliageVertices;
 
     if (hasFoliage)
     {
-        BuildTreeVertices(wind, vertices, texcoord1Data, colorData, colorComponents, foliageVertices);
+        BuildTreeVertices(wind, vertices, texcoord1Data, colorData, colorComponents, occlusionData, foliageVertices);
     }
     else if (hasWind)
     {
-        BuildTreeVertices(wind, vertices, texcoord1Data, colorData, colorComponents, treeVertices);
+        BuildTreeVertices(wind, vertices, texcoord1Data, colorData, colorComponents, occlusionData, treeVertices);
     }
 
     Array<StaticVertex> staticVertices;

@@ -16,26 +16,33 @@
 
 namespace Hyperion {
 
+/// @TODO Move out of here if we need it anywhere else.
 using Mat3x3f = float[3][3];
 
-static constexpr float AutoExposureKey = 3.4f;
-static constexpr float AutoExposureAdaptation = 0.82f;
-static constexpr float AutoExposureMin = 0.05f;
-static constexpr float AutoExposureMax = 14.0f;
+namespace {
 
-static constexpr Mat3x3f LinearToLmsMatrix = {
+constexpr float AutoExposureKey = 3.4f;
+constexpr float AutoExposureAdaptation = 0.82f;
+constexpr float AutoExposureMin = 0.05f;
+constexpr float AutoExposureMax = 14.0f;
+
+constexpr float EyeAdaptationMaxStops = 2.5f;
+constexpr float EyeAdaptationLowTarget = 0.18f;
+constexpr float EyeAdaptationHighTarget = 0.37f;
+
+constexpr Mat3x3f LinearToLmsMatrix = {
     { 3.90405e-1f, 5.49941e-1f, 8.92632e-3f },
     { 7.08416e-2f, 9.63172e-1f, 1.35775e-3f },
     { 2.31082e-2f, 1.28021e-1f, 9.36245e-1f }
 };
 
-static constexpr Mat3x3f LmsToLinearMatrix = {
+constexpr Mat3x3f LmsToLinearMatrix = {
     { 2.85847e+0f, -1.62879e+0f, -2.48910e-2f },
     { -2.10182e-1f, 1.15820e+0f, 3.24281e-4f },
     { -4.18120e-2f, -1.18169e-1f, 1.06867e+0f }
 };
 
-static void BuildWhiteBalanceMatrix(float temperature, float tint, Mat3x3f& outMatrix)
+void BuildWhiteBalanceMatrix(float temperature, float tint, Mat3x3f& outMatrix)
 {
     const float temperatureOffset = temperature * (100.0f / 60.0f);
     const float tintOffset = tint * (100.0f / 60.0f);
@@ -72,8 +79,8 @@ static void BuildWhiteBalanceMatrix(float temperature, float tint, Mat3x3f& outM
         }
     }
 }
+} // namespace
 
-// adapts most of the way, not all of it, so noon still reads brighter than dawn and night stays night
 float ComputeAutoExposure(float whiteSurfaceLuminance)
 {
     return MathUtil::Clamp(
@@ -93,6 +100,12 @@ void WriteEnvironmentShaderData(const EnvironmentSettings& settings, WorldShader
         MathUtil::Clamp(exposure.contrast, 0.0f, 4.0f),
         MathUtil::Clamp(exposure.saturation, 0.0f, 4.0f),
         MathUtil::Clamp(exposure.vignette, 0.0f, 1.0f));
+
+    outShaderData.eyeAdaptationParams = Vec4f(
+        MathUtil::Clamp(exposure.eyeAdaptation, 0.0f, 1.0f),
+        EyeAdaptationMaxStops,
+        EyeAdaptationLowTarget,
+        EyeAdaptationHighTarget);
 
     Mat3x3f whiteBalanceMatrix;
     BuildWhiteBalanceMatrix(

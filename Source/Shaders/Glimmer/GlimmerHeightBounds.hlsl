@@ -8,7 +8,10 @@ struct GlimmerHeightBoundsConstants
 {
     GlimmerGroundParams ground;
     GlimmerSpanParams spans;
-    int4 info; // x = level, yz = absolute texel of the first tile to rebuild
+    
+    /// x = level
+    /// yz = absolute texel of the first tile to rebuild
+    int4 info;
 };
 
 DECLARE_BUFFER_DYNAMIC(GlimmerHeightBounds, CBuffer) cbuffer CBuffer

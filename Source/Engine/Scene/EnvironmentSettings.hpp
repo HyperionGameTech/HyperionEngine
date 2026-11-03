@@ -178,6 +178,9 @@ struct ExposureSettings
     HYP_FIELD(Property = "AutoExposure", Serialize, Label = "Auto Exposure")
     bool autoExposure = true;
 
+    HYP_FIELD(Property = "EyeAdaptation", Serialize, Label = "Eye Adaptation")
+    float eyeAdaptation = 0.6f;
+
     HYP_FIELD(Property = "ExposureCompensation", Serialize, Label = "Exposure Compensation (stops)")
     float exposureCompensation = 0.0f;
 

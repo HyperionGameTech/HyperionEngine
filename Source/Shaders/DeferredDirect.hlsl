@@ -275,11 +275,9 @@ PSOutput PSMain(PSInput input)
     }
 
     const bool isFoliage = (materialParams.mask & OBJECT_MASK_FOLIAGE) != 0;
-    const float transmission = isFoliage ? GBufferUnpackTransmission(materialBits) : 0.0;
+    const float transmission = (float) isFoliage * GBufferUnpackTransmission(materialBits);
 
-    const float foliageDirectOcclusion = isFoliage ? lerp(1.0, albedo.a, 0.8) : 1.0;
-
-    const float roughness = clamp(materialParams.roughness, isFoliage ? FOLIAGE_MIN_ROUGHNESS : 0.01, 0.999);
+    const float roughness = clamp(materialParams.roughness, select(isFoliage, FOLIAGE_MIN_ROUGHNESS, 0.01), 0.999);
     const float metalness = materialParams.metalness;
 
     const float perceptualRoughness = sqrt(roughness);
@@ -402,16 +400,16 @@ PSOutput PSMain(PSInput input)
         float4 diffuse_lobe = diffuseColor * HYP_FMATH_ONE_OVER_PI;
         float4 diffuse = diffuse_lobe;
 
-        const float diffuseWeight = isFoliage ? FoliageWrapDiffuse(dot(N, L)) : NdotL;
+        const float diffuseWeight = select(isFoliage, FoliageWrapDiffuse(dot(N, L)), NdotL);
 
-        float4 direct_component = diffuse * diffuseWeight + specular * float4(energy_compensation, 1.0) * NdotL * (isFoliage ? FoliageSpecularWeight(N, V) : 1.0);
+        float4 direct_component = diffuse * diffuseWeight + specular * float4(energy_compensation, 1.0) * NdotL * select(isFoliage, FoliageSpecularWeight(N, V), 1.0);
 
         if (isFoliage)
         {
-            direct_component += diffuse * float4(FoliageTransmissionTint(albedo.rgb), 1.0) * FoliageTransmission(N, V, L, transmission);
+            direct_component += diffuse * FoliageTransmission(N, V, L, transmission);
         }
 
-        result += float4((direct_component * (light_color * shadow * foliageDirectOcclusion * currentLight.position_intensity.w * attenuation)).rgb, attenuation);
+        result += float4((direct_component * (light_color * shadow * currentLight.position_intensity.w * attenuation)).rgb, attenuation);
 
         lightHit = true;
     }
@@ -554,7 +552,7 @@ PSOutput PSMain(PSInput input)
             nextCascadeIndex = (insideMask.z > 0.5 && cascadeIndex < 2) ? 2 : nextCascadeIndex;
             nextCascadeIndex = (insideMask.y > 0.5 && cascadeIndex < 1) ? 1 : nextCascadeIndex;
 
-            const float3 shadowPosition = isFoliage ? position.xyz + L * 0.6 : position.xyz;
+            const float3 shadowPosition = select(isFoliage, position.xyz + L * 0.15, position.xyz);
 
             shadow = GetCascadeShadow(cascadeIndex, shadowPosition, N, texcoord, NdotL);
 
@@ -630,16 +628,16 @@ PSOutput PSMain(PSInput input)
     float4 diffuse = diffuse_lobe;
 
     // leaves and grass wrap light around and let some through from behind
-    const float diffuseWeight = isFoliage ? FoliageWrapDiffuse(dot(N, L)) : NdotL;
+    const float diffuseWeight = select(isFoliage, FoliageWrapDiffuse(dot(N, L)), NdotL);
 
-    float4 direct_component = (diffuse * diffuseWeight + specular * float4(energy_compensation, 1.0) * NdotL * (isFoliage ? FoliageSpecularWeight(N, V) : 1.0)) * shadow;
+    float4 direct_component = (diffuse * diffuseWeight + specular * float4(energy_compensation, 1.0) * NdotL * select(isFoliage, FoliageSpecularWeight(N, V), 1.0)) * shadow;
 
     if (isFoliage)
     {
-        direct_component += diffuse * float4(FoliageTransmissionTint(albedo.rgb), 1.0) * FoliageTransmission(N, V, L, transmission, shadow, crownTransmittance);
+        direct_component += diffuse * FoliageTransmission(N, V, L, transmission, shadow, crownTransmittance);
     }
 
-    result += direct_component * (light_color * foliageDirectOcclusion * currentLight.position_intensity.w * attenuation);
+    result += direct_component * (light_color * currentLight.position_intensity.w * attenuation);
     result.a = attenuation;
 
 #ifdef LIGHT_TYPE_AREA_RECT

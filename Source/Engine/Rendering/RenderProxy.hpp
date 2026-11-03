@@ -117,9 +117,12 @@ struct WorldShaderData
 
     // x = terrain LOD range multiplier
     Vec4f terrainLodParams;
+
+    // x = eye adaptation strength (0 to 1), y = most stops it moves exposure, z/w = metered range left alone (low, high)
+    Vec4f eyeAdaptationParams;
 };
 
-static_assert(sizeof(WorldShaderData) == 352);
+static_assert(sizeof(WorldShaderData) == 368);
 
 struct EntityShaderData
 {

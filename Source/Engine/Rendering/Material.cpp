@@ -423,6 +423,7 @@ void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
             uint32 premultipliedAlpha : 1;
             uint32 doubleSided : 1;
             uint32 terrainColorMatch : 1;
+            uint32 transmissionMask : 3;
         };
     } flags;
 
@@ -437,6 +438,7 @@ void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
     flags.premultipliedAlpha = uint32(proxy->attributes.blendFunction.ExpectsPremultipliedSource());
     flags.doubleSided = uint32(proxy->attributes.cullFaces == FaceCullMode::None || m_parameters.foliage);
     flags.terrainColorMatch = uint32(m_parameters.terrainColorMatch);
+    flags.transmissionMask = uint32(m_parameters.transmissionMask);
 
     // normal blend sits in the upper half of the flags word
     const uint32 foliageNormalBlendByte = MathUtil::Round<float, uint8>(MathUtil::Clamp(m_parameters.foliageNormalBlend, 0.0f, 1.0f) * 255.0f);

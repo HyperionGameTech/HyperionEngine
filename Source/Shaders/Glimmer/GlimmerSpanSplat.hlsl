@@ -211,6 +211,9 @@ void SplatTriangle(GlimmerSpanInstance instance, uint localTriangle, uint level)
     const uint3 albedoFixed = uint3(saturate(albedoAlpha.rgb) * float(areaFixed) + 0.5);
 #endif
 
+    const uint spanMinSlot = select(isFoliage, GLIMMER_SPAN_CANOPY_MIN, GLIMMER_SPAN_SOLID_MIN);
+    const uint spanMaxSlot = select(isFoliage, GLIMMER_SPAN_CANOPY_MAX, GLIMMER_SPAN_SOLID_MAX);
+
     for (int rectIndex = 0; rectIndex < constants.window.w; rectIndex++)
     {
         const int4 rect = constants.rects[rectIndex];
@@ -235,17 +238,17 @@ void SplatTriangle(GlimmerSpanInstance instance, uint localTriangle, uint level)
                 uint previous;
 
 #if defined(MODE_BOUNDS)
-                InterlockedMin(spans[baseIndex + (isFoliage ? GLIMMER_SPAN_CANOPY_MIN : GLIMMER_SPAN_SOLID_MIN)], GlimmerOrderedUintFromFloat(heights.x), previous);
-                InterlockedMax(spans[baseIndex + (isFoliage ? GLIMMER_SPAN_CANOPY_MAX : GLIMMER_SPAN_SOLID_MAX)], GlimmerOrderedUintFromFloat(heights.y), previous);
+                InterlockedMin(spans[baseIndex + spanMinSlot], GlimmerOrderedUintFromFloat(heights.x), previous);
+                InterlockedMax(spans[baseIndex + spanMaxSlot], GlimmerOrderedUintFromFloat(heights.y), previous);
 #elif defined(MODE_FILL)
-                const float spanMin = GlimmerFloatFromOrderedUint(spans[baseIndex + (isFoliage ? GLIMMER_SPAN_CANOPY_MIN : GLIMMER_SPAN_SOLID_MIN)]);
-                const float spanMax = GlimmerFloatFromOrderedUint(spans[baseIndex + (isFoliage ? GLIMMER_SPAN_CANOPY_MAX : GLIMMER_SPAN_SOLID_MAX)]);
+                const float spanMin = GlimmerFloatFromOrderedUint(spans[baseIndex + spanMinSlot]);
+                const float spanMax = GlimmerFloatFromOrderedUint(spans[baseIndex + spanMaxSlot]);
 
                 const int binLow = GlimmerSpanBin(heights.x, spanMin, spanMax);
                 const int binHigh = GlimmerSpanBin(heights.y, spanMin, spanMax);
 
                 const uint bins = GlimmerSpanBinRange(binLow, binHigh);
-                const uint bandsOffset = isFoliage ? GLIMMER_SPAN_CANOPY_BANDS : GLIMMER_SPAN_SOLID_BANDS;
+                const uint bandsOffset = select(isFoliage, GLIMMER_SPAN_CANOPY_BANDS, GLIMMER_SPAN_SOLID_BANDS);
 
                 for (int band = binLow / GLIMMER_SPAN_BINS_PER_BAND; band <= binHigh / GLIMMER_SPAN_BINS_PER_BAND; band++)
                 {

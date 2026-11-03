@@ -59,6 +59,16 @@ enum class MaterialTextureChannel : uint8
     A = 3
 };
 
+HYP_ENUM()
+enum class MaterialTransmissionMask : uint8
+{
+    None = 0,
+    RoughnessMapR,
+    RoughnessMapG,
+    RoughnessMapB,
+    RoughnessMapA
+};
+
 HYP_STRUCT()
 class MaterialParameters
 {
@@ -138,6 +148,10 @@ public:
 
     HYP_FIELD(Property = "Flags", Serialize, Editor = false)
     uint8 flags;
+
+    // per pixel transmission from a roughness map channel, so the twigs in a leaf atlas don't let light through
+    HYP_FIELD(Property = "TransmissionMask", Editor, Serialize, EditorOrder = 1)
+    MaterialTransmissionMask transmissionMask;
 
     HYP_FIELD(Property = "ColorVariation", Editor, Serialize, EditorOrder = 11)
     float colorVariation;

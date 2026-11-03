@@ -100,6 +100,9 @@ void TonemapPass::Render(Frame* frame, const RenderSetup& rs)
     cr << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras], Resources::GetBinding(rs.view->GetCamera()));
     cr << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
 
+    AssertDebug(dpd->eyeAdaptationState.buffer.IsInitialized());
+    cr << SetShaderUniform(numShaderUniforms++, "EyeAdaptationBuffer"_sh, dpd->eyeAdaptationState.buffer);
+
     RenderFullScreenQuad(frame, rs);
 
     End(frame, rs);

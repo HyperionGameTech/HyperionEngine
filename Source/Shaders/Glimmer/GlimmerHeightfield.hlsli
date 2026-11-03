@@ -39,7 +39,14 @@ float GlimmerSpanSolidFillAt(GlimmerSpanSample spanSample, float y, float texelS
 
     const uint band = uint(GlimmerSpanBin(y, spanSample.solidMin, spanSample.solidMax)) / GLIMMER_SPAN_BINS_PER_BAND;
 
-    return texelSize * GlimmerSpanBandDensity(spanSample.solidMin, spanSample.solidMax, spanSample.solidBins, spanSample.solidBands, band, HYP_FMATH_ONE_OVER_PI, texelSize);
+    return texelSize * GlimmerSpanBandDensity(
+        spanSample.solidMin,
+        spanSample.solidMax,
+        spanSample.solidBins,
+        spanSample.solidBands,
+        band,
+        HYP_FMATH_ONE_OVER_PI,
+        texelSize);
 }
 
 struct GlimmerSpanCrossing
@@ -93,14 +100,13 @@ GlimmerSpanCrossing GlimmerCrossSpan(
     for (uint band = 0; band < GLIMMER_SPAN_BANDS; band++)
     {
         const uint bandHitBins = crossing.hitBins & GlimmerSpanBandMask(band);
-
         if (bandHitBins == 0u)
         {
             continue;
         }
 
         const float density = GlimmerSpanBandDensity(spanMin, spanMax, bins, bands, band, densityScale, minThickness);
-        const float bandLength = isLevel ? segmentLength : segmentLength * saturate(float(countbits(bandHitBins)) * binHeight / (high - low));
+        const float bandLength = select(isLevel, segmentLength, segmentLength * saturate(float(countbits(bandHitBins)) * binHeight / (high - low)));
 
         crossing.length += bandLength;
         crossing.opticalDepth += density * bandLength;
@@ -292,7 +298,6 @@ bool GlimmerTraceHeightfield(
         const float3 position = origin + direction * t;
 
         GlimmerSpanSample spanSample;
-
         if (GlimmerSampleSpans(spanParams, stepLevel, 0.5 * (position.xz + previousPosition.xz), spanSample))
         {
             const float segmentLength = t - previousT;
@@ -321,7 +326,7 @@ bool GlimmerTraceHeightfield(
                         hasCanopy = true;
                     }
 
-                    canopyAlbedo += min(spanSample.canopyAlbedo, (float3)GLIMMER_CANOPY_MAX_ALBEDO) * (hit.transmittance * (1.0 - segmentTransmittance));
+                    canopyAlbedo += min(spanSample.canopyAlbedo, (float3) GLIMMER_CANOPY_MAX_ALBEDO) * (hit.transmittance * (1.0 - segmentTransmittance));
                 }
 
                 hit.transmittance *= segmentTransmittance;
@@ -350,9 +355,11 @@ bool GlimmerTraceHeightfield(
                     hit.t = hit.t > 0.0 ? hit.t : 0.5 * t;
                     hit.kind = GLIMMER_HEIGHTFIELD_SOLID;
                     hit.level = stepLevel;
+
                     hit.normal = side > 0
                         ? float3(0.0, 1.0, 0.0)
                         : (side < 0 ? float3(0.0, -1.0, 0.0) : -normalize(float3(direction.x, 0.0, direction.z) + float3(1e-5, 0.0, 0.0)));
+                    
                     hit.albedo = spanSample.solidAlbedo;
 
                     isHit = true;

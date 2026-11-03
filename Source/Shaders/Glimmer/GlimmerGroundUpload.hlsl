@@ -4,8 +4,14 @@
 
 struct GlimmerGroundUploadConstants
 {
-    int4 texelMinExtent; // xy = absolute texel min, zw = extent
-    uint4 info;          // x = level, y = offset into the heights buffer, z = groups along x
+    /// xy = absolute texel min
+    /// zw = extent
+    int4 texelMinExtent;
+    
+    /// x = level
+    /// y = offset into the heights buffer
+    /// z = groups along x
+    uint4 info;
 };
 
 DECLARE_BUFFER_DYNAMIC(GlimmerGroundUpload, CBuffer) cbuffer CBuffer

@@ -60,6 +60,9 @@ ShaderDefinitions "ShaderDefinitions" {
             VS = "Tonemap.hlsl"
             PS = "Tonemap.hlsl"
         }
+        ShaderDefinition "EyeAdaptation" {
+            CS = "EyeAdaptation.hlsl"
+        }
         ShaderDefinition "BloomExtract" {
             Condition = "Rendering.Bloom"
             CS = "Bloom/BloomExtract.hlsl"

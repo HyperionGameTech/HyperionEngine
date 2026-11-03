@@ -57,6 +57,8 @@ DECLARE_SAMPLER(Tonemap, SamplerLinear) SamplerState sampler_linear;
 DECLARE_SRV(Tonemap, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
 #define world_shader_data _worlds_buffer[0]
 
+DECLARE_SRV(Tonemap, EyeAdaptationBuffer) StructuredBuffer<float4> EyeAdaptationBuffer;
+
 #include "Include/Tonemap.hlsli"
 
 float4 PSMain(PSInput input) : SV_Target0
@@ -67,6 +69,7 @@ float4 PSMain(PSInput input) : SV_Target0
     float4 bloom_result = SAMPLE_TEXTURE_2D(sampler_linear, BloomResultTexture, texcoord);
 
     float4 color_with_bloom = shaded_result + bloom_result;
+    color_with_bloom.rgb *= EyeAdaptationBuffer[0].y;
 
     float3 graded_color = ApplyColorGrading(color_with_bloom.rgb, world_shader_data);
 

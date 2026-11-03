@@ -354,6 +354,8 @@ DeferredPassData::~DeferredPassData()
 
     EnqueueDeletion(std::move(mipChain));
 
+    eyeAdaptationState.buffer.Shutdown();
+
     depthPyramidRenderer.Reset();
 
     gtao.Reset();
@@ -1187,6 +1189,9 @@ PassData* DeferredPass::CreateViewPassData(View* view, PassDataExt&)
 
         passData.tonemapPass = MakeUnique<TonemapPass>(gbuffer->GetExtent(), gbuffer);
         passData.tonemapPass->Create();
+
+        passData.eyeAdaptationState.buffer = RWStructuredBuffer(1, sizeof(Vec4f));
+        passData.eyeAdaptationState.buffer.Initialize();
 
         // We'll render the lightmap pass into the translucent framebuffer after deferred shading has been applied to OPAQUE objects.
         passData.lightmapPass = MakeUnique<LightmapPass>();
@@ -2338,6 +2343,8 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         passData.taaPass->Render(frame, rs);
     }
 
+    MeterEyeAdaptation(frame, rs);
+
     if (g_cvBloom.Get())
     {
         passData.bloomPass->Render(frame, rs);
@@ -2738,6 +2745,55 @@ void DeferredPass::GenerateMipChain(
 
     // Transition source image back to render target
     cr << InsertBarrier(srcImage, ResourceState::RenderTarget);
+}
+
+void DeferredPass::MeterEyeAdaptation(Frame* frame, const RenderSetup& rs)
+{
+    static constexpr float MaxEaseSeconds = 1.0f;
+    static constexpr float EaseRate = 1.5f;
+
+    struct EyeAdaptationConstants
+    {
+        Vec4f params;
+    };
+
+    DeferredPassData* pd = TryCast<DeferredPassData>(rs.passData);
+    AssertDebug(pd != nullptr && pd->eyeAdaptationState.buffer.IsInitialized());
+
+    pd->eyeAdaptationState.timer.NextTick();
+
+    CommandRecorder& cr = frame->cr;
+
+    const float deltaSeconds = pd->eyeAdaptationState.timer.delta;
+    const bool shouldRestart = pd->eyeAdaptationState.restartNext || deltaSeconds > MaxEaseSeconds;
+
+    pd->eyeAdaptationState.restartNext = false;
+
+    EyeAdaptationConstants constants {};
+    constants.params = Vec4f(deltaSeconds, shouldRestart ? 1.0f : 0.0f, EaseRate, 0.0f);
+
+    RI.cbufferAllocator->Write(&constants);
+
+    GpuBuffer* cbuffer = nullptr;
+    size_t cbufferOffset = 0;
+    size_t cbufferSize = 0;
+    RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
+
+    cr << SetCurrentFramebuffer(nullptr);
+
+    cr << SetCurrentShader(ShaderDesc(NAME("EyeAdaptation")));
+
+    cr << SetShaderUniform(0, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
+    cr << SetShaderUniform(1, "SceneColor"_sh, pd->GetSceneColorView());
+    cr << SetShaderUniform(2, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
+    cr << SetShaderUniform(3, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
+    cr << SetShaderUniform(4, "OutAdaptation"_sh, pd->eyeAdaptationState.buffer);
+
+    cr << InsertBarrier(pd->eyeAdaptationState.buffer.gpuBuffer, ResourceState::UnorderedAccess, ShaderModuleType::Compute);
+
+    cr << DispatchCompute(Vec3u { 1, 1, 1 });
+
+    cr << InsertBarrier(pd->eyeAdaptationState.buffer.gpuBuffer, ResourceState::ShaderResource);
 }
 
 #pragma endregion DeferredPass

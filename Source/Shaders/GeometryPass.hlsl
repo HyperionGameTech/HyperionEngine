@@ -389,6 +389,13 @@ PSOutput PSMain(PSInput input)
         float roughness_sample = SelectMaterialChannel(roughness_texture, GET_MATERIAL_ROUGHNESS_CHANNEL(CURRENT_MATERIAL));
 
         roughness = roughness_sample;
+
+        const uint transmissionMask = GET_MATERIAL_TRANSMISSION_MASK(CURRENT_MATERIAL);
+
+        if (transmissionMask != 0u)
+        {
+            transmission *= SelectMaterialChannel(roughness_texture, transmissionMask - 1u);
+        }
     }
 
     // roughness is authored as perceptual roughness; need to convert to physical roughness for the BRDF calculations
@@ -422,8 +429,8 @@ PSOutput PSMain(PSInput input)
     else
     {
         // transmission on foliage == light going through the leaf. not refraction
-        const float refractionTransmission = isFoliage ? 0.0 : transmission;
-        const float foliageTransmission = isFoliage ? transmission : 0.0;
+        const float refractionTransmission = (1.0 - (float)isFoliage) * transmission;
+        const float foliageTransmission = (float) isFoliage * transmission;
 
         float3 diffuseColor = CalculateDiffuseColor(albedo, metalness) * (1.0 - refractionTransmission);
 
@@ -588,13 +595,13 @@ PSOutput PSMain(PSInput input)
                 float3 diffuse_lobe = diffuseColor * HYP_FMATH_ONE_OVER_PI;
                 float3 diffuse = diffuse_lobe;
 
-                const float diffuseWeight = isFoliage ? FoliageWrapDiffuse(dot(N, L)) : NdotL;
+                const float diffuseWeight = select(isFoliage, FoliageWrapDiffuse(dot(N, L)), NdotL);
 
-                float3 direct_component = diffuse * diffuseWeight + specular * energy_compensation * NdotL * (isFoliage ? FoliageSpecularWeight(N, V) : 1.0);
+                float3 direct_component = diffuse * diffuseWeight + specular * energy_compensation * NdotL * select(isFoliage, FoliageSpecularWeight(N, V), 1.0);
 
                 if (isFoliage)
                 {
-                    direct_component += diffuse * FoliageTransmissionTint(albedo) * FoliageTransmission(N, V, L, foliageTransmission);
+                    direct_component += diffuse * FoliageTransmission(N, V, L, foliageTransmission);
                 }
 
                 direct_lighting += direct_component * (light_color * ao * shadow * currentLight.position_intensity.w * attenuation);
@@ -634,13 +641,13 @@ PSOutput PSMain(PSInput input)
                 const float3 specular_lobe = D * G * F;
                 const float3 diffuse_lobe = diffuseColor * HYP_FMATH_ONE_OVER_PI;
 
-                const float diffuseWeight = isFoliage ? FoliageWrapDiffuse(dot(N, L)) : NdotL;
+                const float diffuseWeight = select(isFoliage, FoliageWrapDiffuse(dot(N, L)), NdotL);
 
-                float3 direct_component = diffuse_lobe * diffuseWeight + specular_lobe * energy_compensation * NdotL * (isFoliage ? FoliageSpecularWeight(N, V) : 1.0);
+                float3 direct_component = diffuse_lobe * diffuseWeight + specular_lobe * energy_compensation * NdotL * select(isFoliage, FoliageSpecularWeight(N, V), 1.0);
 
                 if (isFoliage)
                 {
-                    direct_component += diffuse_lobe * FoliageTransmissionTint(albedo) * FoliageTransmission(N, V, L, foliageTransmission);
+                    direct_component += diffuse_lobe * FoliageTransmission(N, V, L, foliageTransmission);
                 }
 
                 direct_lighting += direct_component * (currentLight.color.rgb * currentLight.atmosphere_tint.rgb * ao * shadow * currentLight.position_intensity.w);
@@ -699,7 +706,7 @@ PSOutput PSMain(PSInput input)
     output.gbuffer_material = min((uint)round(saturate(input.texcoord1.x) * 16384.0), 16383u)
         | (min((uint)round(saturate(input.texcoord1.y) * 16384.0), 16383u) << 14u);
 #else
-    output.gbuffer_material = isFoliage ? GBufferPackTransmission(transmission) : 0u;
+    output.gbuffer_material = (uint) isFoliage * GBufferPackTransmission(transmission);
 
 #ifndef SHADING_TYPE_FORWARD
     output.gbuffer_material |= GBufferPackEmissive(GET_MATERIAL_EMISSIVE(CURRENT_MATERIAL));

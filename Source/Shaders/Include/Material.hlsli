@@ -100,12 +100,14 @@ float4 UnpackMaterialParamFloat4(uint4 uValue, uint index)
 #define MATERIAL_FLAG_PREMULTIPLIED_ALPHA 10
 #define MATERIAL_FLAG_DOUBLE_SIDED 11
 #define MATERIAL_FLAG_TERRAIN_COLOR_MATCH 12
+#define MATERIAL_BITS_TRANSMISSION_MASK 13 // 3 bits: 0 = none, else roughness map channel + 1
 
 #define GET_MATERIAL_CHANNEL(mat, bitOffset) ((((mat).packed_params[3]) >> (bitOffset)) & 0x3u)
 
 #define GET_MATERIAL_ROUGHNESS_CHANNEL(mat) GET_MATERIAL_CHANNEL(mat, MATERIAL_CHANNEL_BIT_ROUGHNESS)
 #define GET_MATERIAL_METALNESS_CHANNEL(mat) GET_MATERIAL_CHANNEL(mat, MATERIAL_CHANNEL_BIT_METALNESS)
 #define GET_MATERIAL_AO_CHANNEL(mat) GET_MATERIAL_CHANNEL(mat, MATERIAL_CHANNEL_BIT_AO)
+#define GET_MATERIAL_TRANSMISSION_MASK(mat) ((((mat).packed_params[3]) >> MATERIAL_BITS_TRANSMISSION_MASK) & 0x7u)
 
 float SelectMaterialChannel(float4 v, uint channel)
 {

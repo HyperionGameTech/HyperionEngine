@@ -38,6 +38,8 @@ struct WorldShaderData
     // see MaxTerrainLodViewpoints
     float4 terrain_lod_viewpoints[4];
     float4 terrain_lod_params;
+
+    float4 eye_adaptation_params;
 };
 
 struct Camera
