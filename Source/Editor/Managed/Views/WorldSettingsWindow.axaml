@@ -210,6 +210,68 @@
                                         </ItemsControl>
 
                                         <Separator Margin="0,2,0,6" />
+
+                                        <!--  Terrain height source  -->
+                                        <StackPanel IsVisible="{Binding IsTerrain}" Spacing="2">
+                                            <StackPanel DataContext="{Binding Terrain}" Spacing="2">
+                                                <inspector:InspectorPropertyItemsControl ItemsSource="{Binding SourceProperties}" ShowDescriptions="True" />
+
+                                                <StackPanel IsVisible="{Binding IsFlat}" Spacing="2">
+                                                    <TextBlock Margin="0,6,0,2" Classes="section-label" Text="Flat" />
+                                                    <inspector:InspectorPropertyItemsControl ItemsSource="{Binding FlatProperties}" ShowDescriptions="True" />
+                                                </StackPanel>
+
+                                                <StackPanel IsVisible="{Binding IsHeightmap}" Spacing="2">
+                                                    <Grid Margin="0,6,0,2" ColumnDefinitions="*,Auto">
+                                                        <TextBlock
+                                                            VerticalAlignment="Center"
+                                                            Classes="section-label"
+                                                            Text="Heightmap" />
+                                                        <Button
+                                                            Grid.Column="1"
+                                                            Padding="10,4"
+                                                            Command="{Binding ImportHeightmapTilesCommand}"
+                                                            Content="Import Tiles..."
+                                                            ToolTip.Tip="Import a folder of heightmap tiles (name_x0_y0.png, ...)" />
+                                                    </Grid>
+                                                    <inspector:InspectorPropertyItemsControl
+                                                        IsVisible="{Binding IsSingleHeightmap}"
+                                                        ItemsSource="{Binding HeightmapProperties}"
+                                                        ShowDescriptions="True" />
+                                                    <inspector:InspectorPropertyItemsControl
+                                                        IsVisible="{Binding IsTiledHeightmap}"
+                                                        ItemsSource="{Binding HeightmapTileProperties}"
+                                                        ShowDescriptions="True" />
+                                                    <inspector:InspectorPropertyItemsControl ItemsSource="{Binding PlacementProperties}" ShowDescriptions="True" />
+                                                </StackPanel>
+
+                                                <Grid
+                                                    Margin="0,6,0,0"
+                                                    ColumnDefinitions="Auto,*,Auto"
+                                                    IsVisible="{Binding HasProceduralCellsSection}">
+                                                    <TextBlock
+                                                        VerticalAlignment="Center"
+                                                        Classes="section-label"
+                                                        Text="Procedural Cells" />
+                                                    <TextBlock
+                                                        Grid.Column="1"
+                                                        Margin="8,0"
+                                                        VerticalAlignment="Center"
+                                                        Classes="muted"
+                                                        Text="{Binding ProceduralCellsText}" />
+                                                    <Button
+                                                        Grid.Column="2"
+                                                        Padding="10,4"
+                                                        Command="{Binding ClearProceduralCellsCommand}"
+                                                        Content="Clear"
+                                                        IsEnabled="{Binding HasProceduralCells}"
+                                                        ToolTip.Tip="Unmark every procedural cell" />
+                                                </Grid>
+                                            </StackPanel>
+
+                                            <Separator Margin="0,6,0,6" />
+                                        </StackPanel>
+
                                         <inspector:InspectorPropertyItemsControl ItemsSource="{Binding Properties}" ShowDescriptions="True" />
                                     </StackPanel>
                                 </StackPanel>

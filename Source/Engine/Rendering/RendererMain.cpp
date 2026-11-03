@@ -2776,6 +2776,11 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
             const RenderProxyMesh* meshProxy = renderProxyList.GetMeshEntities().GetProxy(id);
             AssertDebug(meshProxy != nullptr);
 
+            if (!meshProxy)
+            {
+                continue;
+            }
+
             RenderableAttributeSet attributes;
             GeometryPass::BuildAttributes(*meshProxy, attributes, getOverrideAttributes(*meshProxy));
 

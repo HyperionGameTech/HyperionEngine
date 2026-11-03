@@ -130,6 +130,11 @@ namespace Hyperion.Editor.ViewModels
             }
 
             await RefreshAsync(rebuildOnlyOnChange: true).ConfigureAwait(true);
+
+            foreach (WorldGridLayerViewModel layer in Layers)
+            {
+                layer.Terrain?.Refresh();
+            }
         }
 
         public async Task RefreshAsync(bool rebuildOnlyOnChange = false)

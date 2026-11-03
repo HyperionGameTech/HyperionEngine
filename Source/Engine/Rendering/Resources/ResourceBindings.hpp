@@ -232,6 +232,11 @@ struct ResourceContainer
         return dataByType.Get(staticIndex);
     }
 
+    ResourceSubtypeData& GetSubtypeData(TypeId typeId)
+    {
+        return GetSubtypeData(GetClass(typeId));
+    }
+
     SparsePagedArray<ResourceSubtypeData, 64, RenderAllocator> dataByType;
 };
 
@@ -345,7 +350,7 @@ static inline void SyncResourcesImpl(
         const int version = impl.versions.Get(i);
         const int dependencyVersion = impl.dependencyVersions.Get(i);
 
-        resourceTracker.Track(elem->Id(), elem, &version, &dependencyVersion);
+        resourceTracker.Track(impl.MakeId(uint32(i)), elem, &version, &dependencyVersion);
     }
 }
 
@@ -369,27 +374,26 @@ static void SyncResources(
         return;
     }
 
-    Array<ElementType*, RenderTempAllocator> removed;
+    Array<ObjId<ElementType>, RenderTempAllocator> removed;
     dst.GetRemoved(removed, false);
 
-    Array<ElementType*, RenderTempAllocator> added;
+    Array<ObjId<ElementType>, RenderTempAllocator> added;
     dst.GetAdded(added, false);
 
-    for (ElementType* pResource : added)
+    for (const ObjId<ElementType> resourceId : added)
     {
-        AssertDebug(pResource != nullptr);
-
-        const ObjId<ElementType> resourceId = pResource->Id();
         AssertDebug(resourceId.IsValid());
 
-        ResourceSubtypeData& subtypeData = resources.GetSubtypeData(pResource->InstanceClass());
-        AssertDebug(pResource->InstanceClass()->GetNearestStaticClass()->GetTypeId() == subtypeData.typeInfo->id);
+        ElementType** ppResource = dst.GetElement(resourceId);
+        AssertDebug(ppResource != nullptr && *ppResource != nullptr);
+
+        ResourceSubtypeData& subtypeData = resources.GetSubtypeData(resourceId.GetTypeId());
 
         ResourceData* rd = subtypeData.data.TryGet(resourceId.ToIndex());
 
         if (!rd)
         {
-            rd = &*subtypeData.data.Emplace(resourceId.ToIndex(), pResource);
+            rd = &*subtypeData.data.Emplace(resourceId.ToIndex(), *ppResource);
         }
 
         subtypeData.indicesPendingDelete.Set(resourceId.ToIndex(), false);
@@ -411,15 +415,11 @@ static void SyncResources(
         }
     }
 
-    for (ElementType* pResource : removed)
+    for (const ObjId<ElementType> resourceId : removed)
     {
-        AssertDebug(pResource != nullptr);
-
-        const ObjId<ElementType> resourceId = pResource->Id();
         AssertDebug(resourceId.IsValid());
 
-        ResourceSubtypeData& subtypeData = resources.GetSubtypeData(pResource->InstanceClass());
-        AssertDebug(pResource->InstanceClass()->GetNearestStaticClass()->GetTypeId() == subtypeData.typeInfo->id);
+        ResourceSubtypeData& subtypeData = resources.GetSubtypeData(resourceId.GetTypeId());
 
         ResourceData* rd = subtypeData.data.TryGet(resourceId.ToIndex());
         AssertDebug(rd != nullptr, "No resource data for {}", resourceId);
@@ -437,7 +437,7 @@ static void SyncResources(
         }
     }
 
-    Array<ElementType*, RenderTempAllocator> changed;
+    Array<ObjId<ElementType>, RenderTempAllocator> changed;
 
     if constexpr (CONSTEXPR_TYPE_ID(ProxyType) != CONSTEXPR_TYPE_ID(NullProxy))
     {
@@ -445,14 +445,17 @@ static void SyncResources(
 
         if (changed.Any())
         {
-            for (ElementType* pResource : changed)
+            for (const ObjId<ElementType> resourceId : changed)
             {
-                ObjId<ElementType> resourceId = pResource->Id();
-
                 const ProxyType* pSrcProxy = src.GetProxy(resourceId);
                 AssertDebug(pSrcProxy != nullptr);
 
-                ResourceSubtypeData& subtypeData = resources.GetSubtypeData(pResource->InstanceClass());
+                if (HYP_UNLIKELY(!pSrcProxy))
+                {
+                    continue;
+                }
+
+                ResourceSubtypeData& subtypeData = resources.GetSubtypeData(resourceId.GetTypeId());
 
                 ProxyType* pDstProxy = dst.SetProxy(resourceId, *pSrcProxy);
                 CopyRenderProxy(subtypeData, resourceId, pDstProxy);
