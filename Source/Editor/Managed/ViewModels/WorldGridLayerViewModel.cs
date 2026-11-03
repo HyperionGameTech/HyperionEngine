@@ -24,6 +24,8 @@ namespace Hyperion.Editor.ViewModels
 
         public ObservableCollection<InspectorPropertyViewModelBase> Properties { get; } = new ObservableCollection<InspectorPropertyViewModelBase>();
 
+        public TerrainLayerSectionViewModel? Terrain { get; }
+
         public ObservableCollection<InspectorActionViewModel> Actions { get; } = new ObservableCollection<InspectorActionViewModel>();
 
         private bool _hasActions;
@@ -44,7 +46,13 @@ namespace Hyperion.Editor.ViewModels
         public bool IsExpanded
         {
             get => _isExpanded;
-            set => SetProperty(ref _isExpanded, value);
+            set
+            {
+                if (SetProperty(ref _isExpanded, value) && value)
+                {
+                    Terrain?.Refresh();
+                }
+            }
         }
 
         public WorldGridLayerViewModel(
@@ -67,6 +75,11 @@ namespace Hyperion.Editor.ViewModels
             IsTerrain = TypeName.Equals("TerrainWorldGridLayer", StringComparison.Ordinal);
 
             _displayName = name ?? string.Empty;
+
+            if (IsTerrain && layer is TerrainWorldGridLayer terrainLayer)
+            {
+                Terrain = new TerrainLayerSectionViewModel(terrainLayer, CollectPropertiesInherited(Layer.Class));
+            }
 
             BuildPropertyViewModels();
             BuildActionViewModels();
@@ -120,6 +133,18 @@ namespace Hyperion.Editor.ViewModels
 
             foreach (Property property in CollectPropertiesInherited(Layer.Class))
             {
+                if (Terrain != null && TerrainLayerSectionViewModel.IsSectionProperty(property))
+                {
+                    continue;
+                }
+
+                ClassAttribute? attrEditor = property.GetAttribute("editor");
+
+                if (attrEditor != null && !attrEditor.Value.GetBool())
+                {
+                    continue;
+                }
+
                 InspectorPropertyViewModelBase viewModel;
 
                 try
@@ -137,7 +162,7 @@ namespace Hyperion.Editor.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log(LogLevel.Debug, $"WorldSettings: skipping property '{property.Name}' for layer '{DisplayName}': {ex.Message}");
+                    Logger.Log(LogLevel.Warning, $"WorldSettings: skipping property '{property.Name}' for layer '{DisplayName}': {ex.Message}");
                     continue;
                 }
 

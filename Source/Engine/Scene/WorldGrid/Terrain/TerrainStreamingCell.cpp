@@ -541,10 +541,12 @@ void TerrainStreamingCell::DetachFromScene()
     m_node->Remove(/* moveToDetached */ false);
     m_node.Reset();
 
-    m_entity.Reset();
+    RetireEntity(std::move(m_entity));
 
     for (TerrainPatch& patch : m_patches)
     {
+        RetireEntity(std::move(patch.entity));
+
         patch = TerrainPatch {};
     }
 
@@ -1387,12 +1389,24 @@ void TerrainStreamingCell::ReleasePatch(uint32 patchIndex)
     if (patch.entity.IsValid())
     {
         patch.entity->Remove(/* moveToDetached */ false);
+
+        RetireEntity(std::move(patch.entity));
     }
 
     const bool isBuildQueued = patch.isBuildQueued;
 
     patch = TerrainPatch {};
     patch.isBuildQueued = isBuildQueued;
+}
+
+void TerrainStreamingCell::RetireEntity(Handle<Entity>&& entity)
+{
+    if (m_layer.IsValid())
+    {
+        m_layer->RetireEntity(std::move(entity));
+    }
+
+    entity.Reset();
 }
 
 bool TerrainStreamingCell::WorldToGridPosition(const Vec2f& worldXZ, Vec2f& outGridXZ) const
@@ -2221,6 +2235,8 @@ void TerrainStreamingCell::ReleaseGrassTileSlot(GrassTileSlot& slot)
     {
         slot.entity->Remove(/* moveToDetached */ false);
     }
+
+    RetireEntity(std::move(slot.entity));
 
     slot = GrassTileSlot {};
 }

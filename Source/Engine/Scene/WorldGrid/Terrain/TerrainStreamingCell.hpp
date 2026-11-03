@@ -236,6 +236,8 @@ private:
     void CreatePatch(uint32 patchIndex, const TerrainPatchMeshData& meshData);
     void ReleasePatch(uint32 patchIndex);
 
+    void RetireEntity(Handle<Entity>&& entity);
+
     /// rebuilds patches whose morph targets depend on heights in [minVertex, maxVertex], from m_paddedHeights
     void RebuildPatchesInRegion(const Vec2i& minVertex, const Vec2i& maxVertex);
 

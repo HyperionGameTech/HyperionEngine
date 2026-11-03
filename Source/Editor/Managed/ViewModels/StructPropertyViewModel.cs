@@ -279,7 +279,7 @@ namespace Hyperion.Editor.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log(LogLevel.Debug, $"StructPropertyViewModel: Skipping property '{property.Name}' for struct '{_structClass.Name}': {ex.Message}");
+                    Logger.Log(LogLevel.Warning, $"StructPropertyViewModel: Skipping property '{property.Name}' for struct '{_structClass.Name}': {ex.Message}");
                 }
             }
 

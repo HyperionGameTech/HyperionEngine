@@ -1,6 +1,7 @@
 using System;
 using System.ComponentModel;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -18,6 +19,11 @@ namespace Hyperion.Editor.Views.Inspector
     public partial class AssetObjectPropertyEditor : UserControl
     {
         private const int MaxPickerResults = 10;
+        
+        private const double GizmoSize = 30;
+        private const double GizmoSpacing = 2;
+        private const double GizmoRowGap = 6;
+        private const double ActionsExpandHysteresis = 12;
 
         public AssetObjectPropertyEditor()
         {
@@ -25,7 +31,10 @@ namespace Hyperion.Editor.Views.Inspector
 
             PART_CopyMenuItem.Click += OnCopyClicked;
             PART_PasteMenuItem.Click += OnPasteClicked;
+            PART_CopyButton.Click += OnCopyClicked;
+            PART_PasteButton.Click += OnPasteClicked;
             PART_IconTile.Click += OnIconTileClicked;
+            PART_GizmoRow.LayoutUpdated += OnGizmoRowLayoutUpdated;
 
             DataContextChanged += OnDataContextChanged;
 
@@ -51,6 +60,7 @@ namespace Hyperion.Editor.Views.Inspector
         private ObjectPropertyViewModel? _subscribedVm;
         private AssetObjectEditPanelViewModel? _editPanel;
         private bool _isResolvingEditMode;
+        private bool _actionsCollapsed;
 
         private void OnDataContextChanged(object? sender, EventArgs e)
         {
@@ -230,12 +240,47 @@ namespace Hyperion.Editor.Views.Inspector
             });
         }
 
+        private void OnGizmoRowLayoutUpdated(object? sender, EventArgs e)
+        {
+            double availableWidth = PART_GizmoRow.Bounds.Width;
+
+            if (availableWidth <= 0)
+            {
+                return;
+            }
+
+            int actionCount = PART_ActionButtons.Children.Count(child => child.IsVisible);
+            double actionsWidth = actionCount * GizmoSize + Math.Max(actionCount - 1, 0) * GizmoSpacing;
+            double expandedWidth = PART_PrimaryGizmos.DesiredSize.Width + GizmoRowGap + actionsWidth;
+
+            if (!_actionsCollapsed && expandedWidth > availableWidth)
+            {
+                SetActionsCollapsed(true);
+            }
+            else if (_actionsCollapsed && expandedWidth + ActionsExpandHysteresis <= availableWidth)
+            {
+                SetActionsCollapsed(false);
+            }
+        }
+
+        private void SetActionsCollapsed(bool collapsed)
+        {
+            _actionsCollapsed = collapsed;
+            PART_ActionButtons.IsVisible = !collapsed;
+            PART_MoreButton.IsVisible = collapsed;
+        }
+
         private void UpdateEnabled()
         {
             ObjectPropertyViewModel? vm = DataContext as ObjectPropertyViewModel;
 
-            PART_CopyMenuItem.IsEnabled = vm?.GetCopyText() != null;
-            PART_PasteMenuItem.IsEnabled = vm?.IsReadOnly == false;
+            bool canCopy = vm?.GetCopyText() != null;
+            PART_CopyMenuItem.IsEnabled = canCopy;
+            PART_CopyButton.IsEnabled = canCopy;
+
+            bool canPaste = vm?.IsReadOnly == false;
+            PART_PasteMenuItem.IsEnabled = canPaste;
+            PART_PasteButton.IsEnabled = canPaste;
         }
 
         private async void OnCopyClicked(object? sender, RoutedEventArgs e)

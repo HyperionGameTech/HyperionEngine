@@ -53,6 +53,11 @@ namespace Hyperion
 
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(WorldGrid);
 
+extern uint32 GetFrameCounter();
+
+// render frames a removed entity is kept for: the frame reading its last collection, the one dropping it, and that frame's end
+static constexpr uint32 RetiredEntityFrames = 4;
+
 // full resolution quads per side of a level 0 patch (power of two). Applies to tiles built after it changes
 CVar<uint32> g_cvTerrainLodPatchQuads("Terrain.Lod.PatchQuads", 32);
 // quadtree levels per tile, level 0 included - also capped by the tile size. Applies to tiles built after it changes
@@ -513,6 +518,8 @@ void TerrainWorldGridLayer::UpdateLodSelection(Span<const Vec3f> viewpoints)
     HYP_SCOPE;
     AssertOnThread(g_simThread);
 
+    ReleaseRetiredEntities();
+
     m_groundCoverResources.Refresh();
 
     m_loadedCells.ForEach(
@@ -653,6 +660,67 @@ void TerrainWorldGridLayer::SetSettings(const TerrainLayerSettings& settings)
     {
         RefreshGenerator();
     }
+}
+
+void TerrainWorldGridLayer::SetHeightSource(TerrainHeightSource heightSource)
+{
+    TerrainLayerSettings settings = m_settings;
+    settings.heightSource = heightSource;
+
+    SetSettings(settings);
+}
+
+void TerrainWorldGridLayer::SetFlatHeight(float flatHeight)
+{
+    TerrainLayerSettings settings = m_settings;
+    settings.flatHeight = flatHeight;
+
+    SetSettings(settings);
+}
+
+void TerrainWorldGridLayer::SetHeightmapCenter(Vec2f heightmapCenter)
+{
+    TerrainLayerSettings settings = m_settings;
+    settings.heightmapCenter = heightmapCenter;
+
+    SetSettings(settings);
+}
+
+void TerrainWorldGridLayer::SetHeightmapSize(Vec2f heightmapSize)
+{
+    TerrainLayerSettings settings = m_settings;
+    settings.heightmapSize = heightmapSize;
+
+    SetSettings(settings);
+}
+
+void TerrainWorldGridLayer::SetHeightmapHeightRange(Vec2f heightmapHeightRange)
+{
+    TerrainLayerSettings settings = m_settings;
+    settings.heightmapHeightRange = heightmapHeightRange;
+
+    SetSettings(settings);
+}
+
+void TerrainWorldGridLayer::SetProceduralEdges(bool proceduralEdges)
+{
+    TerrainLayerSettings settings = m_settings;
+    settings.proceduralEdges = proceduralEdges;
+
+    SetSettings(settings);
+}
+
+void TerrainWorldGridLayer::SetBlendDistance(float blendDistance)
+{
+    TerrainLayerSettings settings = m_settings;
+    settings.blendDistance = MathUtil::Max(blendDistance, 0.0f);
+
+    SetSettings(settings);
+}
+
+uint32 TerrainWorldGridLayer::GetNumHeightmapTiles() const
+{
+    return uint32(MathUtil::Min(m_settings.heightmapTiles.Size(), m_heightmapTileTextures.Size()));
 }
 
 const Handle<Texture>& TerrainWorldGridLayer::GetHeightmap() const
@@ -798,6 +866,16 @@ void TerrainWorldGridLayer::SetProceduralCells(const Array<Vec2i>& proceduralCel
     settings.proceduralCells = proceduralCells;
 
     SetSettings(settings);
+}
+
+uint32 TerrainWorldGridLayer::GetNumProceduralCells() const
+{
+    return uint32(m_settings.proceduralCells.Size());
+}
+
+void TerrainWorldGridLayer::ClearProceduralCells()
+{
+    SetProceduralCells(Array<Vec2i>());
 }
 
 bool TerrainWorldGridLayer::TakeProceduralCellsEdit(
@@ -1006,6 +1084,46 @@ void TerrainWorldGridLayer::DetachLoadedCells()
 
     m_loadedCells.Clear();
     m_brush.ResetStroke();
+}
+
+void TerrainWorldGridLayer::RetireEntity(Handle<Entity>&& entity)
+{
+    AssertOnThread(g_simThread);
+
+    if (!entity.IsValid())
+    {
+        return;
+    }
+
+    // nothing renders, and the frame counter wouldn't advance
+    if (EngineGlobals::IsHeadless())
+    {
+        entity.Reset();
+
+        return;
+    }
+
+    m_retiredEntities.PushBack(RetiredEntity { std::move(entity), GetFrameCounter() });
+}
+
+void TerrainWorldGridLayer::ReleaseRetiredEntities()
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    const uint32 frameCounter = GetFrameCounter();
+
+    size_t numReleased = 0;
+
+    while (numReleased < m_retiredEntities.Size() && frameCounter - m_retiredEntities[numReleased].frameCounter >= RetiredEntityFrames)
+    {
+        ++numReleased;
+    }
+
+    if (numReleased != 0)
+    {
+        m_retiredEntities.Erase(m_retiredEntities.Begin(), m_retiredEntities.Begin() + numReleased);
+    }
 }
 
 void TerrainWorldGridLayer::DiscardAllCellData()

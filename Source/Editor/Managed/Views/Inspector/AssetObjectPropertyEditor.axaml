@@ -114,8 +114,15 @@
                 </Grid>
             </Border>
 
-            <Grid ColumnDefinitions="*,Auto">
-                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="2">
+            <Grid
+                x:Name="PART_GizmoRow"
+                ColumnDefinitions="*,Auto"
+                ColumnSpacing="6">
+                <StackPanel
+                    x:Name="PART_PrimaryGizmos"
+                    Grid.Column="0"
+                    Orientation="Horizontal"
+                    Spacing="2">
                     <Button
                         Classes="gizmo"
                         Command="{Binding SelectCommand}"
@@ -146,45 +153,80 @@
                     </ToggleButton>
                 </StackPanel>
 
-                <Button
-                    x:Name="PART_MoreButton"
+                <StackPanel
                     Grid.Column="1"
-                    Classes="gizmo"
-                    ToolTip.Tip="More actions">
-                    <controls:Codicon Kind="KebabVertical" Size="14" />
-                    <Button.Flyout>
-                        <MenuFlyout Placement="BottomEdgeAlignedRight">
-                            <MenuItem
-                                Command="{Binding NewCommand}"
-                                Header="Create New..."
-                                IsEnabled="{Binding CanCreateNew}">
-                                <MenuItem.Icon>
-                                    <controls:Codicon Kind="Add" Size="14" />
-                                </MenuItem.Icon>
-                            </MenuItem>
-                            <MenuItem
-                                Command="{Binding CloneCommand}"
-                                Header="Clone and Assign"
-                                IsEnabled="{Binding CanClone}"
-                                IsVisible="{Binding HasSubObject}">
-                                <MenuItem.Icon>
-                                    <controls:Codicon Kind="Copy" Size="14" />
-                                </MenuItem.Icon>
-                            </MenuItem>
-                            <Separator />
-                            <MenuItem x:Name="PART_CopyMenuItem" Header="Copy Asset Path">
-                                <MenuItem.Icon>
-                                    <controls:Codicon Kind="Copy" Size="14" />
-                                </MenuItem.Icon>
-                            </MenuItem>
-                            <MenuItem x:Name="PART_PasteMenuItem" Header="Paste Asset Path">
-                                <MenuItem.Icon>
-                                    <controls:Codicon Kind="Clippy" Size="14" />
-                                </MenuItem.Icon>
-                            </MenuItem>
-                        </MenuFlyout>
-                    </Button.Flyout>
-                </Button>
+                    Orientation="Horizontal"
+                    Spacing="2">
+                    <StackPanel x:Name="PART_ActionButtons" Orientation="Horizontal" Spacing="2">
+                        <Button
+                            Classes="gizmo"
+                            Command="{Binding NewCommand}"
+                            IsEnabled="{Binding CanCreateNew}"
+                            ToolTip.Tip="Create New...">
+                            <controls:Codicon Kind="Add" Size="14" />
+                        </Button>
+                        <Button
+                            Classes="gizmo"
+                            Command="{Binding CloneCommand}"
+                            IsEnabled="{Binding CanClone}"
+                            IsVisible="{Binding HasSubObject}"
+                            ToolTip.Tip="Clone and Assign">
+                            <controls:Codicon Kind="Copy" Size="14" />
+                        </Button>
+                        <Button
+                            x:Name="PART_CopyButton"
+                            Classes="gizmo"
+                            ToolTip.Tip="Copy Asset Path">
+                            <controls:Codicon Kind="Copy" Size="14" />
+                        </Button>
+                        <Button
+                            x:Name="PART_PasteButton"
+                            Classes="gizmo"
+                            ToolTip.Tip="Paste Asset Path">
+                            <controls:Codicon Kind="Clippy" Size="14" />
+                        </Button>
+                    </StackPanel>
+
+                    <Button
+                        x:Name="PART_MoreButton"
+                        Classes="gizmo"
+                        IsVisible="False"
+                        ToolTip.Tip="More actions">
+                        <controls:Codicon Kind="KebabVertical" Size="14" />
+                        <Button.Flyout>
+                            <MenuFlyout Placement="BottomEdgeAlignedRight">
+                                <MenuItem
+                                    Command="{Binding NewCommand}"
+                                    Header="Create New..."
+                                    IsEnabled="{Binding CanCreateNew}">
+                                    <MenuItem.Icon>
+                                        <controls:Codicon Kind="Add" Size="14" />
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem
+                                    Command="{Binding CloneCommand}"
+                                    Header="Clone and Assign"
+                                    IsEnabled="{Binding CanClone}"
+                                    IsVisible="{Binding HasSubObject}">
+                                    <MenuItem.Icon>
+                                        <controls:Codicon Kind="Copy" Size="14" />
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <Separator />
+                                <MenuItem x:Name="PART_CopyMenuItem" Header="Copy Asset Path">
+                                    <MenuItem.Icon>
+                                        <controls:Codicon Kind="Copy" Size="14" />
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem x:Name="PART_PasteMenuItem" Header="Paste Asset Path">
+                                    <MenuItem.Icon>
+                                        <controls:Codicon Kind="Clippy" Size="14" />
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                            </MenuFlyout>
+                        </Button.Flyout>
+                    </Button>
+                </StackPanel>
             </Grid>
         </StackPanel>
     </Grid>

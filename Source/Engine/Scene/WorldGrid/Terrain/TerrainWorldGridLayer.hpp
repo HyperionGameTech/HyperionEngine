@@ -40,6 +40,7 @@ namespace Hyperion {
 
 class Material;
 class Mesh;
+class Entity;
 class Scene;
 class Texture;
 class TerrainStreamingCell;
@@ -64,51 +65,34 @@ struct TerrainLayerSettings
 {
     HYP_STRUCT_BODY(TerrainLayerSettings);
 
-    HYP_FIELD(Property = "HeightSource", Serialize, Editor)
+    HYP_FIELD(Property = "HeightSource", Serialize)
     TerrainHeightSource heightSource = TerrainHeightSource::Procedural;
 
-    HYP_FIELD(Property = "FlatHeight", Serialize, Editor, Condition = "IsFlat")
+    HYP_FIELD(Property = "FlatHeight", Serialize)
     float flatHeight = 0.0f;
 
-    HYP_FIELD(Property = "HeightmapCenter", Serialize, Editor, Condition = "IsHeightmap")
+    HYP_FIELD(Property = "HeightmapCenter", Serialize)
     Vec2f heightmapCenter;
 
-    HYP_FIELD(Property = "HeightmapSize", Serialize, Editor, Condition = "IsHeightmap")
+    /// zero for one sample per terrain vertex
+    HYP_FIELD(Property = "HeightmapSize", Serialize)
     Vec2f heightmapSize;
 
-    HYP_FIELD(Property = "HeightmapHeightRange", Serialize, Editor, Condition = "IsHeightmap")
+    HYP_FIELD(Property = "HeightmapHeightRange", Serialize)
     Vec2f heightmapHeightRange { 0.0f, 200.0f };
 
-    HYP_FIELD(Property = "ProceduralEdges", Serialize, Editor, Condition = "IsHeightmap")
+    HYP_FIELD(Property = "ProceduralEdges", Serialize)
     bool proceduralEdges = true;
 
-    HYP_FIELD(Property = "BlendDistance", Serialize, Editor, Condition = "IsFlatOrHeightmap")
+    HYP_FIELD(Property = "BlendDistance", Serialize)
     float blendDistance = 64.0f;
 
     HYP_FIELD(Property = "ProceduralCells", Serialize)
     Array<Vec2i> proceduralCells;
 
     /// in the order of the layer's heightmap tile textures
-    HYP_FIELD(Property = "HeightmapTiles", Serialize, Editor = false)
+    HYP_FIELD(Property = "HeightmapTiles", Serialize)
     Array<Vec2i> heightmapTiles;
-
-    HYP_METHOD(NoScriptBindings)
-    bool IsFlat() const
-    {
-        return heightSource == TerrainHeightSource::Flat;
-    }
-
-    HYP_METHOD(NoScriptBindings)
-    bool IsHeightmap() const
-    {
-        return heightSource == TerrainHeightSource::Heightmap;
-    }
-
-    HYP_METHOD(NoScriptBindings)
-    bool IsFlatOrHeightmap() const
-    {
-        return heightSource != TerrainHeightSource::Procedural;
-    }
 
     HYP_FORCE_INLINE bool operator==(const TerrainLayerSettings& other) const = default;
     HYP_FORCE_INLINE bool operator!=(const TerrainLayerSettings& other) const = default;
@@ -169,32 +153,97 @@ public:
         return m_layerInfo.seed;
     }
 
-    HYP_METHOD(Property = "Seed")
+    HYP_METHOD(Property = "Seed", Editor = false)
     void SetSeed(uint32 seed);
 
-    HYP_METHOD(Property = "Settings", Editor, NoScriptBindings)
+    HYP_METHOD(NoScriptBindings)
     HYP_FORCE_INLINE const TerrainLayerSettings& GetSettings() const
     {
         return m_settings;
     }
 
-    HYP_METHOD(Property = "Settings", Editor, NoScriptBindings)
+    HYP_METHOD(NoScriptBindings)
     void SetSettings(const TerrainLayerSettings& settings);
 
-    /// the heightmap when there's a single one - null for a tiled heightmap
+    HYP_METHOD(Property = "HeightSource", Editor, Label = "Height Source")
+    HYP_FORCE_INLINE TerrainHeightSource GetHeightSource() const
+    {
+        return m_settings.heightSource;
+    }
+
+    HYP_METHOD(Property = "HeightSource", Editor)
+    void SetHeightSource(TerrainHeightSource heightSource);
+
+    HYP_METHOD(Property = "FlatHeight", Editor, NoScriptBindings)
+    HYP_FORCE_INLINE float GetFlatHeight() const
+    {
+        return m_settings.flatHeight;
+    }
+
+    HYP_METHOD(Property = "FlatHeight", Editor, NoScriptBindings)
+    void SetFlatHeight(float flatHeight);
+
     HYP_METHOD(Property = "Heightmap", Editor)
     const Handle<Texture>& GetHeightmap() const;
 
-    /// replaces any tiles with \p heightmap
+    /// A greyscale texture. 16 bit images and .r16 files keep full precision
     HYP_METHOD(Property = "Heightmap", Editor)
     void SetHeightmap(const Handle<Texture>& heightmap);
 
     HYP_METHOD(Property = "HeightmapTiles", Editor, NoScriptBindings)
     Array<TerrainHeightmapTile> GetHeightmapTiles() const;
 
-    /// setting any switches the height source to them
+    /// Equal sized tiles that share their border samples. Tile y counts along +Z
     HYP_METHOD(Property = "HeightmapTiles", Editor, NoScriptBindings)
     void SetHeightmapTiles(const Array<TerrainHeightmapTile>& tiles);
+
+    HYP_METHOD()
+    uint32 GetNumHeightmapTiles() const;
+
+    HYP_METHOD(Property = "HeightmapCenter", Editor, NoScriptBindings)
+    HYP_FORCE_INLINE Vec2f GetHeightmapCenter() const
+    {
+        return m_settings.heightmapCenter;
+    }
+
+    HYP_METHOD(Property = "HeightmapCenter", Editor, NoScriptBindings)
+    void SetHeightmapCenter(Vec2f heightmapCenter);
+
+    HYP_METHOD(Property = "HeightmapSize", Editor, NoScriptBindings)
+    HYP_FORCE_INLINE Vec2f GetHeightmapSize() const
+    {
+        return m_settings.heightmapSize;
+    }
+
+    HYP_METHOD(Property = "HeightmapSize", Editor, NoScriptBindings)
+    void SetHeightmapSize(Vec2f heightmapSize);
+
+    HYP_METHOD(Property = "HeightmapHeightRange", Editor, NoScriptBindings)
+    HYP_FORCE_INLINE Vec2f GetHeightmapHeightRange() const
+    {
+        return m_settings.heightmapHeightRange;
+    }
+
+    HYP_METHOD(Property = "HeightmapHeightRange", Editor, NoScriptBindings)
+    void SetHeightmapHeightRange(Vec2f heightmapHeightRange);
+
+    HYP_METHOD(Property = "ProceduralEdges", Editor, NoScriptBindings)
+    HYP_FORCE_INLINE bool GetProceduralEdges() const
+    {
+        return m_settings.proceduralEdges;
+    }
+
+    HYP_METHOD(Property = "ProceduralEdges", Editor, NoScriptBindings)
+    void SetProceduralEdges(bool proceduralEdges);
+
+    HYP_METHOD(Property = "BlendDistance", Editor, NoScriptBindings)
+    HYP_FORCE_INLINE float GetBlendDistance() const
+    {
+        return m_settings.blendDistance;
+    }
+
+    HYP_METHOD(Property = "BlendDistance", Editor, NoScriptBindings)
+    void SetBlendDistance(float blendDistance);
 
     ///sim thread only - other threads must use GetGenerationState()
     HYP_FORCE_INLINE const TerrainGenerator& GetGenerator() const
@@ -280,6 +329,12 @@ public:
     HYP_METHOD()
     void SetProceduralCells(const Array<Vec2i>& proceduralCells);
 
+    HYP_METHOD()
+    uint32 GetNumProceduralCells() const;
+
+    HYP_METHOD()
+    void ClearProceduralCells();
+
     bool TakeProceduralCellsEdit(
         Array<Vec2i, TerrainAllocator>& outBefore,
         Array<Vec2i, TerrainAllocator>& outAfter);
@@ -324,6 +379,8 @@ public:
 
     void UpdateLodSelection(Span<const Vec3f> viewpoints);
 
+    void RetireEntity(Handle<Entity>&& entity);
+
     void SetLodViewpoints(Span<const Vec3f> viewpoints);
     Array<Vec3f, TerrainAllocator> GetLodViewpoints() const;
 
@@ -341,6 +398,12 @@ public:
     virtual void SetDescSettings(const BoxedValue& settings) override;
 
 protected:
+    struct RetiredEntity
+    {
+        Handle<Entity> entity;
+        uint32 frameCounter = 0;
+    };
+
     static uint64 ComputeCellFingerprint(const TerrainGenerator& generator, const WorldGridLayerInfo& layerInfo);
 
     virtual void OnAdded(WorldGrid* worldGrid) override;
@@ -363,6 +426,8 @@ protected:
     float SampleHeight(const Vec2f& worldXZ, bool generateColdCells) const;
 
     void DetachLoadedCells();
+
+    void ReleaseRetiredEntities();
 
     void DiscardAllCellData();
     void DeletePersistedCellData(const AssetPath& assetPath);
@@ -391,6 +456,8 @@ protected:
     mutable Array<Vec4f, TerrainAllocator> m_heightDirtyRects;
 
     TerrainLoadedCells m_loadedCells;
+
+    Array<RetiredEntity, TerrainAllocator> m_retiredEntities;
 
     TerrainBrush m_brush { *this };
 
