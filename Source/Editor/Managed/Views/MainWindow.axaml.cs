@@ -96,6 +96,7 @@ namespace Hyperion.Editor
         private readonly Dictionary<EditorPanelViewModel, Tool> _dynamicPanelTools = new();
         private readonly Dictionary<EditorDocumentViewModel, IDockable> _pluginDocuments = new();
         private int _frameCounter;
+        private double _normalWidth;
         private bool _viewportNativeHidden;
         private bool _isClosing;
         private int _mainThreadUpdateDepth;
@@ -137,6 +138,7 @@ namespace Hyperion.Editor
             InitializeComponent();
 
             viewModel.SceneHierarchy.PropertyChanged += OnSceneHierarchyPropertyChanged;
+            viewModel.PropertyChanged += OnViewModelChromePropertyChanged;
 
             EditorPluginService.Instance.Documents.CollectionChanged += (_, e) =>
             {
@@ -282,6 +284,8 @@ namespace Hyperion.Editor
 
             Dispatcher.UIThread.Post(OnWindowLoaded, DispatcherPriority.Loaded);
             DockControl.LayoutUpdated += OnDockControlLayoutUpdated;
+
+            UpdateChromeState();
         }
 
         private void OnDockControlLayoutUpdated(object? sender, EventArgs e)
@@ -309,6 +313,189 @@ namespace Hyperion.Editor
             _viewportLayout = ViewportLayout.Single;
 
             ResetLayout();
+        }
+
+        protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+        {
+            base.OnPropertyChanged(change);
+
+            if (change.Property == WindowStateProperty)
+            {
+                bool isMaximized = WindowState == WindowState.Maximized;
+                ResizeGrips.IsVisible = WindowState == WindowState.Normal;
+                MaximizeGlyph.IsVisible = !isMaximized;
+                RestoreGlyph.IsVisible = isMaximized;
+                ToolTip.SetTip(MaximizeButton, isMaximized ? "Restore" : "Maximize");
+                ClearCaptionHover();
+            }
+            else if (change.Property == IsActiveProperty)
+            {
+                UpdateChromeState();
+            }
+        }
+
+        private void OnViewModelChromePropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            switch (e.PropertyName)
+            {
+                case nameof(MainWindowViewModel.IsGameModeSimulating):
+                case nameof(MainWindowViewModel.IsGameModePaused):
+                case nameof(MainWindowViewModel.IsInEditMode):
+                case nameof(MainWindowViewModel.EditModeDescription):
+                case nameof(MainWindowViewModel.IsEditModeDirty):
+                    UpdateChromeState();
+                    break;
+            }
+        }
+
+        private void UpdateChromeState()
+        {
+            if (DataContext is not MainWindowViewModel viewModel)
+            {
+                return;
+            }
+
+            bool playing = viewModel.IsGameModeSimulating;
+            bool paused = !playing && viewModel.IsGameModePaused;
+            bool editing = !playing && !paused && viewModel.IsInEditMode;
+
+            TitleBar.Classes.Set("playing", playing);
+            TitleBar.Classes.Set("paused", paused);
+            TitleBar.Classes.Set("editing", editing);
+            TitleBar.Classes.Set("inactive", !IsActive);
+
+            string borderColorKey = "Color.BorderLight";
+
+            if (playing)
+            {
+                ChromeStateText.Text = "Playing";
+                borderColorKey = "Color.PlayMuted";
+            }
+            else if (paused)
+            {
+                ChromeStateText.Text = "Paused";
+                borderColorKey = "Color.Warning";
+            }
+            else if (editing)
+            {
+                ChromeStateText.Text = viewModel.IsEditModeDirty ? $"{viewModel.EditModeDescription} •" : viewModel.EditModeDescription;
+                borderColorKey = "Color.AccentMuted";
+            }
+
+            if (!IsActive && !playing && !paused)
+            {
+                borderColorKey = "Color.Border";
+            }
+
+            DarkTitleBar.ApplyFrame(this, GetThemeColor(borderColorKey));
+        }
+
+        private Avalonia.Media.Color GetThemeColor(string key) =>
+            this.TryFindResource(key, ActualThemeVariant, out object? value) && value is Avalonia.Media.Color color ? color : Colors.Black;
+
+        protected override void OnSizeChanged(Avalonia.Controls.SizeChangedEventArgs e)
+        {
+            base.OnSizeChanged(e);
+
+            if (WindowState == WindowState.Normal)
+            {
+                _normalWidth = e.NewSize.Width;
+            }
+        }
+
+        private void OnTitleBarPointerPressed(object? sender, PointerPressedEventArgs e)
+        {
+            if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+            {
+                return;
+            }
+
+            if (e.ClickCount == 2)
+            {
+                ToggleMaximize();
+                return;
+            }
+
+            ClearCaptionHover();
+
+            if (WindowState == WindowState.Maximized)
+            {
+                RestoreUnderPointer(e);
+            }
+
+            BeginMoveDrag(e);
+
+            ClearCaptionHover();
+        }
+
+        private void RestoreUnderPointer(PointerPressedEventArgs e)
+        {
+            Point cursorInWindow = e.GetPosition(this);
+            PixelPoint maximizedOrigin = Position;
+            double fraction = cursorInWindow.X / Bounds.Width;
+            double restoredWidth = _normalWidth > 0 ? _normalWidth : Bounds.Width;
+
+            WindowState = WindowState.Normal;
+
+            Position = new PixelPoint(
+                maximizedOrigin.X + (int)Math.Round((cursorInWindow.X - fraction * restoredWidth) * RenderScaling),
+                maximizedOrigin.Y);
+        }
+
+        private void OnCaptionPointerEntered(object? sender, PointerEventArgs e)
+        {
+            if (sender is Button button)
+            {
+                button.Classes.Set("hovered", true);
+            }
+        }
+
+        private void OnCaptionPointerExited(object? sender, PointerEventArgs e)
+        {
+            if (sender is Button button)
+            {
+                button.Classes.Set("hovered", false);
+            }
+        }
+
+        private void ClearCaptionHover()
+        {
+            foreach (Button button in CaptionButtons.Children.OfType<Button>())
+            {
+                button.Classes.Set("hovered", false);
+            }
+        }
+
+        private void OnResizeGripPointerPressed(object? sender, PointerPressedEventArgs e)
+        {
+            if (WindowState != WindowState.Normal
+                || sender is not Control { Tag: string tag }
+                || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+            {
+                return;
+            }
+
+            if (Enum.TryParse(tag, out WindowEdge edge))
+            {
+                BeginResizeDrag(edge, e);
+            }
+        }
+
+        private void OnMinimizeClick(object? sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
+
+        private void OnMaximizeClick(object? sender, RoutedEventArgs e) => ToggleMaximize();
+
+        private void OnCloseClick(object? sender, RoutedEventArgs e) => Close();
+
+        private void ToggleMaximize()
+        {
+            if (WindowState == WindowState.Maximized)
+            {
+                WindowState = WindowState.Normal;
+                return;
+            }
+
+            WindowState = WindowState.Maximized;
         }
 
         private void OnViewportLayoutSingleClick(object? sender, RoutedEventArgs e) => ApplyViewportLayout(ViewportLayout.Single);

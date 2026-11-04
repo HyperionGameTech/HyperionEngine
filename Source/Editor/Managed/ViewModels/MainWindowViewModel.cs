@@ -41,6 +41,20 @@ namespace Hyperion.Editor.ViewModels
             set => SetProperty(ref _title, value);
         }
 
+        private string _projectDisplayName = "";
+        public string ProjectDisplayName
+        {
+            get => _projectDisplayName;
+            set => SetProperty(ref _projectDisplayName, value);
+        }
+
+        private string _worldDisplayName = "";
+        public string WorldDisplayName
+        {
+            get => _worldDisplayName;
+            set => SetProperty(ref _worldDisplayName, value);
+        }
+
         public static MainWindowViewModel? Instance { get; internal set; }
 
         public SceneHierarchyViewModel SceneHierarchy { get; private set; }
@@ -1067,6 +1081,9 @@ namespace Hyperion.Editor.ViewModels
         public ICommand SetGameModeStopped { get; private set; }
         public bool CanSetGameModeStopped => _cachedGameStateMode != GameStateMode.Stopped;
 
+        public bool IsGameModeSimulating => _cachedGameStateMode == GameStateMode.Simulating;
+        public bool IsGameModePaused => _cachedGameStateMode == GameStateMode.Paused;
+
         private void RefreshGameModeState()
         {
             Dispatcher.UIThread.VerifyAccess();
@@ -1087,6 +1104,8 @@ namespace Hyperion.Editor.ViewModels
             OnPropertyChanged(nameof(CanSetGameModePlaying));
             OnPropertyChanged(nameof(CanSetGameModePaused));
             OnPropertyChanged(nameof(CanSetGameModeStopped));
+            OnPropertyChanged(nameof(IsGameModeSimulating));
+            OnPropertyChanged(nameof(IsGameModePaused));
             OnPropertyChanged(nameof(IsSimulating));
             OnPropertyChanged(nameof(CanAddNewScene));
 
@@ -2377,9 +2396,18 @@ namespace Hyperion.Editor.ViewModels
 
                 weakProjectForUI.TryGetTarget(out EditorProject? p);
 
-                Title = p != null && !string.IsNullOrEmpty(p.FilePath)
-                    ? $"{Path.GetFileNameWithoutExtension(p.FilePath)} ({p.GetEditWorldName()}) - Hyperion"
-                    : "Hyperion";
+                if (p != null && !string.IsNullOrEmpty(p.FilePath))
+                {
+                    ProjectDisplayName = Path.GetFileNameWithoutExtension(p.FilePath);
+                    WorldDisplayName = p.GetEditWorldName().ToString();
+                    Title = $"{ProjectDisplayName} ({WorldDisplayName}) - Hyperion";
+                }
+                else
+                {
+                    ProjectDisplayName = "";
+                    WorldDisplayName = "";
+                    Title = "Hyperion";
+                }
 
                 if (p != null)
                 {

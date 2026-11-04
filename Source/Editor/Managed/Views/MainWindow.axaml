@@ -15,6 +15,9 @@
     x:Name="Root"
     Title="{Binding Title}"
     Icon="/Assets/Branding/hyperion-icon.ico"
+    ExtendClientAreaToDecorationsHint="True"
+    SystemDecorations="None"
+    WindowDecorations="None"
     d:DesignHeight="720"
     d:DesignWidth="1280"
     x:CompileBindings="False"
@@ -22,6 +25,189 @@
     mc:Ignorable="d">
 
     <Window.Styles>
+        <Style Selector="Grid#TitleBar">
+            <Setter Property="Background" Value="{DynamicResource Brush.Background}" />
+        </Style>
+
+        <Style Selector="Panel.chrome-content">
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.12" />
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <Style Selector="Grid#TitleBar.inactive Panel.chrome-content">
+            <Setter Property="Opacity" Value="0.45" />
+        </Style>
+
+        <Style Selector="Path.chrome-mark">
+            <Setter Property="Fill" Value="{DynamicResource Brush.Text}" />
+        </Style>
+        <Style Selector="Grid#TitleBar.playing Path.chrome-mark">
+            <Setter Property="Fill" Value="{DynamicResource Brush.PlayHover}" />
+        </Style>
+        <Style Selector="Grid#TitleBar.paused Path.chrome-mark">
+            <Setter Property="Fill" Value="{DynamicResource Brush.Warning}" />
+        </Style>
+        <Style Selector="Grid#TitleBar.editing Path.chrome-mark">
+            <Setter Property="Fill" Value="{DynamicResource Brush.AccentHover}" />
+        </Style>
+
+        <Style Selector="Menu.chrome-menu">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Menu.chrome-menu > MenuItem">
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextMuted}" />
+        </Style>
+        <Style Selector="Menu.chrome-menu > MenuItem:pointerover, Menu.chrome-menu > MenuItem:selected, Menu.chrome-menu > MenuItem:open">
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+        </Style>
+        <Style Selector="Menu.chrome-menu > MenuItem:pointerover /template/ Border#root, Menu.chrome-menu > MenuItem:selected /template/ Border#root, Menu.chrome-menu > MenuItem:open /template/ Border#root">
+            <Setter Property="Background" Value="#17FFFFFF" />
+        </Style>
+
+        <Style Selector="TextBlock.chrome-project">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+        </Style>
+
+        <Style Selector="TextBlock.chrome-world">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextMuted}" />
+        </Style>
+
+        <Style Selector="Border.chrome-state-stripe">
+            <Setter Property="Height" Value="2" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+
+        <Style Selector="Border.chrome-state-pill">
+            <Setter Property="Height" Value="20" />
+            <Setter Property="Padding" Value="9,0,10,0" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+
+        <Style Selector="TextBlock.chrome-state-text">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <Style Selector="Grid#TitleBar.playing Border.chrome-state-stripe">
+            <Setter Property="IsVisible" Value="True" />
+            <Setter Property="Background" Value="{DynamicResource Brush.Play}" />
+        </Style>
+        <Style Selector="Grid#TitleBar.playing Border.chrome-state-pill">
+            <Setter Property="IsVisible" Value="True" />
+            <Setter Property="Background" Value="#1F16A34A" />
+            <Setter Property="BorderBrush" Value="#5916A34A" />
+        </Style>
+        <Style Selector="Grid#TitleBar.playing Ellipse.chrome-state-dot">
+            <Setter Property="Fill" Value="{DynamicResource Brush.PlayHover}" />
+        </Style>
+        <Style Selector="Grid#TitleBar.playing TextBlock.chrome-state-text">
+            <Setter Property="Foreground" Value="{DynamicResource Brush.PlayHover}" />
+        </Style>
+
+        <Style Selector="Grid#TitleBar.paused Border.chrome-state-stripe">
+            <Setter Property="IsVisible" Value="True" />
+            <Setter Property="Background" Value="{DynamicResource Brush.Warning}" />
+        </Style>
+        <Style Selector="Grid#TitleBar.paused Border.chrome-state-pill">
+            <Setter Property="IsVisible" Value="True" />
+            <Setter Property="Background" Value="#1FE3A84D" />
+            <Setter Property="BorderBrush" Value="#59E3A84D" />
+        </Style>
+        <Style Selector="Grid#TitleBar.paused Ellipse.chrome-state-dot">
+            <Setter Property="Fill" Value="{DynamicResource Brush.Warning}" />
+        </Style>
+        <Style Selector="Grid#TitleBar.paused TextBlock.chrome-state-text">
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Warning}" />
+        </Style>
+
+        <Style Selector="Grid#TitleBar.editing Border.chrome-state-stripe">
+            <Setter Property="IsVisible" Value="True" />
+            <Setter Property="Background" Value="{DynamicResource Brush.Accent}" />
+        </Style>
+        <Style Selector="Grid#TitleBar.editing Border.chrome-state-pill">
+            <Setter Property="IsVisible" Value="True" />
+            <Setter Property="Background" Value="#1F3D7EFF" />
+            <Setter Property="BorderBrush" Value="#593D7EFF" />
+        </Style>
+        <Style Selector="Grid#TitleBar.editing Ellipse.chrome-state-dot">
+            <Setter Property="Fill" Value="{DynamicResource Brush.AccentHover}" />
+        </Style>
+        <Style Selector="Grid#TitleBar.editing TextBlock.chrome-state-text">
+            <Setter Property="Foreground" Value="{DynamicResource Brush.AccentHover}" />
+        </Style>
+
+        <Style Selector="Button.caption">
+            <Setter Property="Width" Value="46" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="0" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+        </Style>
+
+        <Style Selector="Button.caption Path.caption-glyph">
+            <Setter Property="Width" Value="10" />
+            <Setter Property="Height" Value="10" />
+            <Setter Property="Stretch" Value="None" />
+            <Setter Property="StrokeThickness" Value="1" />
+            <Setter Property="Stroke" Value="{DynamicResource Brush.Text}" />
+        </Style>
+
+        <Style Selector="Grid#TitleBar.inactive Button.caption Path.caption-glyph">
+            <Setter Property="Stroke" Value="{DynamicResource Brush.TextFaint}" />
+        </Style>
+
+        <Style Selector="Button.caption.hovered">
+            <Setter Property="Background" Value="#17FFFFFF" />
+        </Style>
+
+        <Style Selector="Button.caption.hovered Path.caption-glyph">
+            <Setter Property="Stroke" Value="{DynamicResource Brush.Text}" />
+        </Style>
+
+        <Style Selector="Button.caption:pressed">
+            <Setter Property="Background" Value="#0DFFFFFF" />
+        </Style>
+
+        <Style Selector="Button.caption.close.hovered">
+            <Setter Property="Background" Value="#C42B1C" />
+        </Style>
+
+        <Style Selector="Button.caption.close:pressed">
+            <Setter Property="Background" Value="#A8251A" />
+        </Style>
+
+        <Style Selector="Button.caption.close.hovered Path.caption-glyph, Button.caption.close:pressed Path.caption-glyph">
+            <Setter Property="Stroke" Value="White" />
+        </Style>
+
+        <Style Selector="Border.resize-grip">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+
         <Style Selector="TabControl">
             <Setter Property="Padding" Value="0" />
         </Style>
@@ -386,86 +572,248 @@
 
     <Grid>
         <DockPanel Background="{DynamicResource Brush.Background}">
-            <!--  Fallback in-window menu for non-macOS platforms (hidden: actions live in the toolbar)  -->
-            <Menu DockPanel.Dock="Top" IsVisible="False">
-                <MenuItem Header="_File" SubmenuOpened="OnFileMenuSubmenuOpened">
-                    <MenuItem
-                        Command="{Binding NewProject}"
-                        Header="_New Project..."
-                        IsEnabled="{Binding !IsSimulating}" />
-                    <MenuItem
-                        Command="{Binding OpenProject}"
-                        Header="_Open Project..."
-                        IsEnabled="{Binding !IsSimulating}" />
-                    <MenuItem
-                        x:Name="FileOpenRecentMenuItem"
-                        Header="Open _Recent"
-                        IsEnabled="{Binding !IsSimulating}" />
-                    <Separator />
-                    <MenuItem
-                        Command="{Binding SaveProject}"
-                        Header="_Save Project"
-                        IsEnabled="{Binding !IsSimulating}" />
-                    <MenuItem
-                        Command="{Binding SaveProjectAs}"
-                        Header="Save Project _As..."
-                        IsEnabled="{Binding !IsSimulating}" />
-                    <Separator />
-                    <MenuItem
-                        Command="{Binding CloseProject}"
-                        Header="Close Project"
-                        IsEnabled="{Binding !IsSimulating}" />
-                    <Separator />
-                    <MenuItem Command="{Binding Exit}" Header="_Exit" />
-                </MenuItem>
-                <MenuItem Header="_Edit" IsEnabled="{Binding !IsSimulating}">
-                    <MenuItem
-                        Command="{Binding Undo}"
-                        Header="{Binding UndoHeader}"
-                        IsEnabled="{Binding CanUndo}" />
-                    <MenuItem
-                        Command="{Binding Redo}"
-                        Header="{Binding RedoHeader}"
-                        IsEnabled="{Binding CanRedo}" />
-                    <Separator />
-                    <MenuItem
-                        Command="{Binding Copy}"
-                        Header="{Binding CopyHeader}"
-                        IsEnabled="{Binding CanCopy}" />
-                    <MenuItem
-                        Command="{Binding Paste}"
-                        Header="{Binding PasteHeader}"
-                        IsEnabled="{Binding CanPaste}" />
-                    <MenuItem Command="{Binding Delete}" Header="{Binding DeleteHeader}" />
-                    <Separator />
-                    <MenuItem Command="{Binding SelectAll}" Header="Select _All" />
-                    <MenuItem Command="{Binding SelectAllInViewport}" Header="Select All in Viewport" />
-                    <MenuItem Command="{Binding SelectNone}" Header="Select None" />
-                </MenuItem>
-                <MenuItem Header="_Layout">
-                    <MenuItem
-                        Click="OnResetLayoutClick"
-                        Header="_Reset Layout"
-                        ToolTip.Tip="Restore the default dock layout" />
-                </MenuItem>
-                <MenuItem Header="_Build" IsEnabled="{Binding !IsSimulating}">
-                    <MenuItem Command="{Binding BuildReflectionProbes}" Header="Reflection Probes" />
-                    <MenuItem Command="{Binding BuildIrradianceProbes}" Header="Irradiance Probes" />
-                    <Separator />
-                    <MenuItem Command="{Binding BuildLightmaps}" Header="Lightmaps" />
-                    <Separator />
-                    <MenuItem Command="{Binding BuildStaticShadows}" Header="Static Shadows" />
-                    <Separator />
+            <Grid
+                x:Name="TitleBar"
+                Height="32"
+                ColumnDefinitions="*,Auto"
+                DockPanel.Dock="Top">
+                <Border
+                    x:Name="TitleBarDragRegion"
+                    Grid.Column="0"
+                    Background="Transparent"
+                    PointerPressed="OnTitleBarPointerPressed">
+                    <Panel Classes="chrome-content">
+                        <StackPanel
+                            Margin="12,0,0,0"
+                            VerticalAlignment="Center"
+                            Orientation="Horizontal"
+                            Spacing="6">
+                            <Path
+                                Width="30"
+                                Height="15"
+                                Margin="0,0,4,0"
+                                VerticalAlignment="Center"
+                                Classes="chrome-mark"
+                                Stretch="Uniform">
+                                <Path.Data>
+                                    <CombinedGeometry GeometryCombineMode="Union">
+                                        <CombinedGeometry.Geometry1>
+                                            <CombinedGeometry GeometryCombineMode="Exclude">
+                                                <CombinedGeometry.Geometry1>
+                                                    <EllipseGeometry
+                                                        Center="255.5,264.5"
+                                                        RadiusX="89.5"
+                                                        RadiusY="89.5" />
+                                                </CombinedGeometry.Geometry1>
+                                                <CombinedGeometry.Geometry2>
+                                                    <CombinedGeometry GeometryCombineMode="Intersect">
+                                                        <CombinedGeometry.Geometry1>
+                                                            <EllipseGeometry
+                                                                Center="258.5,285"
+                                                                RadiusX="150"
+                                                                RadiusY="17">
+                                                                <EllipseGeometry.Transform>
+                                                                    <RotateTransform Angle="13" CenterX="258.5" CenterY="285" />
+                                                                </EllipseGeometry.Transform>
+                                                            </EllipseGeometry>
+                                                        </CombinedGeometry.Geometry1>
+                                                        <CombinedGeometry.Geometry2>
+                                                            <StreamGeometry>M90,246 L430,324 L430,600 L90,600 Z</StreamGeometry>
+                                                        </CombinedGeometry.Geometry2>
+                                                    </CombinedGeometry>
+                                                </CombinedGeometry.Geometry2>
+                                            </CombinedGeometry>
+                                        </CombinedGeometry.Geometry1>
+                                        <CombinedGeometry.Geometry2>
+                                            <CombinedGeometry GeometryCombineMode="Exclude">
+                                                <CombinedGeometry.Geometry1>
+                                                    <EllipseGeometry
+                                                        Center="258.5,285"
+                                                        RadiusX="186"
+                                                        RadiusY="40">
+                                                        <EllipseGeometry.Transform>
+                                                            <RotateTransform Angle="13" CenterX="258.5" CenterY="285" />
+                                                        </EllipseGeometry.Transform>
+                                                    </EllipseGeometry>
+                                                </CombinedGeometry.Geometry1>
+                                                <CombinedGeometry.Geometry2>
+                                                    <EllipseGeometry
+                                                        Center="258.5,285"
+                                                        RadiusX="150"
+                                                        RadiusY="17">
+                                                        <EllipseGeometry.Transform>
+                                                            <RotateTransform Angle="13" CenterX="258.5" CenterY="285" />
+                                                        </EllipseGeometry.Transform>
+                                                    </EllipseGeometry>
+                                                </CombinedGeometry.Geometry2>
+                                            </CombinedGeometry>
+                                        </CombinedGeometry.Geometry2>
+                                    </CombinedGeometry>
+                                </Path.Data>
+                            </Path>
+                            <Menu Classes="chrome-menu">
+                                <MenuItem Header="_File" SubmenuOpened="OnFileMenuSubmenuOpened">
+                                    <MenuItem
+                                        Command="{Binding NewProject}"
+                                        Header="_New Project..."
+                                        IsEnabled="{Binding !IsSimulating}" />
+                                    <MenuItem
+                                        Command="{Binding OpenProject}"
+                                        Header="_Open Project..."
+                                        IsEnabled="{Binding !IsSimulating}" />
+                                    <MenuItem
+                                        x:Name="FileOpenRecentMenuItem"
+                                        Header="Open _Recent"
+                                        IsEnabled="{Binding !IsSimulating}" />
+                                    <Separator />
+                                    <MenuItem
+                                        Command="{Binding SaveProject}"
+                                        Header="_Save Project"
+                                        IsEnabled="{Binding !IsSimulating}" />
+                                    <MenuItem
+                                        Command="{Binding SaveProjectAs}"
+                                        Header="Save Project _As..."
+                                        IsEnabled="{Binding !IsSimulating}" />
+                                    <Separator />
+                                    <MenuItem
+                                        Command="{Binding CloseProject}"
+                                        Header="Close Project"
+                                        IsEnabled="{Binding !IsSimulating}" />
+                                    <Separator />
+                                    <MenuItem Command="{Binding Exit}" Header="_Exit" />
+                                </MenuItem>
+                                <MenuItem Header="_Edit" IsEnabled="{Binding !IsSimulating}">
+                                    <MenuItem
+                                        Command="{Binding Undo}"
+                                        Header="{Binding UndoHeader}"
+                                        IsEnabled="{Binding CanUndo}" />
+                                    <MenuItem
+                                        Command="{Binding Redo}"
+                                        Header="{Binding RedoHeader}"
+                                        IsEnabled="{Binding CanRedo}" />
+                                    <Separator />
+                                    <MenuItem
+                                        Command="{Binding Copy}"
+                                        Header="{Binding CopyHeader}"
+                                        IsEnabled="{Binding CanCopy}" />
+                                    <MenuItem
+                                        Command="{Binding Paste}"
+                                        Header="{Binding PasteHeader}"
+                                        IsEnabled="{Binding CanPaste}" />
+                                    <MenuItem Command="{Binding Delete}" Header="{Binding DeleteHeader}" />
+                                    <Separator />
+                                    <MenuItem Command="{Binding SelectAll}" Header="Select _All" />
+                                    <MenuItem Command="{Binding SelectAllInViewport}" Header="Select All in Viewport" />
+                                    <MenuItem Command="{Binding SelectNone}" Header="Select None" />
+                                </MenuItem>
+                                <MenuItem Header="_Layout">
+                                    <MenuItem
+                                        Click="OnResetLayoutClick"
+                                        Header="_Reset Layout"
+                                        ToolTip.Tip="Restore the default dock layout" />
+                                </MenuItem>
+                                <MenuItem Header="_Build" IsEnabled="{Binding !IsSimulating}">
+                                    <MenuItem Command="{Binding BuildReflectionProbes}" Header="Reflection Probes" />
+                                    <MenuItem Command="{Binding BuildIrradianceProbes}" Header="Irradiance Probes" />
+                                    <Separator />
+                                    <MenuItem Command="{Binding BuildLightmaps}" Header="Lightmaps" />
+                                    <Separator />
+                                    <MenuItem Command="{Binding BuildStaticShadows}" Header="Static Shadows" />
+                                    <Separator />
+                
+                                    <!-- Same as elsewhere. We don't actually USE BN in the engine yet. Commenting out for now to prevent any confusion. -->
+                                    <!-- <MenuItem Command="{Binding BuildBentNormals}" Header="Bent Normals" />
+                                    <Separator /> -->
+                                    <MenuItem Command="{Binding RebuildMeshBVHs}" Header="Rebuild Mesh BVHs" />
+                                    <Separator />
+                                    <MenuItem Command="{Binding CookGameContent}" Header="Cook Game Content" />
+                                    <MenuItem Command="{Binding CompressProjectTextures}" Header="Compress Project Textures" />
+                                </MenuItem>
+                            </Menu>
+                        </StackPanel>
+                    </Panel>
+                </Border>
 
-                    <!-- Same as elsewhere. We don't actually USE BN in the engine yet. Commenting out for now to prevent any confusion. -->
-                    <!-- <MenuItem Command="{Binding BuildBentNormals}" Header="Bent Normals" />
-                    <Separator /> -->
-                    <MenuItem Command="{Binding RebuildMeshBVHs}" Header="Rebuild Mesh BVHs" />
-                    <Separator />
-                    <MenuItem Command="{Binding CookGameContent}" Header="Cook Game Content" />
-                    <MenuItem Command="{Binding CompressProjectTextures}" Header="Compress Project Textures" />
-                </MenuItem>
-            </Menu>
+                <Panel
+                    Grid.ColumnSpan="2"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Classes="chrome-content"
+                    IsHitTestVisible="False">
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <StackPanel
+                            VerticalAlignment="Center"
+                            IsVisible="{Binding ProjectDisplayName, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}"
+                            Orientation="Horizontal">
+                            <TextBlock Classes="chrome-project" Text="{Binding ProjectDisplayName}" />
+                            <controls:Codicon
+                                Margin="6,0"
+                                VerticalAlignment="Center"
+                                Foreground="{DynamicResource Brush.TextFaint}"
+                                Kind="ChevronRight"
+                                Size="12" />
+                            <TextBlock Classes="chrome-world" Text="{Binding WorldDisplayName}" />
+                        </StackPanel>
+
+                        <Border x:Name="ChromeStatePill" Classes="chrome-state-pill">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <Ellipse
+                                    Width="6"
+                                    Height="6"
+                                    VerticalAlignment="Center"
+                                    Classes="chrome-state-dot" />
+                                <TextBlock x:Name="ChromeStateText" Classes="chrome-state-text" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Panel>
+
+                <Border
+                    Grid.ColumnSpan="2"
+                    Classes="chrome-state-stripe"
+                    IsHitTestVisible="False" />
+
+                <StackPanel
+                    x:Name="CaptionButtons"
+                    Grid.Column="1"
+                    Orientation="Horizontal">
+                    <Button
+                        Classes="caption"
+                        Click="OnMinimizeClick"
+                        PointerEntered="OnCaptionPointerEntered"
+                        PointerExited="OnCaptionPointerExited"
+                        ToolTip.Tip="Minimize">
+                        <Path Classes="caption-glyph" Data="M0,5.5 L10,5.5" />
+                    </Button>
+                    <Button
+                        x:Name="MaximizeButton"
+                        Classes="caption"
+                        Click="OnMaximizeClick"
+                        PointerEntered="OnCaptionPointerEntered"
+                        PointerExited="OnCaptionPointerExited"
+                        ToolTip.Tip="Maximize">
+                        <Panel>
+                            <Path
+                                x:Name="MaximizeGlyph"
+                                Classes="caption-glyph"
+                                Data="M0.5,0.5 L9.5,0.5 L9.5,9.5 L0.5,9.5 Z" />
+                            <Path
+                                x:Name="RestoreGlyph"
+                                Classes="caption-glyph"
+                                Data="M0.5,2.5 L7.5,2.5 L7.5,9.5 L0.5,9.5 Z M2.5,2.5 L2.5,0.5 L9.5,0.5 L9.5,7.5 L7.5,7.5"
+                                IsVisible="False" />
+                        </Panel>
+                    </Button>
+                    <Button
+                        Classes="caption close"
+                        Click="OnCloseClick"
+                        PointerEntered="OnCaptionPointerEntered"
+                        PointerExited="OnCaptionPointerExited"
+                        ToolTip.Tip="Close">
+                        <Path Classes="caption-glyph" Data="M0.5,0.5 L9.5,9.5 M9.5,0.5 L0.5,9.5" />
+                    </Button>
+                </StackPanel>
+            </Grid>
 
             <Border
                 x:Name="Toolbar"
@@ -3391,6 +3739,81 @@
                 </Border>
             </Grid>
         </DockPanel>
+
+        <Grid x:Name="ResizeGrips">
+            <Border
+                Classes="resize-grip"
+                Cursor="SizeNorthSouth"
+                Height="5"
+                Margin="8,0"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Top"
+                PointerPressed="OnResizeGripPointerPressed"
+                Tag="North" />
+            <Border
+                Classes="resize-grip"
+                Cursor="SizeNorthSouth"
+                Height="5"
+                Margin="8,0"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Bottom"
+                PointerPressed="OnResizeGripPointerPressed"
+                Tag="South" />
+            <Border
+                Classes="resize-grip"
+                Cursor="SizeWestEast"
+                Width="5"
+                Margin="0,8"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Stretch"
+                PointerPressed="OnResizeGripPointerPressed"
+                Tag="West" />
+            <Border
+                Classes="resize-grip"
+                Cursor="SizeWestEast"
+                Width="5"
+                Margin="0,8"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Stretch"
+                PointerPressed="OnResizeGripPointerPressed"
+                Tag="East" />
+            <Border
+                Classes="resize-grip"
+                Cursor="TopLeftCorner"
+                Width="8"
+                Height="8"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Top"
+                PointerPressed="OnResizeGripPointerPressed"
+                Tag="NorthWest" />
+            <Border
+                Classes="resize-grip"
+                Cursor="TopRightCorner"
+                Width="8"
+                Height="8"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Top"
+                PointerPressed="OnResizeGripPointerPressed"
+                Tag="NorthEast" />
+            <Border
+                Classes="resize-grip"
+                Cursor="BottomLeftCorner"
+                Width="8"
+                Height="8"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Bottom"
+                PointerPressed="OnResizeGripPointerPressed"
+                Tag="SouthWest" />
+            <Border
+                Classes="resize-grip"
+                Cursor="BottomRightCorner"
+                Width="8"
+                Height="8"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Bottom"
+                PointerPressed="OnResizeGripPointerPressed"
+                Tag="SouthEast" />
+        </Grid>
 
         <!--  Foreground task overlay  -->
         <views:ForegroundTaskOverlay DataContext="{Binding ForegroundTask}" />
