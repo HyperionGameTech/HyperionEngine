@@ -784,32 +784,70 @@ public:
                 return ShaderInstanceRef::Null();
             }
 
-            // held while touching the shader instance so a reload or ExpireShaderEntries() can't retire it (and free the shader) underneath us
-            TSharedLock lock(m_mutex);
+            {
+                // held while touching the shader instance so a reload or ExpireShaderEntries() can't retire it (and free the shader) underneath us
+                TSharedLock lock(m_mutex);
+
+                if (entry->retired)
+                {
+                    // replaced by a reload or expired after we found it - look it up again
+                    continue;
+                }
+
+                if (!entry->shaderInstance.IsValid())
+                {
+                    return ShaderInstanceRef::Null();
+                }
+
+                if (!entry->shaderInstance->GetShader()->expired)
+                {
+                    if (!ensureMatch(properties, inputLayout, *entry->shaderInstance->GetShader()))
+                    {
+                        HYP_LOG(Shader, Warning, "Loaded shader from cache (Name: {}) does not contain the requested properties! "
+                                                 "Expected properties: {}, Expected Input Layout: {} "
+                                                 "Actual properties: {}, Actual Input Layout: {}",
+                                name, properties.GetDebugString(), inputLayout.GetDebugString(),
+                                entry->shaderInstance->GetShader()->properties.GetDebugString(), entry->shaderInstance->GetShader()->inputLayout.GetDebugString());
+                    }
+
+                    return entry->shaderInstance;
+                }
+            }
+
+            RetireExpiredEntry(entry, GetShaderEntryHashCode(name, properties, inputLayout));
+        }
+    }
+
+    void RetireExpiredEntry(ShaderMapEntry* entry, HashCode hc)
+    {
+        ShaderInstanceRef releasedInstance;
+
+        {
+            TUniqueLock lock(m_mutex);
 
             if (entry->retired)
             {
-                // replaced by a reload or expired after we found it - look it up again
-                continue;
+                return;
             }
 
-            if (!entry->shaderInstance.IsValid())
+            releasedInstance = RetireEntry_Locked(entry);
+
+            auto it = m_entryMap.Find(hc);
+
+            if (it != m_entryMap.End() && it->second == entry)
             {
-                return ShaderInstanceRef::Null();
+                m_entryMap.Erase(it);
             }
+        }
 
-            Assert(!entry->shaderInstance->GetShader()->expired);
-
-            if (!ensureMatch(properties, inputLayout, *entry->shaderInstance->GetShader()))
-            {
-                HYP_LOG(Shader, Warning, "Loaded shader from cache (Name: {}) does not contain the requested properties! "
-                                         "Expected properties: {}, Expected Input Layout: {} "
-                                         "Actual properties: {}, Actual Input Layout: {}",
-                        name, properties.GetDebugString(), inputLayout.GetDebugString(),
-                        entry->shaderInstance->GetShader()->properties.GetDebugString(), entry->shaderInstance->GetShader()->inputLayout.GetDebugString());
-            }
-
-            return entry->shaderInstance;
+        if (!IsOnThread(g_renderThread))
+        {
+            GetThreadById(g_renderThread)->GetScheduler()
+                .Enqueue([toRelease = std::move(releasedInstance)]() mutable
+                    {
+                        toRelease = ShaderInstanceRef::Null();
+                    },
+                    TaskEnqueueFlags::FIRE_AND_FORGET);
         }
     }
 
