@@ -101,13 +101,17 @@ DECLARE_SRV(Default, ClusterIndexBuffer) ByteAddressBuffer ClusterIndexBuffer;
 
 #include "Include/SkyVisibility.hlsli"
 
+#include "VolumetricFog/VolumetricFogCommon.hlsli"
+
 DECLARE_BUFFER_DYNAMIC(Default, ForwardIndirectConstants) cbuffer ForwardIndirectConstants
 {
     EnvProbe skyProbe;
     SkyVisibilityCapture skyVisibilityCapture;
+    VolumetricFogGrid volumetricFogGrid;
 };
 
 DECLARE_SRV(Default, SkyVisibilityTexture) Texture2D SkyVisibilityTexture;
+DECLARE_SRV(Default, VolumetricFogTexture) Texture3D<float4> VolumetricFogTexture;
 
 #ifdef RT_GI
 DECLARE_SRV(Default, DDGIIrradianceTexture) Texture2D probe_irradiance;
@@ -661,6 +665,12 @@ PSOutput PSMain(PSInput input)
     }
 
     output.gbuffer_albedo.rgb += GET_MATERIAL_EMISSIVE(CURRENT_MATERIAL);
+
+#ifdef FORWARD_CLUSTERED
+    output.gbuffer_albedo.rgb = ApplyVolumetricFogSample(
+        output.gbuffer_albedo.rgb,
+        SampleVolumetricFog(VolumetricFogTexture, sampler_linear, volumetricFogGrid, camera.viewProjMat, P));
+#endif // FORWARD_CLUSTERED
 
     // premultiplied and additive blends take the source as-is, so fade it by coverage here
     if (GET_MATERIAL_PARAM_BIT(CURRENT_MATERIAL, MATERIAL_FLAG_PREMULTIPLIED_ALPHA))

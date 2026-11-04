@@ -81,12 +81,14 @@ void BuildWhiteBalanceMatrix(float temperature, float tint, Mat3x3f& outMatrix)
 }
 } // namespace
 
-float ComputeAutoExposure(float whiteSurfaceLuminance)
+float ComputeAutoExposure(float whiteSurfaceLuminance, float maxStops)
 {
+    const float maxExposure = MathUtil::Clamp(MathUtil::Pow(2.0f, maxStops), AutoExposureMin, AutoExposureMax);
+
     return MathUtil::Clamp(
         MathUtil::Pow(AutoExposureKey / MathUtil::Max(whiteSurfaceLuminance, 1e-4f), AutoExposureAdaptation),
         AutoExposureMin,
-        AutoExposureMax);
+        maxExposure);
 }
 
 void WriteEnvironmentShaderData(const EnvironmentSettings& settings, WorldShaderData& outShaderData)
@@ -160,6 +162,29 @@ void WriteEnvironmentShaderData(const EnvironmentSettings& settings, WorldShader
         MathUtil::Clamp(heightFog.maxOpacity, 0.0f, 1.0f));
 
     outShaderData.fogPhaseParams = Vec4f(MathUtil::Clamp(heightFog.sunAnisotropy, 0.0f, 0.95f), 0.0f, 0.0f, 0.0f);
+
+    if (heightFog.enabled && heightFog.volumetric)
+    {
+        outShaderData.environmentFlags |= uint32(WorldEnvironmentFlags::VolumetricFog);
+    }
+
+    outShaderData.volumetricFogParams = Vec4f(
+        MathUtil::Clamp(heightFog.albedo, 0.0f, 1.0f),
+        MathUtil::Clamp(heightFog.noiseStrength, 0.0f, 1.0f),
+        1.0f / MathUtil::Max(heightFog.noiseScale, 0.1f),
+        MathUtil::Clamp(heightFog.coverage, 0.0f, 1.0f));
+
+    outShaderData.volumetricFogEmissive = Vec4f(
+        MathUtil::Max(heightFog.emissive, Vec3f::Zero()),
+        1.0f / MathUtil::Max(heightFog.coverageScale, 1.0f));
+
+    outShaderData.volumetricFogLayer = Vec4f(
+        heightFog.followTerrain ? 1.0f : 0.0f,
+        MathUtil::Max(heightFog.layerTop, 0.0f),
+        MathUtil::Max(heightFog.layerTopSoftness, 0.01f),
+        MathUtil::Max(heightFog.glow, 0.0f));
+
+    outShaderData.volumetricFogTint = Vec4f(MathUtil::Max(heightFog.tint, Vec3f::Zero()), 0.0f);
 
     const GlobalIlluminationSettings& globalIllumination = settings.globalIllumination;
 

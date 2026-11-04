@@ -2586,7 +2586,7 @@ void World::FillWorldShaderData(WorldShaderData& outShaderData) const
 
     if (m_environmentSettings.exposure.autoExposure && whiteSurfaceLuminance > 0.0f)
     {
-        outShaderData.exposureGrading.x *= ComputeAutoExposure(whiteSurfaceLuminance);
+        outShaderData.exposureGrading.x *= ComputeAutoExposure(whiteSurfaceLuminance, m_environmentSettings.exposure.maxAutoExposureStops);
     }
 }
 

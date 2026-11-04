@@ -7,6 +7,9 @@
 #include <RenderingPch.hpp>
 
 #include <Rendering/Passes/ParticlesPass.hpp>
+#include <Rendering/Passes/DeferredPass.hpp>
+
+#include <Rendering/VolumetricFog/VolumetricFogPass.hpp>
 
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/Frame.hpp>
@@ -377,6 +380,37 @@ void ParticlesPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
         cr << SetShaderUniform(2, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinearMipmap());
         cr << SetShaderUniform(3, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
         cr << SetShaderUniform(4, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras], Resources::GetBinding(view->GetCamera()));
+
+        {
+            VolumetricFogPass* volumetricFogPass = nullptr;
+
+            if (DeferredPassData* dpd = TryCast<DeferredPassData>(renderSetup.passData))
+            {
+                volumetricFogPass = dpd->volumetricFogPass.Get();
+            }
+
+            GpuBuffer* fogCbuffer = nullptr;
+            size_t fogCbufferOffset = 0;
+            size_t fogCbufferSize = 0;
+
+            if (volumetricFogPass != nullptr)
+            {
+                volumetricFogPass->WriteShaderData(*RI.cbufferAllocator);
+
+                cr << SetShaderUniform(5, "VolumetricFogTexture"_sh, volumetricFogPass->GetIntegratedView());
+            }
+            else
+            {
+                static const VolumetricFogGridShaderData s_noVolumetricFogGrid {};
+                RI.cbufferAllocator->Write(&s_noVolumetricFogGrid);
+
+                cr << SetShaderUniform(5, "VolumetricFogTexture"_sh, RI.placeholderData->GetImageView3D1x1x1R8());
+            }
+
+            RI.cbufferAllocator->Commit(fogCbuffer, fogCbufferOffset, fogCbufferSize);
+
+            cr << SetShaderUniform(6, "ParticleFogConstants"_sh, fogCbuffer, ShaderDataOffset(fogCbufferOffset, fogCbufferSize));
+        }
 
         cr << CommitDrawState();
 

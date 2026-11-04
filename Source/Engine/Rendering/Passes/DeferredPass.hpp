@@ -53,8 +53,8 @@ class ByteAddressBuffer;
 class LightingPass;
 class ReflectionsPass;
 class LightmapPass;
-class FogVolumePass;
 class HeightFogPass;
+class VolumetricFogPass;
 class CloudPass;
 class TonemapPass;
 class GlimmerIrradiancePass;
@@ -108,9 +108,9 @@ public:
 
     UniquePtr<LightmapPass> lightmapPass;
 
-    UniquePtr<FogVolumePass> fogVolumePass;
-
     UniquePtr<HeightFogPass> heightFogPass;
+
+    UniquePtr<VolumetricFogPass> volumetricFogPass;
 
     UniquePtr<CloudPass> cloudPass;
 

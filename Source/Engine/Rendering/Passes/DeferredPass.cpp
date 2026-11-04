@@ -14,18 +14,19 @@
 #include <Rendering/Passes/LightingPass.hpp>
 #include <Rendering/Passes/TonemapPass.hpp>
 #include <Rendering/Passes/LightmapPass.hpp>
-#include <Rendering/Passes/FogVolumePass.hpp>
 #include <Rendering/Passes/HeightFogPass.hpp>
-#include <Rendering/Passes/SkyVisibilityPass.hpp>
-
-#include <Rendering/Glimmer/GlimmerPass.hpp>
-#include <Rendering/Glimmer/GlimmerIrradiancePass.hpp>
 #include <Rendering/Passes/ReflectionsPass.hpp>
+#include <Rendering/Passes/SkyVisibilityPass.hpp>
 
 #ifdef HYP_EDITOR
 #include <Rendering/Passes/EditorGridPass.hpp>
 #include <Rendering/Passes/EditorWireframePass.hpp>
 #endif // HYP_EDITOR
+
+#include <Rendering/VolumetricFog/VolumetricFogPass.hpp>
+
+#include <Rendering/Glimmer/GlimmerPass.hpp>
+#include <Rendering/Glimmer/GlimmerIrradiancePass.hpp>
 
 #include <Rendering/RenderGroup.hpp>
 #include <Rendering/RenderSetup.hpp>
@@ -175,8 +176,6 @@ CVar<bool> g_cvDecals { "Rendering.Decals", true };
 CVar<bool> g_cvClusteredShading { "Rendering.ClusteredShading", true };
 CVar<bool> g_cvDepthPrepass { "Rendering.DepthPrepass", true };
 CVar<bool> g_cvDrawWireframe { "Rendering.DrawWireframe", false };
-CVar<bool> g_cvFogVolumes { "Rendering.FogVolumes", true };
-CVar<bool> g_cvFogVolumesClusteredLights { "Rendering.FogVolumesClusteredLights", true };
 
 extern CVar<bool> g_cvClouds;
 
@@ -1201,11 +1200,11 @@ PassData* DeferredPass::CreateViewPassData(View* view, PassDataExt&)
         passData.lightmapPass = MakeUnique<LightmapPass>();
         passData.lightmapPass->Create();
 
-        passData.fogVolumePass = MakeUnique<FogVolumePass>(gbuffer->GetExtent(), gbuffer);
-        passData.fogVolumePass->Create();
-
         passData.heightFogPass = MakeUnique<HeightFogPass>();
         passData.heightFogPass->Create();
+
+        passData.volumetricFogPass = MakeUnique<VolumetricFogPass>(gbuffer->GetExtent());
+        passData.volumetricFogPass->Create();
 
         passData.cloudPass = MakeUnique<CloudPass>(gbuffer->GetExtent());
         passData.cloudPass->Create();
@@ -1324,7 +1323,6 @@ void DeferredPass::ResizeView(Viewport viewport, Vec2u outputExtent, View* view,
     Assert(gbuffer != nullptr && gbuffer->IsCreated());
 
     passData.taaPass.Reset();
-    passData.fogVolumePass.Reset();
     passData.tonemapPass.Reset();
     passData.reflectionsOnlyPass.Reset();
     passData.reflectionsPass.Reset();
@@ -1449,11 +1447,10 @@ void DeferredPass::ResizeView(Viewport viewport, Vec2u outputExtent, View* view,
         passData.lightmapPass->Create();
     }
 
-    passData.fogVolumePass = MakeUnique<FogVolumePass>(newSize, gbuffer);
-    passData.fogVolumePass->Create();
-
     // resized rather than recreated, so the noise, weather map and shadow map survive
     passData.cloudPass->Resize(newSize);
+
+    passData.volumetricFogPass->Resize(newSize);
 
 #ifdef HYP_EDITOR
     if (!passData.editorGridPass)
@@ -2193,11 +2190,19 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         }
     }
 
+    {
+        RenderSetup volumetricFogRS = rs.Fork();
+
+        passData.volumetricFogPass->Update(frame, volumetricFogRS);
+    }
+
     if (debugVisMode == 0)
     {
         RenderSetup heightFogRS = lightingRS.Fork();
         heightFogRS.framebuffer = passData.lightingFramebuffer;
 
+        // the volumetric fog covers everything up to its distance, the analytic fog only what lies past it
+        passData.heightFogPass->SetNearFieldDistance(passData.volumetricFogPass->IsActive() ? passData.volumetricFogPass->GetDistance() : 0.0f);
         passData.heightFogPass->Render(frame, heightFogRS);
     }
 
@@ -2250,6 +2255,14 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         passData.cloudPass->Render(frame, cloudRS);
     }
 
+    if (debugVisMode == 0)
+    {
+        RenderSetup volumetricFogRS = rs.Fork();
+        volumetricFogRS.framebuffer = effectPassFramebuffer;
+
+        passData.volumetricFogPass->Render(frame, volumetricFogRS);
+    }
+
     frame->cr << SetAsyncShaderLoadingEnabled(true);
 
     { // Translucent, forward lit
@@ -2261,16 +2274,6 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         if (renderCollector.HasDrawCalls(RenderBucket::Translucent))
         {
             renderCollector.ExecuteDrawCalls(frame, rs, RenderBucketMask<RenderBucket::Translucent>);
-        }
-
-        // render fog volumes
-        if (g_cvFogVolumes.Get())
-        {
-            RenderSetup fogVolumeRS = rs.Fork();
-            fogVolumeRS.framebuffer = effectPassFramebuffer;
-            fogVolumeRS.envProbe = lightingRS.envProbe;
-
-            passData.fogVolumePass->Render(frame, fogVolumeRS);
         }
 
 #ifdef HYP_EDITOR

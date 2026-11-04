@@ -41,8 +41,7 @@ float InterleavedGradientNoise(vec2 position_screen)
 /// We assume that frameCounter is modulo'd appropriately to avoid precision issues
 float InterleavedGradientNoiseAnimated(vec2 positionScreen, uint frameCounter)
 {
-    float2 s = positionScreen + 5.588238 * (float)frameCounter;
-    return fmod(52.9829189 * fmod(0.06711056 * s.x + 0.00583715 * s.y, 1.0), 1.0);
+    return InterleavedGradientNoise(positionScreen + 5.588238 * float(frameCounter));
 }
 
 // Get as random uint, modifies seed parameter

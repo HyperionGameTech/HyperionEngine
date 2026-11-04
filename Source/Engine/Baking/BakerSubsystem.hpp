@@ -28,7 +28,6 @@ namespace Hyperion {
 
 class LightmapVolume;
 class EnvProbe;
-class FogVolume;
 class Light;
 class Scene;
 
@@ -40,7 +39,6 @@ struct BakeLayer;
 template <class T>
     concept Bakeable = std::is_same_v<T, LightmapVolume>
         || std::is_same_v<T, EnvProbe>
-        || std::is_same_v<T, FogVolume>
         || std::is_same_v<T, Light>;
 } // namespace Baking
 
@@ -65,7 +63,7 @@ public:
     /// Cancel an in-progress bake for the given source, if one exists - sim thread only
     void CancelBake(ObjectBase* source);
 
-    /// Get the progress in the range [0, 1] of a bake task for the source */
+    /// Get the progress in the range [0, 1] of a bake task for the source
     float GetBakeProgress(ObjectBase* source) const;
 
 private:

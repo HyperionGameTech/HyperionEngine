@@ -38,6 +38,8 @@
 #include <Rendering/Passes/DeferredPassShared.hpp>
 #include <Rendering/Passes/SkyVisibilityPass.hpp>
 
+#include <Rendering/VolumetricFog/VolumetricFogPass.hpp>
+
 #include <Rendering/Util/DeletionQueue.hpp>
 #include <Rendering/Util/ShaderPropertyDictionary.hpp>
 
@@ -1052,6 +1054,7 @@ static void SetForwardIndirectUniforms(
     Frame* frame,
     const RenderSetup& renderSetup,
     const DeferredPassData* dpd,
+    bool applyVolumetricFog,
     TCommandRecorder& cr,
     uint32& numShaderUniforms)
 {
@@ -1081,10 +1084,30 @@ static void SetForwardIndirectUniforms(
 
     RI.cbufferAllocator->Write(&skyProbeData);
     skyVisibilityPass->WriteShaderData(*RI.cbufferAllocator);
+
+    if (applyVolumetricFog && dpd->volumetricFogPass != nullptr)
+    {
+        dpd->volumetricFogPass->WriteShaderData(*RI.cbufferAllocator);
+    }
+    else
+    {
+        static const VolumetricFogGridShaderData s_noVolumetricFogGrid {};
+        RI.cbufferAllocator->Write(&s_noVolumetricFogGrid);
+    }
+
     RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
 
     cr << SetShaderUniform(numShaderUniforms++, "ForwardIndirectConstants"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
     cr << SetShaderUniform(numShaderUniforms++, "SkyVisibilityTexture"_sh, skyVisibilityPass->GetDepthImageView());
+
+    if (dpd->volumetricFogPass != nullptr)
+    {
+        cr << SetShaderUniform(numShaderUniforms++, "VolumetricFogTexture"_sh, dpd->volumetricFogPass->GetIntegratedView());
+    }
+    else
+    {
+        cr << SetShaderUniform(numShaderUniforms++, "VolumetricFogTexture"_sh, RI.placeholderData->GetImageView3D1x1x1R8());
+    }
 
     // bound whenever the volume exists, so an RT_GI variant can never be missing them
     if (dpd->ddgi != nullptr)
@@ -1209,7 +1232,10 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
             cr << SetShaderUniform(numShaderUniforms++, "ClusterGridBuffer"_sh, *dpd->gridTilesBuffer);
             cr << SetShaderUniform(numShaderUniforms++, "ClusterIndexBuffer"_sh, *dpd->gridIndexBuffer);
 
-            SetForwardIndirectUniforms(frame, renderSetup, dpd, cr, numShaderUniforms);
+            // the sky is fogged by the apply pass, and editor overlays (Debug) are never fogged
+            const bool applyVolumetricFog = mas.bucket == RenderBucket::Translucent;
+
+            SetForwardIndirectUniforms(frame, renderSetup, dpd, applyVolumetricFog, cr, numShaderUniforms);
         }
     }
 

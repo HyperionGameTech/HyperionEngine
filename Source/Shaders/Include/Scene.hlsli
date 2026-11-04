@@ -6,6 +6,7 @@
 #define WORLD_ENVIRONMENT_FLAG_HAS_SUN 0x1
 #define WORLD_ENVIRONMENT_FLAG_SUN_DISK 0x2
 #define WORLD_ENVIRONMENT_FLAG_HEIGHT_FOG 0x4
+#define WORLD_ENVIRONMENT_FLAG_VOLUMETRIC_FOG 0x40
 
 // matches WorldShaderData in RenderProxy.hpp
 struct WorldShaderData
@@ -42,6 +43,11 @@ struct WorldShaderData
     float4 eye_adaptation_params;
 
     float4 taa_params;
+
+    float4 volumetric_fog_params;
+    float4 volumetric_fog_emissive;
+    float4 volumetric_fog_layer;
+    float4 volumetric_fog_tint;
 };
 
 struct Camera
@@ -98,7 +104,7 @@ struct Light
     float4 normal;              // for area lights/spot lights - x,y,z = normal
 
     float2 area_size;           // for area lights = area size, for spot lights = spot angles
-    float2 _pad0;
+    float2 volumetric_params;   // x = volumetric fog intensity
 
     float4 atmosphere_tint;
     float4 _pad2;

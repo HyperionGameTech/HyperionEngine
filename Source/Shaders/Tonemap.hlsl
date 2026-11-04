@@ -59,6 +59,47 @@ DECLARE_SRV(Tonemap, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buf
 
 DECLARE_SRV(Tonemap, EyeAdaptationBuffer) StructuredBuffer<float4> EyeAdaptationBuffer;
 
+DECLARE_SRV_DYNAMIC(Tonemap, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;
+#define camera _cameras_buffer[0]
+
+DECLARE_SRV(Tonemap, GBufferDepthTexture) Texture2D GBufferDepthTexture;
+
+#include "VolumetricFog/VolumetricFogCommon.hlsli"
+
+DECLARE_SRV(Tonemap, VolumetricFogTexture) Texture3D<float4> VolumetricFogTexture;
+
+DECLARE_BUFFER_DYNAMIC(Tonemap, VolumetricFogConstants) cbuffer VolumetricFogConstants
+{
+    VolumetricFogGrid volumetricFogGrid;
+};
+
+// how much of the light reaching the eye has been scattered by the fog in front of this pixel
+float GetFogOpacity(float2 texcoord)
+{
+    if (volumetricFogGrid.dimensions.w == 0u)
+    {
+        return 0.0;
+    }
+
+    uint2 depthDimensions;
+    GBufferDepthTexture.GetDimensions(depthDimensions.x, depthDimensions.y);
+
+    const float depth = GBufferDepthTexture.Load(int3(min(uint2(texcoord * float2(depthDimensions)), depthDimensions - 1u), 0)).r;
+
+    const float3 positionWS = ReconstructWorldSpacePositionFromDepth(camera.invProjMat, camera.invViewMat, texcoord, depth).xyz;
+
+    float linearDepth = VolumetricFogLinearDepth(camera.viewProjMat, positionWS);
+
+    if (!(linearDepth < volumetricFogGrid.depthParams.y))
+    {
+        linearDepth = volumetricFogGrid.depthParams.y;
+    }
+
+    const float3 uvw = saturate(VolumetricFogUVW(volumetricFogGrid, texcoord, linearDepth));
+
+    return 1.0 - SAMPLE_TEXTURE_3D_LOD(sampler_linear, VolumetricFogTexture, uvw, 0).a;
+}
+
 #include "Include/Tonemap.hlsli"
 
 #define TEMPORAL_BLENDING_REVERSE_TONEMAP
@@ -115,6 +156,9 @@ float4 PSMain(PSInput input) : SV_Target0
         shaded_result = SAMPLE_TEXTURE_2D(sampler_linear, DeferredResult, texcoord);
     }
     float4 bloom_result = SAMPLE_TEXTURE_2D(sampler_linear, BloomResultTexture, texcoord);
+
+    // fog between the eye and the lights scatters their glow wider and brighter than clear air
+    bloom_result *= 1.0 + world_shader_data.volumetric_fog_layer.w * GetFogOpacity(texcoord);
 
     float4 color_with_bloom = shaded_result + bloom_result;
     color_with_bloom.rgb *= EyeAdaptationBuffer[0].y;

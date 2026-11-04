@@ -14,13 +14,11 @@
 
 #include <Baking/LightmapVolume/LightmapVolumeBaker.hpp>
 #include <Baking/EnvProbe/EnvProbeBaker.hpp>
-#include <Baking/FogVolume/FogVolumeBaker.hpp>
 #include <Baking/ShadowMap/ShadowMapBaker.hpp>
 
 #include <Rendering/RenderConfig.hpp>
 
 #include <Scene/EnvProbe.hpp>
-#include <Scene/FogVolume.hpp>
 #include <Scene/LightmapVolume.hpp>
 #include <Scene/Light/Light.hpp>
 #include <Scene/World.hpp>
@@ -62,13 +60,6 @@ void UpdateEpoch(const EnvProbe& envProbe, BakeLayer& bakeLayer)
     uint64 epoch = BakeEpoch::ComputeEpoch(envProbe, bakeLayer);
 
     bakeLayer.SetAssetEpoch<Cat::LightReceiver>(envProbe, epoch);
-}
-
-void UpdateEpoch(const FogVolume& fogVolume, BakeLayer& bakeLayer)
-{
-    uint64 epoch = BakeEpoch::ComputeEpoch(fogVolume, bakeLayer);
-
-    bakeLayer.SetAssetEpoch<Cat::LightReceiver>(fogVolume, epoch);
 }
 
 void UpdateEpoch(const Light& light, BakeLayer& bakeLayer)
@@ -196,10 +187,6 @@ void BakerSubsystem::OnBakeCompleted(Baking::BakeLayer& bakeLayer, ObjectBase* s
     {
         UpdateEpoch(*envProbe, bakeLayer);
     }
-    else if (FogVolume* fogVolume = TryCast<FogVolume>(source))
-    {
-        UpdateEpoch(*fogVolume, bakeLayer);
-    }
     else if (Light* light = TryCast<Light>(source))
     {
         UpdateEpoch(*light, bakeLayer);
@@ -226,7 +213,6 @@ void BakerSubsystem::OnBakeCompleted(Baking::BakeLayer& bakeLayer, ObjectBase* s
 
 DEF_ENQUEUE_BAKE_SPECIALIZATION(LightmapVolume);
 DEF_ENQUEUE_BAKE_SPECIALIZATION(EnvProbe);
-DEF_ENQUEUE_BAKE_SPECIALIZATION(FogVolume);
 DEF_ENQUEUE_BAKE_SPECIALIZATION(Light);
 
 #undef DEF_ENQUEUE_BAKE_SPECIALIZATION

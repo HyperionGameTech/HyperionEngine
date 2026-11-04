@@ -10,17 +10,12 @@
 
 namespace Hyperion {
 
-class Texture;
-
 HYP_CLASS()
 class ENGINE_API FogVolume final : public VolumeBase
 {
     HYP_OBJECT_BODY(FogVolume);
 
 public:
-    static constexpr uint32 MaxVolumeTextureExtent = 64;
-    static constexpr uint32 MaxNoiseTextureExtent = 32;
-
     FogVolume();
 
     explicit FogVolume(const BoundingBox& localBounds);
@@ -29,29 +24,6 @@ public:
     FogVolume& operator=(const FogVolume&) = delete;
 
     ~FogVolume() override;
-
-    HYP_METHOD(Property = "VolumeTexture")
-    HYP_FORCE_INLINE const Handle<Texture>& GetVolumeTexture() const
-    {
-        return m_volumeTexture;
-    }
-
-    HYP_METHOD(Property = "VolumeTexture")
-    void SetVolumeTexture(const Handle<Texture>& volumeTexture);
-
-    HYP_METHOD(Property = "NoiseTexture")
-    HYP_FORCE_INLINE const Handle<Texture>& GetNoiseTexture() const
-    {
-        return m_noiseTexture;
-    }
-
-    HYP_METHOD(Property = "NoiseTexture")
-    void SetNoiseTexture(const Handle<Texture>& noiseTexture);
-
-    HYP_METHOD()
-    void SetTextures(
-        const Handle<Texture>& volumeTexture,
-        const Handle<Texture>& noiseTexture);
 
     HYP_METHOD(Property = "Density")
     HYP_FORCE_INLINE float GetDensity() const
@@ -127,51 +99,12 @@ public:
 
     void UpdateRenderProxy(struct RenderProxyFogVolume* proxy);
 
-    ///Per-swatch stuff
-
-    static Name GetVolumeTexturePropertyName()
-    {
-        return NAME("VolumeTexture");
-    }
-
-    static Name GetNoiseTexturePropertyName()
-    {
-        return NAME("NoiseTexture");
-    }
-
-    static Name BuildVolumeTextureName(Name volumeName, Name swatchName);
-    static Name BuildNoiseTextureName(Name volumeName, Name swatchName);
-
-    Handle<Texture> GetVolumeTextureForSwatch(Name swatchName) const;
-    Handle<Texture> GetNoiseTextureForSwatch(Name swatchName) const;
-
-    void SetTexturesForSwatch(
-        const Handle<Texture>& volumeTexture,
-        const Handle<Texture>& noiseTexture,
-        Name swatchName);
-
-#ifdef HYP_EDITOR
-    HYP_METHOD(EditorOnly)
-    Array<Name> GetBakedSwatchNames() const;
-#endif // HYP_EDITOR
-
-#ifdef HYP_EDITOR
-    HYP_METHOD(EditorOnly, EditorAction = "Bake Fog Texture")
-    void Rebake();
-#endif
-
 private:
-    HYP_FIELD(Property = "VolumeTexture")
-    Handle<Texture> m_volumeTexture;
-
-    HYP_FIELD(Property = "NoiseTexture")
-    Handle<Texture> m_noiseTexture;
-
     HYP_FIELD(Property = "Density")
     float m_density = 0.04f;
 
     HYP_FIELD(Property = "Albedo")
-    Vec3f m_albedo = Vec3f(0.5f);
+    Vec3f m_albedo = Vec3f(0.95f);
 
     HYP_FIELD(Property = "PhaseForward")
     float m_phaseForward = 0.8f;
@@ -183,10 +116,10 @@ private:
     float m_phaseBlend = 0.2f;
 
     HYP_FIELD(Property = "SunIntensity")
-    float m_sunIntensity = 1.4f;
+    float m_sunIntensity = 1.0f;
 
     HYP_FIELD(Property = "AmbientIntensity")
-    float m_ambientIntensity = 0.6f;
+    float m_ambientIntensity = 1.0f;
 
     HYP_FIELD(Property = "EdgeFade")
     float m_edgeFade = 6.0f;

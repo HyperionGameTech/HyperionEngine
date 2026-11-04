@@ -181,6 +181,9 @@ struct ExposureSettings
     HYP_FIELD(Property = "EyeAdaptation", Serialize, Label = "Eye Adaptation")
     float eyeAdaptation = 0.6f;
 
+    HYP_FIELD(Property = "MaxAutoExposure", Serialize, Label = "Max Auto Exposure (stops)")
+    float maxAutoExposureStops = 3.8f;
+
     HYP_FIELD(Property = "ExposureCompensation", Serialize, Label = "Exposure Compensation (stops)")
     float exposureCompensation = 0.0f;
 
@@ -237,6 +240,42 @@ struct HeightFogSettings
 
     HYP_FIELD(Property = "MaxOpacity", Serialize, Label = "Max Opacity")
     float maxOpacity = 1.0f;
+
+    HYP_FIELD(Property = "Volumetric", Serialize, Label = "Volumetric")
+    bool volumetric = true;
+
+    HYP_FIELD(Property = "Albedo", Serialize, Label = "Albedo")
+    float albedo = 0.95f;
+
+    HYP_FIELD(Property = "NoiseStrength", Serialize, Label = "Noise Strength")
+    float noiseStrength = 0.5f;
+
+    HYP_FIELD(Property = "NoiseScale", Serialize, Label = "Noise Scale (m)")
+    float noiseScale = 24.0f;
+
+    HYP_FIELD(Property = "Coverage", Serialize, Label = "Coverage")
+    float coverage = 1.0f;
+
+    HYP_FIELD(Property = "CoverageScale", Serialize, Label = "Coverage Scale (m)")
+    float coverageScale = 400.0f;
+
+    HYP_FIELD(Property = "Emissive", Serialize, Label = "Emissive")
+    Vec3f emissive = Vec3f::Zero();
+
+    HYP_FIELD(Property = "Tint", Serialize, Label = "Tint")
+    Vec3f tint = Vec3f::One();
+
+    HYP_FIELD(Property = "FollowTerrain", Serialize, Label = "Follow Terrain")
+    bool followTerrain = false;
+
+    HYP_FIELD(Property = "LayerTop", Serialize, Label = "Layer Top (m, 0 = none)")
+    float layerTop = 0.0f;
+
+    HYP_FIELD(Property = "LayerTopSoftness", Serialize, Label = "Layer Top Softness (m)")
+    float layerTopSoftness = 4.0f;
+
+    HYP_FIELD(Property = "Glow", Serialize, Label = "Light Glow")
+    float glow = 3.0f;
 };
 
 HYP_STRUCT()
@@ -285,7 +324,7 @@ struct EnvironmentSettings
     HYP_FIELD(Property = "Exposure", Serialize, Label = "Exposure & Color")
     ExposureSettings exposure;
 
-    HYP_FIELD(Property = "HeightFog", Serialize, Label = "Height Fog")
+    HYP_FIELD(Property = "HeightFog", Serialize, Label = "Fog")
     HeightFogSettings heightFog;
 
     HYP_FIELD(Property = "Clouds", Serialize, Label  = "Clouds")
@@ -302,6 +341,6 @@ void WriteEnvironmentShaderData(
     const EnvironmentSettings& settings,
     WorldShaderData& outShaderData);
 
-float ComputeAutoExposure(float whiteSurfaceLuminance);
+float ComputeAutoExposure(float whiteSurfaceLuminance, float maxStops);
 
 } // namespace Hyperion

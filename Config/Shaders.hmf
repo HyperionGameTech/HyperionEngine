@@ -25,19 +25,6 @@ ShaderDefinitions "ShaderDefinitions" {
             VS = "Deferred/ApplyLightmap.hlsl"
             PS = "Deferred/ApplyLightmap.hlsl"
         }
-        ShaderDefinition "ApplyFogVolume" {
-            Condition = "Rendering.FogVolumes"
-            VS = "Deferred/ApplyFogVolume.hlsl"
-            PS = "Deferred/ApplyFogVolume.hlsl"
-        }
-        ShaderDefinition "FogVolumeTemporal" {
-            Condition = "Rendering.FogVolumes"
-            CS = "Deferred/FogVolumeTemporal.hlsl"
-        }
-        ShaderDefinition "FogVolumeOcclusionBake" {
-            Condition = "Rendering.FogVolumes"
-            CS = "Deferred/FogVolumeOcclusionBake.hlsl"
-        }
         ShaderDefinition "Sprite" {
             VS = "Sprite/Sprite.hlsl"
             PS = "Sprite/Sprite.hlsl"
@@ -336,6 +323,25 @@ ShaderDefinitions "ShaderDefinitions" {
         ShaderDefinition "HeightFog" {
             VS = "HeightFog.hlsl"
             PS = "HeightFog.hlsl"
+        }
+        ShaderDefinition "VolumetricFogNoise" {
+            CS = "VolumetricFog/VolumetricFogNoise.hlsl"
+        }
+        ShaderDefinition "VolumetricFogAmbient" {
+            CS = "VolumetricFog/VolumetricFogAmbient.hlsl"
+        }
+        ShaderDefinition "VolumetricFogInject" {
+            CS = "VolumetricFog/VolumetricFogInject.hlsl"
+        }
+        ShaderDefinition "VolumetricFogTemporal" {
+            CS = "VolumetricFog/VolumetricFogTemporal.hlsl"
+        }
+        ShaderDefinition "VolumetricFogIntegrate" {
+            CS = "VolumetricFog/VolumetricFogIntegrate.hlsl"
+        }
+        ShaderDefinition "VolumetricFogApply" {
+            VS = "VolumetricFog/VolumetricFogApply.hlsl"
+            PS = "VolumetricFog/VolumetricFogApply.hlsl"
         }
         ShaderDefinition "CloudShadowMap" {
             Condition = "Rendering.Clouds"

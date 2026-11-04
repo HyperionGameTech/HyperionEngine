@@ -1164,7 +1164,6 @@
                                         <Separator />
                                         <MenuItem Command="{Binding BuildLightmaps}" Header="Lightmaps" />
                                         <Separator />
-                                        <MenuItem Command="{Binding BuildFogVolumes}" Header="Fog Volumes" />
                                         <Separator />
                                         <MenuItem Command="{Binding BuildStaticShadows}" Header="Static Shadows" />
 

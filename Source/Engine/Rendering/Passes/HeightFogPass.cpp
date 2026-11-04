@@ -44,8 +44,8 @@ struct HeightFogConstants
 {
     uint32 hasSun;
     uint32 hasSkyProbe;
+    float nearFieldDistance;
     uint32 _pad0;
-    uint32 _pad1;
 };
 
 HeightFogPass::HeightFogPass() = default;
@@ -85,6 +85,7 @@ void HeightFogPass::Render(Frame* frame, const RenderSetup& renderSetup)
     ENGINE_STAT_GPU_SCOPE(&s_statHeightFog);
 
     HeightFogConstants constants {};
+    constants.nearFieldDistance = m_nearFieldDistance;
 
     LightShaderData sunShaderData {};
 

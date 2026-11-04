@@ -144,9 +144,28 @@ struct WorldShaderData
     /// y = sharpening after TAA (0 to 1)
     /// (both 0 while TAA is off)
     Vec4f taaParams;
+
+    /// x = albedo
+    /// y = noise strength
+    /// z = 1 / noise scale in meters
+    /// w = coverage
+    Vec4f volumetricFogParams;
+
+    /// rgb = emissive
+    /// w = 1 / coverage scale in meters
+    Vec4f volumetricFogEmissive;
+
+    /// x = 1 when heights are measured from the terrain
+    /// y = layer top above the base height in meters (0 = no top)
+    /// z = layer top softness in meters
+    /// w = light glow strength
+    Vec4f volumetricFogLayer;
+
+    /// rgb = tint
+    Vec4f volumetricFogTint;
 };
 
-static_assert(sizeof(WorldShaderData) == 384);
+static_assert(sizeof(WorldShaderData) == 448);
 
 struct EntityShaderData
 {
@@ -286,7 +305,7 @@ struct LightShaderData
     };
 
     Vec2f areaSize; // also angles for spot lights
-    Vec2f _pad0;
+    Vec2f volumetricParams; // x = volumetric fog intensity
     Vec4f atmosphereTint;
     Vec4f _pad2;
     Vec4f _pad3;
@@ -353,16 +372,6 @@ struct RenderProxyParticleVolume : IRenderProxy
 
 struct FogVolumeShaderData
 {
-    Mat4f transformMatrix;
-    Vec4f aabbMin;
-    Vec4f aabbMax;
-    Vec4u lightIndices[4];
-
-    uint32 numBoundLights;
-    uint32 _pad0;
-    uint32 _pad1;
-    uint32 _pad2;
-
     Vec4f medium;   // x = density (extinction per metre at full noise), y = forward phase g, z = backward phase g, w = backward share
     Vec4f lighting; // rgb = albedo, a = ambient intensity
     Vec4f shape;    // x = sun intensity, y = edge fade (metres)
@@ -371,8 +380,6 @@ struct FogVolumeShaderData
 struct RenderProxyFogVolume : IRenderProxy
 {
     FogVolume* fogVolume = nullptr;
-    Texture* volumeTexture = nullptr;
-    Texture* noiseTexture = nullptr;
     BoundingBox worldAabb;
     FogVolumeShaderData bufferData {};
 };

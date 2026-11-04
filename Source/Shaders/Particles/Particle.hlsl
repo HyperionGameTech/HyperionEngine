@@ -27,6 +27,7 @@ struct VSOutput
     float4 position_cs : SV_POSITION;
     float2 texcoord0 : TEXCOORD0;
     float4 color : TEXCOORD1;
+    float3 position_ws : TEXCOORD2;
 };
 
 DECLARE_UAV(ParticleDescriptorSet, ParticlesBuffer) RWStructuredBuffer<ParticleShaderData> instances;
@@ -62,6 +63,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 
     output.texcoord0 = float2(input.a_texcoord0.x, 1.0 - input.a_texcoord0.y);
     output.color = instance.color;
+    output.position_ws = position.xyz;
 
     output.position_cs = mul(camera.viewProjMat, position);
     output.position_cs.xy += camera.jitter.xy * output.position_cs.w;
@@ -74,6 +76,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 #ifdef PIXEL_SHADER
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
+#include "../Include/Scene.hlsli"
 #include "../Include/Shared.hlsli"
 #include "../Include/Material.hlsli"
 #include "../Include/Packing.hlsli"
@@ -81,19 +84,38 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 #include "../Include/Entity.hlsli"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
+#include "../VolumetricFog/VolumetricFogCommon.hlsli"
+
 struct PSInput
 {
     float4 position_cs : SV_POSITION;
     float2 texcoord0 : TEXCOORD0;
     float4 color : TEXCOORD1;
+    float3 position_ws : TEXCOORD2;
 };
 
 DECLARE_SRV(ParticleDescriptorSet, ParticleTexture) Texture2D ParticleTexture;
 DECLARE_SAMPLER(ParticleDescriptorSet, SamplerLinear) SamplerState SamplerLinear;
 
+DECLARE_SRV_DYNAMIC(ParticleDescriptorSet, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;
+#define camera _cameras_buffer[0]
+
+DECLARE_SRV(ParticleDescriptorSet, VolumetricFogTexture) Texture3D<float4> VolumetricFogTexture;
+
+DECLARE_BUFFER_DYNAMIC(ParticleDescriptorSet, ParticleFogConstants) cbuffer ParticleFogConstants
+{
+    VolumetricFogGrid volumetricFogGrid;
+};
+
 float4 PSMain(PSInput input) : SV_TARGET
 {
-    return SAMPLE_TEXTURE_2D(SamplerLinear, ParticleTexture, input.texcoord0);
+    float4 color = SAMPLE_TEXTURE_2D(SamplerLinear, ParticleTexture, input.texcoord0);
+
+    color.rgb = ApplyVolumetricFogSample(
+        color.rgb,
+        SampleVolumetricFog(VolumetricFogTexture, SamplerLinear, volumetricFogGrid, camera.viewProjMat, input.position_ws));
+
+    return color;
 }
 
 #endif // PIXEL_SHADER

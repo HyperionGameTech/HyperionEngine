@@ -71,7 +71,8 @@ enum class WorldEnvironmentFlags : uint32
     HeightFog = 0x4,
     DDGI = 0x8,
     RayTracedReflections = 0x10,
-    Glimmer = 0x20
+    Glimmer = 0x20,
+    VolumetricFog = 0x40
 };
 
 HYP_MAKE_ENUM_FLAGS(WorldEnvironmentFlags);

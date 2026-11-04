@@ -54,6 +54,23 @@ TierProfile "DeviceTiers" {
             }
         }
 
+        TierRule "VolumetricFog.Medium" {
+            AtMost = { DeviceGrade = Medium }
+            Set = {
+                "Rendering.VolumetricFog.GridPixelSize" = 16
+                "Rendering.VolumetricFog.GridSlices" = 64
+                "Rendering.VolumetricFog.MultiScatterOctaves" = 2
+            }
+        }
+        TierRule "VolumetricFog.Web" {
+            When = { DevicePlatform = Web }
+            Set = {
+                "Rendering.VolumetricFog.GridPixelSize" = 16
+                "Rendering.VolumetricFog.GridSlices" = 64
+                "Rendering.VolumetricFog.MultiScatterOctaves" = 2
+            }
+        }
+
         TierRule "Mobile" {
             When = { DeviceType = Mobile }
             Set = {
@@ -62,6 +79,7 @@ TierProfile "DeviceTiers" {
                 "Rendering.GTAO" = false
                 "Rendering.Clouds" = false
                 "Rendering.FogVolumes" = false
+                "Rendering.VolumetricFog" = false
                 "Rendering.Shadows.CSMMaxDistance" = 200
                 "Rendering.Shadows.CSMMaxStaleFrames" = 16
                 "Rendering.Shadows.Enabled" = false

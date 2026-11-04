@@ -360,6 +360,21 @@ void Light::SetFalloff(float falloff)
     MarkDirty();
 }
 
+void Light::SetVolumetricIntensity(float volumetricIntensity)
+{
+    volumetricIntensity = MathUtil::Max(volumetricIntensity, 0.0f);
+
+    if (m_volumetricIntensity == volumetricIntensity)
+    {
+        return;
+    }
+
+    m_volumetricIntensity = volumetricIntensity;
+
+    SetNeedsRenderProxyUpdate();
+    MarkDirty();
+}
+
 void Light::SetSpotAngles(const Vec2f& spotAngles)
 {
     if (m_spotAngles == spotAngles)
@@ -566,6 +581,7 @@ void Light::UpdateRenderProxy(RenderProxyLight* proxy)
     bufferData.positionIntensity = Vec4f(lightPosition, m_intensity);
     bufferData.materialIndex = ~0u; // materialIndex gets set in WriteBufferData_Light()
     bufferData.flags = m_lightFlags;
+    bufferData.volumetricParams = Vec2f(m_volumetricIntensity, 0.0f);
     bufferData.atmosphereTint = m_type == LightType::Directional
         ? Vec4f(LightHelpers::ComputeSunAtmosphereTint(lightPosition), 1.0f)
         : Vec4f::One();

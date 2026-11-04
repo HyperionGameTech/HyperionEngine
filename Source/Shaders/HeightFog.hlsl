@@ -52,8 +52,8 @@ DECLARE_BUFFER_DYNAMIC(HeightFog, HeightFogConstants) cbuffer HeightFogConstants
 
     uint hasSun;
     uint hasSkyProbe;
+    float nearFieldDistance;
     uint _pad0;
-    uint _pad1;
 };
 
 struct PSInput
@@ -119,7 +119,8 @@ PSOutput PSMain(PSInput input)
     const float distanceToPosition = length(toPosition);
     const float3 viewDirection = toPosition / max(distanceToPosition, 1e-4);
 
-    const float startDistance = world_shader_data.height_fog_params.w;
+    // volumetric fog covers the near field
+    const float startDistance = max(world_shader_data.height_fog_params.w, nearFieldDistance);
     const float rayLength = distanceToPosition - startDistance;
 
     if (rayLength <= 0.0)
@@ -127,9 +128,29 @@ PSOutput PSMain(PSInput input)
         return output;
     }
 
-    const float fogStartHeight = camera.position.y + viewDirection.y * startDistance;
+    float fogStartHeight = camera.position.y + viewDirection.y * startDistance;
+    float fogRayLength = rayLength;
 
-    float opticalDepth = GetHeightFogOpticalDepth(fogStartHeight, viewDirection.y, rayLength);
+    const float layerTop = world_shader_data.volumetric_fog_layer.y;
+
+    if (layerTop > 0.0)
+    {
+        const float topHeight = world_shader_data.height_fog_params.z + layerTop;
+
+        if (fogStartHeight > topHeight)
+        {
+            const float distanceToTop = viewDirection.y < -1e-4 ? (fogStartHeight - topHeight) / -viewDirection.y : fogRayLength;
+
+            fogStartHeight = topHeight;
+            fogRayLength = max(fogRayLength - distanceToTop, 0.0);
+        }
+        else if (viewDirection.y > 1e-4)
+        {
+            fogRayLength = min(fogRayLength, (topHeight - fogStartHeight) / viewDirection.y);
+        }
+    }
+
+    float opticalDepth = GetHeightFogOpticalDepth(fogStartHeight, viewDirection.y, fogRayLength);
 
     const float aerialPerspectiveDistance = world_shader_data.atmosphere_fog_params.x;
     const float aerialDepth = aerialPerspectiveDistance > 0.0 ? rayLength / aerialPerspectiveDistance : 0.0;
@@ -188,7 +209,7 @@ PSOutput PSMain(PSInput input)
             * (1.0 - overcastWeight);
     }
 
-    output.color = float4(inscatter * (1.0 - transmittance), transmittance);
+    output.color = float4(inscatter * world_shader_data.volumetric_fog_tint.rgb * (1.0 - transmittance), transmittance);
 
     return output;
 }

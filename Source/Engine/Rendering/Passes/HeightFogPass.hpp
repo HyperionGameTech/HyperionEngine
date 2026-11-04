@@ -33,8 +33,14 @@ public:
      *  and renderSetup.framebuffer must use the view's GBuffer depth for stencil. */
     void Render(Frame* frame, const RenderSetup& renderSetup);
 
+    HYP_FORCE_INLINE void SetNearFieldDistance(float nearFieldDistance)
+    {
+        m_nearFieldDistance = nearFieldDistance;
+    }
+
 private:
     Handle<Mesh> m_quadMesh;
+    float m_nearFieldDistance = 0.0f;
 };
 
 } // namespace Hyperion

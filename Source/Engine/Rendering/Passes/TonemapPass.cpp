@@ -10,7 +10,10 @@
 #include <Rendering/Passes/DeferredPass.hpp>
 #include <Rendering/Passes/BloomPass.hpp>
 
+#include <Rendering/VolumetricFog/VolumetricFogPass.hpp>
+
 #include <Rendering/RenderInterface.hpp>
+#include <Rendering/CBufferAllocator.hpp>
 #include <Rendering/GBuffer.hpp>
 #include <Rendering/TextureViewCache.hpp>
 #include <Rendering/PlaceholderData.hpp>
@@ -91,6 +94,30 @@ void TonemapPass::Render(Frame* frame, const RenderSetup& rs)
     else
     {
         cr << SetShaderUniform(numShaderUniforms++, "BloomResultTexture"_sh, RI.placeholderData->GetImageView2D1x1R8());
+    }
+
+    {
+        GpuBuffer* fogCbuffer = nullptr;
+        size_t fogCbufferOffset = 0;
+        size_t fogCbufferSize = 0;
+
+        if (dpd->volumetricFogPass)
+        {
+            dpd->volumetricFogPass->WriteShaderData(*RI.cbufferAllocator);
+
+            cr << SetShaderUniform(numShaderUniforms++, "VolumetricFogTexture"_sh, dpd->volumetricFogPass->GetIntegratedView());
+        }
+        else
+        {
+            static const VolumetricFogGridShaderData s_noVolumetricFogGrid {};
+            RI.cbufferAllocator->Write(&s_noVolumetricFogGrid);
+
+            cr << SetShaderUniform(numShaderUniforms++, "VolumetricFogTexture"_sh, RI.placeholderData->GetImageView3D1x1x1R8());
+        }
+
+        RI.cbufferAllocator->Commit(fogCbuffer, fogCbufferOffset, fogCbufferSize);
+
+        cr << SetShaderUniform(numShaderUniforms++, "VolumetricFogConstants"_sh, fogCbuffer, ShaderDataOffset(fogCbufferOffset, fogCbufferSize));
     }
 
     cr << SetShaderUniform(numShaderUniforms++, "DeferredIndirectResultTexture"_sh, dpd->lightingFramebuffer->GetAttachment(0)->GetImageView());

@@ -20,7 +20,6 @@
 
 #include <Scene/LightmapVolume.hpp>
 #include <Scene/EnvProbe.hpp>
-#include <Scene/FogVolume.hpp>
 #include <Scene/Light/Light.hpp>
 
 #include <Rendering/Mesh.hpp>
@@ -184,23 +183,6 @@ uint64 ComputeEpoch(const EnvProbe& probe, BakeLayer& bakeLayer)
     return HashCode(hashes.transformHashes[BakeLayerHashes::StaticMeshEntities])
         .Combine(hashes.transformHashes[BakeLayerHashes::StaticLights])
         .Combine(bakeLayer.GetEpochRev(BakeLayerCategory::Lightmap))
-        .Value();
-}
-
-uint64 ComputeEpoch(const FogVolume& volume, BakeLayer& bakeLayer)
-{
-    Scene* scene = volume.GetScene();
-
-    if (!scene)
-    {
-        return 0;
-    }
-
-    BakeLayerHashes& hashes = bakeLayer.sceneHashes[scene->GetUUID()];
-    ComputeSceneHashes(*scene, hashes);
-
-    return HashCode(hashes.transformHashes[BakeLayerHashes::StaticMeshEntities])
-        .Combine(hashes.transformHashes[BakeLayerHashes::StaticLocalLights])
         .Value();
 }
 

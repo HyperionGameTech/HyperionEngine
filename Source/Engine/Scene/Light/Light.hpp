@@ -173,6 +173,15 @@ public:
     HYP_METHOD(Property = "Falloff", Serialize, Editor)
     void SetFalloff(float falloff);
 
+    HYP_METHOD(Property = "VolumetricIntensity", Serialize, Editor)
+    float GetVolumetricIntensity() const
+    {
+        return m_volumetricIntensity;
+    }
+
+    HYP_METHOD(Property = "VolumetricIntensity", Serialize, Editor)
+    void SetVolumetricIntensity(float volumetricIntensity);
+
     /*! \brief Get the angles for the spotlight (x = outer, y = inner). This is used to determine the angle of the light cone (spot lights only).
      *
      *  \return The spotlight angles. */
@@ -282,6 +291,7 @@ protected:
     float m_intensity;
     float m_radius;
     float m_falloff;
+    float m_volumetricIntensity = 1.0f;
     Vec2f m_spotAngles;
     Handle<Material> m_material;
 

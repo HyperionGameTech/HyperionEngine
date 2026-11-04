@@ -508,17 +508,6 @@ void OnBindingChanged_ParticleVolume(ParticleVolume* particleVolume, uint32 prev
 void OnBindingChanged_FogVolume(FogVolume* fogVolume, uint32 prev, uint32 next)
 {
     SetBinding(fogVolume, next);
-
-    if (next != InvalidBinding)
-    {
-        IRenderProxy* proxy = GetRenderProxy(fogVolume);
-        Assert(proxy != nullptr);
-
-        RenderProxyFogVolume* proxyCasted = static_cast<RenderProxyFogVolume*>(proxy);
-
-        CreateTextureIfNotAlready(proxyCasted->volumeTexture);
-        CreateTextureIfNotAlready(proxyCasted->noiseTexture);
-    }
 }
 
 void OnBindingChanged_Sprite(Sprite* sprite, uint32 prev, uint32 next)
