@@ -134,8 +134,13 @@ float SelectMaterialChannel(float4 v, uint channel)
 
 #ifdef PIXEL_SHADER
 
+#ifdef MATERIAL_TEXTURE_MIP_BIAS
+#define SAMPLE_MATERIAL_TEXTURE(mat, name, texcoord) \
+    SAMPLE_TEXTURE_2D_BIAS(texture_sampler, GET_TEXTURE(mat, name), (texcoord), (MATERIAL_TEXTURE_MIP_BIAS))
+#else
 #define SAMPLE_MATERIAL_TEXTURE(mat, name, texcoord) \
     SAMPLE_TEXTURE_2D(texture_sampler, GET_TEXTURE(mat, name), (texcoord))
+#endif // MATERIAL_TEXTURE_MIP_BIAS
 
 #define SAMPLE_MATERIAL_TEXTURE_TRIPLANAR(mat, name, position, normal) \
     SampleTextureTriplanar(texture_sampler, GET_TEXTURE(mat, name), (position), (normal))

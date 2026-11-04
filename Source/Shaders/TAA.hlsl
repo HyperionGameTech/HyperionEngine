@@ -24,7 +24,7 @@ DECLARE_BUFFER_DYNAMIC(TAA, TAAConstants) cbuffer TAAConstants
 
 #define FEEDBACK feedback
 
-#define CUTOUT_VELOCITY_REJECTION_PIXELS 16.0
+#define CUTOUT_VELOCITY_REJECTION_PIXELS 8.0
 
 #define TEMPORAL_BLENDING_REVERSE_TONEMAP
 
@@ -32,7 +32,7 @@ DECLARE_BUFFER_DYNAMIC(TAA, TAAConstants) cbuffer TAAConstants
 
 #define TAA_MAX_RADIANCE 16384.0
 #define VARIANCE_CLIP_GAMMA 1.0
-#define CUTOUT_VARIANCE_CLIP_GAMMA 1.25
+#define CUTOUT_VARIANCE_CLIP_GAMMA 1.0
 
 float4 SanitizeColor(float4 color)
 {
@@ -82,7 +82,7 @@ float4 ResolveTAA(float2 uv, float2 velocity, bool is_cutout)
             const float4 neighbor = RGBToYCoCg(neighbor_rgb);
 
             const float2 offset = (float2(texel) + 0.5) - render_position;
-            const float weight = exp(-2.29 * dot(offset, offset));
+            const float weight = exp(-2.9 * dot(offset, offset));
 
             current += neighbor * weight;
             current_weight_sum += weight;
@@ -126,22 +126,17 @@ float4 ResolveTAA(float2 uv, float2 velocity, bool is_cutout)
 
     const float4 clipped_history = ClipAABB(clip_min, clip_max, clamp(current, clip_min, clip_max), history);
 
-    float current_weight;
+    const float max_feedback = is_cutout ? cutoutFeedback : FEEDBACK;
+
+    const float luminance_difference = abs(current.r - clipped_history.r) / max(current.r, max(clipped_history.r, 0.2));
+    const float luminance_feedback = saturate(lerp(max_feedback - 0.1, max_feedback, HYP_FMATH_SQR(1.0 - luminance_difference)));
+
+    float current_weight = (1.0 - luminance_feedback) * sample_confidence;
 
     if (is_cutout)
     {
-        current_weight = (1.0 - cutoutFeedback) * sample_confidence;
-
         const float pixel_velocity = length(velocity / output_texel_size);
         current_weight = lerp(current_weight, 1.0, saturate(pixel_velocity / CUTOUT_VELOCITY_REJECTION_PIXELS));
-    }
-    else
-    {
-        // drop up to 0.1 of the feedback where the luminance disagrees, as TemporalLuminanceResolveYCoCg does
-        const float luminance_difference = abs(current.r - clipped_history.r) / max(current.r, max(clipped_history.r, 0.2));
-        const float luminance_feedback = saturate(lerp(FEEDBACK - 0.1, FEEDBACK, HYP_FMATH_SQR(1.0 - luminance_difference)));
-
-        current_weight = (1.0 - luminance_feedback) * sample_confidence;
     }
 
     const float4 resolved = lerp(clipped_history, current, current_weight);

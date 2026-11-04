@@ -71,58 +71,82 @@ struct WorldShaderData
     uint32 tonemapOperator;
     uint32 environmentFlags;
 
-    // x = exposure multiplier, y = contrast, z = saturation, w = vignette strength
+    /// x = exposure multiplier
+    /// y = contrast
+    /// z = saturation
+    /// w = vignette strength
     Vec4f exposureGrading;
 
-    // linear rgb white balance matrix, one row per element
+    /// linear rgb white balance matrix, one row per element
     Vec4f whiteBalanceRows[3];
 
-    // xyz = direction toward the sun, w = sun intensity
+    /// xyz = direction toward the sun, w = sun intensity
     Vec4f sunDirectionIntensity;
     Vec4f sunColor;
 
-    // rgb = transmittance of the sun's light through the atmosphere, same as the sun light's atmosphereTint
+    /// rgb = transmittance of the sun's light through the atmosphere, same as the sun light's atmosphereTint
     Vec4f sunAtmosphereTint;
 
-    // rgb = tint, w = intensity
+    /// rgb = tint
+    /// w = intensity
     Vec4f skyTintIntensity;
 
-    // x = diffuse sky light, y = specular sky light, z = overcast brightness, w = cloud coverage
+    /// x = diffuse sky light
+    /// y = specular sky light
+    /// z = overcast brightness
+    /// w = cloud coverage
     Vec4f skyLightParams;
 
-    // x = sky occlusion strength, y = filter radius in meters, z = depth bias in meters
+    /// x = sky occlusion strength
+    /// y = filter radius in meters
+    /// z = depth bias in meters
     Vec4f skyOcclusionParams;
 
-    // x = density, y = height falloff, z = base height, w = start distance
+    /// x = density
+    /// y = height falloff
+    /// z = base height
+    /// w = start distance
     Vec4f heightFogParams;
 
-    // x = aerial perspective distance, y = sky inscatter, z = sun inscatter, w = max opacity
+    /// x = aerial perspective distance
+    /// y = sky inscatter
+    /// z = sun inscatter
+    /// w = max opacity
     Vec4f atmosphereFogParams;
 
-    // x = sun anisotropy
+    /// x = sun anisotropy
     Vec4f fogPhaseParams;
 
-    // xy = direction the wind blows toward on the ground (x, z), z = strength (1 a full gale), w = gustiness
+    /// xy = direction the wind blows toward on the ground (x, z)
+    /// z = strength (1 a full gale)
+    /// w = gustiness
     Vec4f windParams;
 
-    // x = game time last frame, so swaying geometry can write its own motion vectors
+    /// x = game time last frame, so swaying geometry can write its own motion vectors
     Vec4f windTimeParams;
 
-    // x = how much of the alpha cutout test is per-pixel noise rather than a per-triangle threshold. controlled by Rendering.Cutout.DitherAmount
+    /// x = how much of the alpha cutout test is per-pixel noise rather than a per-triangle threshold. controlled by Rendering.Cutout.DitherAmount
     Vec4f cutoutParams;
 
-    // xyz = viewpoints terrain patches measure their LOD morph from, indexed by EntityShaderData::lodMorphOrigin.w.
-    // they move with the camera every frame, so they live here instead of in each patch's render proxy
+    /// xyz = viewpoints terrain patches measure their LOD morph from, indexed by EntityShaderData::lodMorphOrigin.w.
+    /// they move with the camera every frame, so they live here instead of in each patch's render proxy
     Vec4f terrainLodViewpoints[MaxTerrainLodViewpoints];
 
-    // x = terrain LOD range multiplier
+    /// x = terrain LOD range multiplier
     Vec4f terrainLodParams;
 
-    // x = eye adaptation strength (0 to 1), y = most stops it moves exposure, z/w = metered range left alone (low, high)
+    /// x = eye adaptation strength (0 to 1)
+    /// y = most stops it moves exposure
+    /// z/w = metered range left alone (low, high)
     Vec4f eyeAdaptationParams;
+
+    /// x = material texture mip bias
+    /// y = sharpening after TAA (0 to 1)
+    /// (both 0 while TAA is off)
+    Vec4f taaParams;
 };
 
-static_assert(sizeof(WorldShaderData) == 368);
+static_assert(sizeof(WorldShaderData) == 384);
 
 struct EntityShaderData
 {

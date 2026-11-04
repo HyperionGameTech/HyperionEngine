@@ -1524,6 +1524,9 @@ void TerrainWorldGridLayer::OnRemoved(WorldGrid* worldGrid)
     DetachLoadedCells();
 
     worldGrid->GetWorld()->RemoveScene(m_scene);
+
+    // removed before World::Shutdown() reaches its scenes, so it would otherwise outlive the sim thread
+    m_scene->Shutdown();
 }
 
 Vec3f TerrainWorldGridLayer::ComputeCellBoundsMin(const WorldGridLayerInfo& layerInfo, const Vec2i& coord)

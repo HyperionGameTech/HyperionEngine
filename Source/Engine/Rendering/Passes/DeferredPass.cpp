@@ -161,7 +161,11 @@ CVar<float> g_cvTAAJitterRadius { "Rendering.TAA.JitterRadius", 0.5f };
 // most of the history kept per frame; the resolve drops up to 0.1 below this where luminance disagrees
 CVar<float> g_cvTAAFeedback { "Rendering.TAA.Feedback", 0.95f };
 // used instead of Rendering.TAA.Feedback on dithered alpha cutouts, which need a longer history to resolve
-CVar<float> g_cvTAACutoutFeedback { "Rendering.TAA.CutoutFeedback", 0.95f };
+CVar<float> g_cvTAACutoutFeedback { "Rendering.TAA.CutoutFeedback", 0.9f };
+// added to material texture mip selection while TAA is on, since the jitter recovers the detail the sharper mips alias on
+CVar<float> g_cvTAAMipBias { "Rendering.TAA.MipBias", -0.5f };
+// contrast-adaptive sharpening of the resolved image, 0 to 1
+CVar<float> g_cvTAASharpness { "Rendering.TAA.Sharpness", 0.5f };
 // 1 dithers alpha cutouts per pixel, 0 gives each triangle one random threshold instead
 CVar<float> g_cvCutoutDitherAmount { "Rendering.Cutout.DitherAmount", 0.5f };
 CVar<bool> g_cvGTAO { "Rendering.GTAO", true, "Rendering.GTAO.Enabled" };

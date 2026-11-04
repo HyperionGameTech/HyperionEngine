@@ -40,6 +40,8 @@ struct WorldShaderData
     float4 terrain_lod_params;
 
     float4 eye_adaptation_params;
+
+    float4 taa_params;
 };
 
 struct Camera

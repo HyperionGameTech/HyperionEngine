@@ -91,6 +91,8 @@ extern CVar<bool> g_cvRayTracedReflections;
 extern CVar<bool> g_cvPathTracing;
 extern CVar<float> g_cvCutoutDitherAmount;
 extern CVar<bool> g_cvTAA;
+extern CVar<float> g_cvTAAMipBias;
+extern CVar<float> g_cvTAASharpness;
 
 EngineStatTimer g_statScriptUpdate("Script/Update");
 EngineStatTimer g_statPhysicsUpdate("Physics/Update");
@@ -2477,6 +2479,15 @@ void World::FillWorldShaderData(WorldShaderData& outShaderData) const
 
     const float cutoutDitherAmount = g_cvTAA.Get() ? MathUtil::Clamp(g_cvCutoutDitherAmount.Get(), 0.0f, 1.0f) : 0.0f;
     outShaderData.cutoutParams = Vec4f(cutoutDitherAmount, 0.0f, 0.0f, 0.0f);
+
+    if (g_cvTAA.Get())
+    {
+        outShaderData.taaParams = Vec4f(MathUtil::Clamp(g_cvTAAMipBias.Get(), -2.0f, 0.0f), MathUtil::Clamp(g_cvTAASharpness.Get(), 0.0f, 1.0f), 0.0f, 0.0f);
+    }
+    else
+    {
+        outShaderData.taaParams = Vec4f::Zero();
+    }
 
     WriteEnvironmentShaderData(m_environmentSettings, outShaderData);
 

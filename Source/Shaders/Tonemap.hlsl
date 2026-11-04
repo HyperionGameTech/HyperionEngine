@@ -61,11 +61,59 @@ DECLARE_SRV(Tonemap, EyeAdaptationBuffer) StructuredBuffer<float4> EyeAdaptation
 
 #include "Include/Tonemap.hlsli"
 
+#define TEMPORAL_BLENDING_REVERSE_TONEMAP
+#include "Include/Temporal.hlsli"
+
+#define SHARPEN_LOBE_LIMIT (0.25 - 1.0 / 16.0)
+
+float3 LoadSharpenTap(int2 coord, int2 dimensions)
+{
+    return TemporalTonemap(max(DeferredResult.Load(int3(clamp(coord, int2(0, 0), dimensions - 1), 0)).rgb, 0.0));
+}
+
+// AMD's robust contrast-adaptive sharpening, run in a reversible tonemap so HDR highlights don't ring
+float3 SharpenSceneColor(float2 texcoord, float sharpness)
+{
+    uint width, height;
+    DeferredResult.GetDimensions(width, height);
+
+    const int2 dimensions = int2(width, height);
+    const int2 center_coord = min(int2(texcoord * float2(dimensions)), dimensions - 1);
+
+    const float3 center = LoadSharpenTap(center_coord, dimensions);
+    const float3 north = LoadSharpenTap(center_coord + int2(0, -1), dimensions);
+    const float3 west = LoadSharpenTap(center_coord + int2(-1, 0), dimensions);
+    const float3 east = LoadSharpenTap(center_coord + int2(1, 0), dimensions);
+    const float3 south = LoadSharpenTap(center_coord + int2(0, 1), dimensions);
+
+    const float3 min_neighbor = min(min(north, south), min(west, east));
+    const float3 max_neighbor = max(max(north, south), max(west, east));
+
+    const float3 hit_min = min(min_neighbor, center) / max(4.0 * max_neighbor, 1e-5);
+    const float3 hit_max = (1.0 - max(max_neighbor, center)) / min(4.0 * min_neighbor - 4.0, -1e-5);
+    const float3 lobe_rgb = max(-hit_min, hit_max);
+
+    const float lobe = max(-SHARPEN_LOBE_LIMIT, min(max(lobe_rgb.r, max(lobe_rgb.g, lobe_rgb.b)), 0.0)) * sharpness;
+
+    const float3 sharpened = (lobe * (north + west + east + south) + center) / (4.0 * lobe + 1.0);
+
+    return TemporalTonemapInverse(saturate(sharpened));
+}
+
 float4 PSMain(PSInput input) : SV_Target0
 {
     float2 texcoord = input.texcoord;
 
-    float4 shaded_result = SAMPLE_TEXTURE_2D(sampler_linear, DeferredResult, texcoord);
+    float4 shaded_result;
+
+    if (world_shader_data.taa_params.y > 0.0)
+    {
+        shaded_result = float4(SharpenSceneColor(texcoord, world_shader_data.taa_params.y), 1.0);
+    }
+    else
+    {
+        shaded_result = SAMPLE_TEXTURE_2D(sampler_linear, DeferredResult, texcoord);
+    }
     float4 bloom_result = SAMPLE_TEXTURE_2D(sampler_linear, BloomResultTexture, texcoord);
 
     float4 color_with_bloom = shaded_result + bloom_result;

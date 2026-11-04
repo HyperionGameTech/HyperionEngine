@@ -321,9 +321,12 @@ void GenerateTile(const TerrainGrassTileInput& input, TerrainGrassTileOutput& ou
 
                 const float scale = scaleJitter * MathUtil::Lerp(0.65f, 1.0f, coverage);
 
-                // stretched patches grow some height too, or far clumps flatten into wide blobs
-                const float stretchHeight = MathUtil::Sqrt(input.stretch);
-                const Vec3f axes[3] = { right * (scale * input.stretch), up * (scale * stretchHeight), forward * (scale * input.stretch) };
+                // stretched patches only widen - growing taller too left far grass standing above the near tiles at the switch
+                const Vec3f axes[3] = {
+                    right * (scale * input.stretch),
+                    up * scale,
+                    forward * (scale * input.stretch)
+                };
 
                 Mat4f patchMatrix;
 

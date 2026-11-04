@@ -46,9 +46,11 @@
 #define SAMPLE_TEXTURE_2D_GRAD(samp, tex, texcoord, texcoord_ddx, texcoord_ddy) (tex).SampleGrad((samp), (texcoord), (texcoord_ddx), (texcoord_ddy))
 #ifdef PIXEL_SHADER
 #define SAMPLE_TEXTURE_2D(samp, tex, texcoord) (tex).Sample((samp), (texcoord))
+#define SAMPLE_TEXTURE_2D_BIAS(samp, tex, texcoord, bias) (tex).SampleBias((samp), (texcoord), (bias))
 #else
 // we don't have on screen derivatives in other shader stages so just sample LOD0
 #define SAMPLE_TEXTURE_2D(samp, tex, texcoord) (tex).SampleLevel((samp), (texcoord), 0)
+#define SAMPLE_TEXTURE_2D_BIAS(samp, tex, texcoord, bias) (tex).SampleLevel((samp), (texcoord), 0)
 #endif
 
 #define SAMPLE_TEXTURE_2D_ARRAY_LOD(samp, tex, texcoord, lod) (tex).SampleLevel((samp), (texcoord), (lod))

@@ -49,6 +49,8 @@ DECLARE_SAMPLER(Default, SamplerNearest) SamplerState sampler_nearest;
 
 #define HAS_REFRACTION 1
 
+#define MATERIAL_TEXTURE_MIP_BIAS (world_shader_data.taa_params.x)
+
 #include "Include/Material.hlsli"
 
 #include "Include/Scene.hlsli"
@@ -331,7 +333,7 @@ PSOutput PSMain(PSInput input)
         float4 albedo_texture = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, DiffuseMap, texcoord);
 
 #ifdef ALPHA_DISCARD
-        const float diffuseMipLevel = HYP_TEXTURE_LOD(texture_sampler, GET_TEXTURE(CURRENT_MATERIAL, DiffuseMap), texcoord);
+        const float diffuseMipLevel = HYP_TEXTURE_LOD(texture_sampler, GET_TEXTURE(CURRENT_MATERIAL, DiffuseMap), texcoord) + MATERIAL_TEXTURE_MIP_BIAS;
         
         const float cutoutCoverage = AlphaCutoutCoverage(albedo_texture.a, alpha_threshold, diffuseMipLevel);
         const float cutoutNoise = world_shader_data.cutout_params.x
