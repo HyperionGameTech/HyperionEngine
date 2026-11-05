@@ -85,10 +85,13 @@ public:
     static ArborRecipeHandle FromRon(uint32 kind, const String& ron);
 
     ArborRecipeHandle() = default;
+    
     ArborRecipeHandle(const ArborRecipeHandle& other) = delete;
     ArborRecipeHandle& operator=(const ArborRecipeHandle& other) = delete;
+    
     ArborRecipeHandle(ArborRecipeHandle&& other) noexcept;
     ArborRecipeHandle& operator=(ArborRecipeHandle&& other) noexcept;
+
     ~ArborRecipeHandle();
 
     HYP_FORCE_INLINE bool IsValid() const

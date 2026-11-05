@@ -33,6 +33,8 @@ HYP_DECLARE_LOG_CHANNEL(Editor);
 
 namespace {
 
+constexpr float PaintAreaRayHeight = 10000.0f;
+
 // standard (Hamilton) rotation taking +Y onto the given direction
 Quat4f RotationFromUpTo(const Vec3f& direction)
 {
@@ -256,12 +258,17 @@ bool EditorSurfacePainterState::TryGetSurfaceHit(const Vec2f& relativePos, Surfa
         return false;
     }
 
-    // generated scenes (e.g. the terrain's) are never saved, so stamps on them go in the active scene instead
-    if (outHit.scene->IsTransient())
-    {
-        outHit.scene = m_subsystem->GetActiveScene();
+    return RedirectFromTransientScene(outHit);
+}
 
-        if (!outHit.scene.IsValid() || outHit.scene->IsTransient() || !outHit.scene->GetRoot().IsValid())
+bool EditorSurfacePainterState::RedirectFromTransientScene(SurfaceHit& hit) const
+{
+    // generated scenes (e.g. the terrain's) are never saved, so stamps on them go in the active scene instead
+    if (hit.scene->IsTransient())
+    {
+        hit.scene = m_subsystem->GetActiveScene();
+
+        if (!hit.scene.IsValid() || hit.scene->IsTransient() || !hit.scene->GetRoot().IsValid())
         {
             HYP_LOG_ONCE(Editor, Warning, "The {} needs an active scene to paint into", GetToolName());
 
@@ -378,6 +385,8 @@ bool EditorSurfacePainterState::AcceptStrokeScene(const Handle<Scene>& scene)
 
 void EditorSurfacePainterState::OnStamped(const SurfaceHit& hit)
 {
+    m_stampCount++;
+
     m_hasLastStamp = true;
     m_lastStampPosition = hit.position;
 
@@ -390,6 +399,98 @@ void EditorSurfacePainterState::OnStamped(const SurfaceHit& hit)
 float EditorSurfacePainterState::RandomInRange(float min, float max)
 {
     return MathUtil::RandomInRange(m_rotationSeed, min, max);
+}
+
+uint32 EditorSurfacePainterState::PaintArea(const Vec3f& center, float radius, uint32 count, bool erase)
+{
+    AssertOnThread(g_simThread);
+
+    if (m_isStroking || count == 0)
+    {
+        return 0;
+    }
+
+    if (!erase && !HasActiveAsset())
+    {
+        HYP_LOG(Editor, Warning, "Pick a {} to paint with first", GetAssetTypeName());
+
+        return 0;
+    }
+
+    m_isStroking = true;
+    m_strokeErase = erase;
+    m_hasLastStamp = false;
+    m_strokeScene.Reset();
+
+    ResetStrokeEdits();
+
+    const uint32 stampCountBefore = m_stampCount;
+    uint32 erasedAt = 0;
+
+    Array<Vec3f> stamped;
+
+    for (uint32 index = 0; index < count; index++)
+    {
+        Vec3f point = center;
+
+        if (radius > 0.0f)
+        {
+            const float angle = RandomInRange(0.0f, 2.0f * MathUtil::pi<float>);
+            const float distance = radius * MathUtil::Sqrt(RandomInRange(0.0f, 1.0f));
+
+            point.x += MathUtil::Cos(angle) * distance;
+            point.z += MathUtil::Sin(angle) * distance;
+        }
+
+        Ray ray;
+        ray.position = point + Vec3f(0.0f, PaintAreaRayHeight, 0.0f);
+        ray.direction = -Vec3f::UnitY();
+
+        SurfaceHit hit;
+
+        if (!RaycastSurface(ray, hit) || !RedirectFromTransientScene(hit))
+        {
+            continue;
+        }
+
+        if (erase)
+        {
+            EraseAt(hit);
+            erasedAt++;
+
+            continue;
+        }
+
+        bool crowded = false;
+
+        for (const Vec3f& previous : stamped)
+        {
+            if (previous.Distance(hit.position) < m_spacing)
+            {
+                crowded = true;
+
+                break;
+            }
+        }
+
+        if (crowded)
+        {
+            continue;
+        }
+
+        const uint32 before = m_stampCount;
+
+        StampAt(hit);
+
+        if (m_stampCount != before)
+        {
+            stamped.PushBack(hit.position);
+        }
+    }
+
+    EndStroke();
+
+    return erase ? erasedAt : m_stampCount - stampCountBefore;
 }
 
 void EditorSurfacePainterState::BeginStroke(const Vec2f& relativePos, bool erase)

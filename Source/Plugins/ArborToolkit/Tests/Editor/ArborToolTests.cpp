@@ -16,6 +16,8 @@
 #include <Editor/EditorSubsystem.hpp>
 #include <Editor/EditorActionStack.hpp>
 #include <Editor/Prefab/EditorPrefabEditState.hpp>
+#include <Editor/Instancing/EditorInstancePainterState.hpp>
+#include <Editor/EditorProject.hpp>
 
 #include <Asset/ModelLoaders/GLTFModelLoader.hpp>
 #include <Asset/AssetRegistry.hpp>
@@ -29,11 +31,20 @@
 #include <Scene/Entity.hpp>
 #include <Scene/EntityManager.hpp>
 #include <Scene/Prefab.hpp>
+#include <Scene/World.hpp>
+
 #include <Scene/Instancing/PrefabSet.hpp>
+#include <Scene/Instancing/InstanceGroup.hpp>
+
 #include <Scene/Components/MeshComponent.hpp>
 
 #include <Rendering/Mesh.hpp>
 #include <Rendering/Vertex.hpp>
+#include <Rendering/Material.hpp>
+
+#include <Rendering/Util/MeshBuilder.hpp>
+
+#include <Core/DataProcessing/JSON/JSON.hpp>
 
 namespace Hyperion {
 namespace tests {
@@ -319,6 +330,9 @@ HYP_EDITOR_TEST(ArborTools, BakingVariantsMakesASetToPaintWith)
     HYP_TEST_REQUIRE(prefabSet.IsValid());
     HYP_TEST_CHECK(prefabSet->IsRegistered());
 
+    HYP_TEST_CHECK(state->GetLastBakedAsset().Get() == prefabSet.Get());
+    HYP_TEST_CHECK(state->GetLastBakedAssetPath() == HYP_FORMAT("Misc/{}", prefabSet->GetName()));
+
     const Array<PrefabSetEntry> entries = prefabSet->GetValidEntries();
     HYP_TEST_REQUIRE(entries.Size() == 3);
 
@@ -343,6 +357,153 @@ HYP_EDITOR_TEST(ArborTools, BakingVariantsMakesASetToPaintWith)
     HYP_TEST_CHECK(state->GetVariantCount() == 3);
     HYP_TEST_CHECK(state->GetInspectedAsset().Get() == prefabSet.Get());
     HYP_TEST_CHECK(state->Exit(/* apply */ false));
+}
+
+HYP_EDITOR_TEST(ArborTools, RecipeRonAndControlsById)
+{
+    Handle<EditorArborState> state = GetArborState();
+    HYP_TEST_REQUIRE(state.IsValid() && state->IsAvailable());
+
+    EditorSubsystem* editorSubsystem = GetEditorSubsystem();
+
+    HYP_TEST_CHECK(state->GetPlantKindCount() == 3);
+    HYP_TEST_CHECK(state->GetPlantKindName(uint32(ArborKind::Rock)) == "Rock");
+    HYP_TEST_CHECK(state->GetPlantKindName(99).Empty());
+
+    HYP_TEST_REQUIRE(state->EnterNewPlant(uint32(ArborKind::Tree), "hazel"));
+
+    // every control and its value in one call
+    const String described = state->DescribeControls();
+    const JSON::ParseResult parsed = JSON::Parse(described);
+    HYP_TEST_REQUIRE_MSG(parsed.ok && parsed.value.IsObject(), "{}", parsed.message);
+
+    const JSON::Object& description = parsed.value.AsObject();
+    auto controlsIt = description.Find("controls");
+    HYP_TEST_REQUIRE(controlsIt != description.End() && controlsIt->second.IsArray());
+
+    const JSON::JArray& controls = controlsIt->second.AsArray();
+    HYP_TEST_REQUIRE(controls.Size() == state->GetControlCount() && controls.Size() > 0);
+    HYP_TEST_CHECK(controls[0].AsObject().Find("id")->second.AsString() == state->GetControlId(0));
+
+    const String lengthId = "level_1.length_thickness.length";
+    const int32 length = state->FindControl(lengthId);
+    HYP_TEST_REQUIRE(length >= 0);
+    HYP_TEST_CHECK(state->FindControl("no.such.control") == -1);
+
+    const float lo = state->GetControlLo(uint32(length));
+    HYP_TEST_REQUIRE(state->SetControlRangedById(lengthId, /* isRange */ true, lo * 0.5f, lo));
+    HYP_TEST_CHECK(state->IsControlRange(uint32(length)));
+
+    // a ranged control takes a range, not an integer
+    HYP_TEST_CHECK(!state->SetControlIntegerById(lengthId, 3));
+
+    // set by id is its own undoable edit
+    editorSubsystem->GetSceneActionStack()->Undo();
+    HYP_TEST_CHECK(!state->IsControlRange(uint32(length)));
+
+    const String hazel = state->GetRecipeRon();
+    HYP_TEST_REQUIRE(hazel.Any());
+
+    const String oak = ArborRecipeHandle::FromPreset(uint32(ArborKind::Tree), "oak_forest").ToRon();
+    HYP_TEST_REQUIRE(oak.Any());
+
+    HYP_TEST_REQUIRE(state->SetRecipeRon(oak));
+    HYP_TEST_CHECK(state->GetRecipePreset() == "oak_forest");
+
+    HYP_TEST_CHECK(!state->SetRecipeRon("(not a recipe"));
+    HYP_TEST_CHECK(state->GetStatusText().Any());
+    HYP_TEST_CHECK(state->GetRecipePreset() == "oak_forest");
+
+    editorSubsystem->GetSceneActionStack()->Undo();
+    HYP_TEST_CHECK(state->GetRecipeRon() == hazel);
+
+    HYP_TEST_CHECK(state->Exit(/* apply */ false));
+}
+
+HYP_EDITOR_TEST(InstancePainter, PaintAreaStampsWithoutAMouse)
+{
+    constexpr float GroundTop = 200.0f;
+
+    EditorSubsystem* editorSubsystem = GetEditorSubsystem();
+
+    const Handle<EditorProject>& project = editorSubsystem->GetCurrentProject();
+    HYP_TEST_REQUIRE(project.IsValid() && project->GetWorld().IsValid());
+
+    Handle<EditorInstancePainterState> painter = editorSubsystem->GetInstancePainterState();
+    HYP_TEST_REQUIRE(painter.IsValid());
+
+    // the vis thread leaves detached scenes alone, so the test can put its ground in this one's octree itself
+    Handle<Scene> scene = MakeHandle<Scene>(NAME("PaintAreaScene"), SceneFlags::HAS_OCTREE | SceneFlags::DETACHED);
+    InitObject(scene);
+    project->GetWorld()->AddScene(scene, /* addToStreamingLayer */ false);
+
+    // a 40 x 40 slab whose top is at y = 200, inside the octree's bounds and above whatever the project's own scenes have, which the
+    // straight-down rays would otherwise find first
+    Handle<Mesh> mesh = MeshBuilder::Cube();
+
+    BVHNode bvh;
+
+    {
+        auto readScope = mesh->GetReadScope();
+        mesh->BuildBVH(bvh);
+    }
+
+    {
+        auto writeScope = mesh->GetWriteScope();
+        mesh->SetBVH(std::move(bvh));
+    }
+
+    MaterialAttributes materialAttributes;
+    materialAttributes.shaderName = NAME("GeometryPass");
+
+    MeshComponent meshComponent;
+    meshComponent.mesh = mesh;
+    meshComponent.material = MakeHandle<Material>(NAME("PaintAreaGround"), materialAttributes);
+
+    Handle<Entity> ground = MakeHandle<Entity>(NAME("PaintAreaGround"));
+    ground->SetLocalTranslation(Vec3f(0.0f, GroundTop - 1.0f, 0.0f));
+    ground->SetLocalScale(Vec3f(20.0f, 1.0f, 20.0f));
+
+    // components need the scene's entity manager, so it goes in the scene first
+    scene->GetRoot()->AddChild(ground);
+
+    ground->AddComponent<MeshComponent>(meshComponent);
+    ground->SetLocalBounds(mesh->GetAABB());
+
+    HYP_TEST_REQUIRE(scene->GetOctree().Insert(ground.Get(), ground->GetWorldBounds()).HasValue());
+
+    Handle<Prefab> prefab = MakeHandle<Prefab>(NAME("PaintAreaPrefab"), MakeHandle<Entity>(NAME("PaintAreaPrefab")));
+
+    const float spacing = painter->GetSpacing();
+    const float eraseRadius = painter->GetEraseRadius();
+
+    painter->SetActivePrefab(prefab);
+    painter->SetSpacing(0.5f);
+
+    const uint32 placed = painter->PaintArea(Vec3f(0.0f, GroundTop, 0.0f), 10.0f, 20, /* erase */ false);
+
+    HYP_TEST_CHECK(placed > 0 && placed <= 20);
+
+    Handle<InstanceGroup> group = InstanceGroup::Find(scene.Get(), prefab);
+    HYP_TEST_REQUIRE(group.IsValid());
+    HYP_TEST_CHECK(group->NumInstances() == placed);
+
+    painter->SetEraseRadius(100.0f);
+    HYP_TEST_CHECK(painter->PaintArea(Vec3f(0.0f, GroundTop, 0.0f), 0.0f, 1, /* erase */ true) == 1);
+    HYP_TEST_CHECK(group->NumInstances() == 0);
+
+    // one undo entry per call
+    project->GetActionStack()->Undo();
+    HYP_TEST_CHECK(group->NumInstances() == placed);
+
+    project->GetActionStack()->Undo();
+    HYP_TEST_CHECK(!InstanceGroup::Find(scene.Get(), prefab).IsValid() || InstanceGroup::Find(scene.Get(), prefab)->NumInstances() == 0);
+
+    painter->SetActivePrefab(Handle<Prefab>::Null());
+    painter->SetSpacing(spacing);
+    painter->SetEraseRadius(eraseRadius);
+
+    project->GetWorld()->RemoveScene(scene.Get(), /* removeFromStreamingLayer */ false);
 }
 
 } // namespace arbor

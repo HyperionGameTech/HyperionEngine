@@ -346,7 +346,22 @@ public:
           m_end(nullptr),
           m_length(0)
     {
-        size_t len = utf::StringLength<CharType, isUtf8>(reinterpret_cast<const CharType*>(byteView.Data()));
+        const CharType* _begin = reinterpret_cast<const CharType*>(byteView.Data());
+        const CharType* _end = reinterpret_cast<const CharType*>(byteView.Data() + byteView.Size());
+
+        size_t len = 0;
+
+        if constexpr (isUtf8)
+        {
+            len = utf::StringLength(_begin, _end);
+        }
+        else
+        {
+            while (_begin + len != _end && _begin[len] != CharType { 0 })
+            {
+                ++len;
+            }
+        }
 
         if (len >= UINT32_MAX)
         {
@@ -354,9 +369,9 @@ public:
             return;
         }
 
-        m_begin = reinterpret_cast<const CharType*>(byteView.Data());
-        m_end = reinterpret_cast<const CharType*>(byteView.Data() + byteView.Size());
-        m_length = len;
+        m_begin = _begin;
+        m_end = _end;
+        m_length = uint32(len);
     }
 
     constexpr StringView(const StringView& other) noexcept = default;
@@ -399,7 +414,20 @@ public:
             return true;
         }
 
-        return Memory::StrEqual(Data(), other.Data(), MathUtil::Min(Size(), other.Size()));
+        if (!Data() || !other.Data())
+        {
+            return Size() == 0 && other.Size() == 0;
+        }
+
+        const size_t common = MathUtil::Min(Size(), other.Size());
+        if (common != 0 && !Memory::StrEqual(Data(), other.Data(), common))
+        {
+            return false;
+        }
+
+        const StringView& longer = Size() > other.Size() ? *this : other;
+
+        return longer.Size() == common || longer.Data()[common] == CharType { 0 };
     }
 
     /*! \brief Inversion of the equality operator.
@@ -540,6 +568,28 @@ public:
         }
 
         return NotFound;
+    }
+
+    /*! \brief Find the first occurrence of the character at or after \p from.
+     *  \param ch The character to search for.
+     *  \param from The index to start from, in characters (code points for UTF-8), as the other Find functions count.
+     *  \returns The index of the occurrence in the whole string, or NotFound. */
+    constexpr size_t FindFirstIndex(WidestCharType ch, size_t from) const
+    {
+        const size_t index = Substr(from, Length()).FindFirstIndex(ch);
+
+        return index == NotFound ? NotFound : from + index;
+    }
+
+    /*! \brief Find the first occurrence of the substring at or after \p from.
+     *  \param substr The substring to search for.
+     *  \param from The index to start from, in characters (code points for UTF-8), as the other Find functions count.
+     *  \returns The index of the occurrence in the whole string, or NotFound. */
+    constexpr size_t FindFirstIndex(const StringView& substr, size_t from) const
+    {
+        const size_t index = Substr(from, Length()).FindFirstIndex(substr);
+
+        return index == NotFound ? NotFound : from + index;
     }
 
     /*! \brief Find the last occurrence of the substring.

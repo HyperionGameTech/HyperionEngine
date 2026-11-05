@@ -391,6 +391,18 @@ public:
         return utilities::StringView<TStringType>(*this).FindFirstIndex(substr);
     }
 
+    /*! \brief Find the index of the first occurrence of the character at or after the character index \p from. */
+    HYP_FORCE_INLINE size_t FindFirstIndex(WidestCharType ch, size_t from) const
+    {
+        return utilities::StringView<TStringType>(*this).FindFirstIndex(ch, from);
+    }
+
+    /*! \brief Find the index of the first occurrence of the substring at or after the character index \p from. */
+    HYP_FORCE_INLINE size_t FindFirstIndex(const utilities::StringView<TStringType>& substr, size_t from) const
+    {
+        return utilities::StringView<TStringType>(*this).FindFirstIndex(substr, from);
+    }
+
     /*! \brief Find the index of the last occurrence of the character. */
     HYP_FORCE_INLINE size_t FindLastIndex(WidestCharType ch) const
     {

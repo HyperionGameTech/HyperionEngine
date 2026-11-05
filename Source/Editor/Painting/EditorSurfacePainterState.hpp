@@ -83,6 +83,9 @@ public:
     HYP_METHOD()
     void SetAlignToSurface(bool alignToSurface);
 
+    HYP_METHOD()
+    uint32 PaintArea(const Vec3f& center, float radius, uint32 count, bool erase);
+
     void BeginStroke(const Vec2f& relativePos, bool erase);
     void UpdateStroke(const Vec2f& relativePos, bool erase);
     void EndStroke();
@@ -169,6 +172,10 @@ protected:
 
 private:
     bool TryGetSurfaceHit(const Vec2f& relativePos, SurfaceHit& outHit) const;
+
+    bool RedirectFromTransientScene(SurfaceHit& hit) const;
+
+    uint32 m_stampCount = 0;
 
     bool m_hasHover = false;
     SurfaceHit m_hover;
