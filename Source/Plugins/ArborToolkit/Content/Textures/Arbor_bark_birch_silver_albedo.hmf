@@ -1,0 +1,36 @@
+Texture Arbor_bark_birch_silver_albedo {
+    TextureDesc = {
+        Type = Texture2D
+        Format = BC1_SRGB
+        Extent = (1024, 1024, 1)
+        MinFilterMode = Linear
+        MagFilterMode = Linear
+        TextureWrapMode = Repeat
+        NumLayers = 1
+        ImageUsage = Sampled
+        MipOffsets = [
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+        ]
+    }
+    ImageData = {
+        Key = "Engine://Textures/Arbor_bark_birch_silver_albedo.TEX"
+        Size = 524288
+    }
+    Compression = Auto
+    UUID = "c8ba33fc-d047-895d-89f6-7c00be241e60"
+}

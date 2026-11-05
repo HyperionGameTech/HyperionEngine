@@ -105,6 +105,9 @@ jobs:
           "VULKAN_SDK=$($sdk.FullName)" >> $env:GITHUB_ENV
 
       # the editor build's commandlets cook the games and compile their shaders for the host backend, WebGPU here
+      # the ArborToolkit plugin builds arbor-ffi from its submodule with cargo, through Corrosion
+      - uses: dtolnay/rust-toolchain@stable
+
       - name: Build engine (WebGPU)
         shell: cmd
         env:

@@ -1,0 +1,36 @@
+Texture Arbor_leaf_ivy_roughness {
+    TextureDesc = {
+        Type = Texture2D
+        Format = BC4
+        Extent = (1024, 512, 1)
+        MinFilterMode = Linear
+        MagFilterMode = Linear
+        TextureWrapMode = Repeat
+        NumLayers = 1
+        ImageUsage = Sampled
+        MipOffsets = [
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+        ]
+    }
+    ImageData = {
+        Key = "Engine://Textures/Arbor_leaf_ivy_roughness.TEX"
+        Size = 262144
+    }
+    Compression = Mask
+    UUID = "8cacb014-c1dd-83a2-9285-070010047a00"
+}

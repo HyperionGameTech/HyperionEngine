@@ -1,0 +1,36 @@
+Texture Arbor_bark_oak_normal {
+    TextureDesc = {
+        Type = Texture2D
+        Format = BC5
+        Extent = (1024, 1024, 1)
+        MinFilterMode = Linear
+        MagFilterMode = Linear
+        TextureWrapMode = Repeat
+        NumLayers = 1
+        ImageUsage = Sampled
+        MipOffsets = [
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+        ]
+    }
+    ImageData = {
+        Key = "Engine://Textures/Arbor_bark_oak_normal.TEX"
+        Size = 1048576
+    }
+    Compression = Normal
+    UUID = "10b178d9-973a-83cc-9dac-89e735802ef0"
+}

@@ -25,3 +25,11 @@
 [submodule "Source/Plugins/CsgToolkit/External/manifold"]
 	path = Source/Plugins/CsgToolkit/External/manifold
 	url = https://github.com/elalish/manifold
+[submodule "Source/Plugins/ArborToolkit/External/arbor"]
+	path = Source/Plugins/ArborToolkit/External/arbor
+	url = https://github.com/ajmd17/arbor
+	shallow = true
+[submodule "External/Submodules/corrosion"]
+	path = External/Submodules/corrosion
+	url = https://github.com/corrosion-rs/corrosion
+	shallow = true

@@ -315,7 +315,7 @@ bool ArborRecipeHandle::IsAvailable()
 
 String ArborRecipeHandle::GetLastError()
 {
-    return "ArborToolkit was built without arbor_ffi. Run tools/hyperion-drop.sh from the arbor repo and rebuild";
+    return "ArborToolkit was built without arbor_ffi. Install Rust, ensure External/arbor submodule is checked out, and rebuild the engine";
 }
 
 uint32 ArborRecipeHandle::GetPresetCount(uint32 kind)

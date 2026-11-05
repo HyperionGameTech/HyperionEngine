@@ -1,0 +1,36 @@
+Texture Arbor_needle_conifer_normal {
+    TextureDesc = {
+        Type = Texture2D
+        Format = BC5
+        Extent = (512, 512, 1)
+        MinFilterMode = Linear
+        MagFilterMode = Linear
+        TextureWrapMode = Repeat
+        NumLayers = 1
+        ImageUsage = Sampled
+        MipOffsets = [
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+        ]
+    }
+    ImageData = {
+        Key = "Engine://Textures/Arbor_needle_conifer_normal.TEX"
+        Size = 262144
+    }
+    Compression = Normal
+    UUID = "e53bdcf7-b5fa-8c70-a2df-50a9ab1b26a0"
+}

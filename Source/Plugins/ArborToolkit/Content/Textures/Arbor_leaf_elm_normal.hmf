@@ -1,0 +1,36 @@
+Texture Arbor_leaf_elm_normal {
+    TextureDesc = {
+        Type = Texture2D
+        Format = BC5
+        Extent = (768, 3456, 1)
+        MinFilterMode = Linear
+        MagFilterMode = Linear
+        TextureWrapMode = Repeat
+        NumLayers = 1
+        ImageUsage = Sampled
+        MipOffsets = [
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+        ]
+    }
+    ImageData = {
+        Key = "Engine://Textures/Arbor_leaf_elm_normal.TEX"
+        Size = 2654208
+    }
+    Compression = Normal
+    UUID = "e64e3fc8-6e16-8199-bcd9-b6e393b69ede"
+}

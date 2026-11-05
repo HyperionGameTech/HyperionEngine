@@ -148,6 +148,9 @@ jobs:
           if (-not $sdk) { throw "Vulkan SDK was not installed under C:\VulkanSDK" }
           "VULKAN_SDK=$($sdk.FullName)" >> $env:GITHUB_ENV
 
+      # the ArborToolkit plugin builds arbor-ffi from its submodule with cargo, through Corrosion
+      - uses: dtolnay/rust-toolchain@stable
+
       - name: Build
         shell: cmd
         env:
@@ -220,6 +223,9 @@ jobs:
           echo "VULKAN_SDK=$(brew --prefix)" >> "$GITHUB_ENV"
 
       # the runner has 7 GB of memory, which 8 parallel compiles of the engine can exhaust
+      # the ArborToolkit plugin builds arbor-ffi from its submodule with cargo, through Corrosion
+      - uses: dtolnay/rust-toolchain@stable
+
       - name: Build
         env:
           HYP_BUILD_JOBS: 4
@@ -291,6 +297,9 @@ jobs:
           sdk="$(find "$RUNNER_TEMP/VulkanSDK" -mindepth 2 -maxdepth 2 -type d -name x86_64 | sort -r | head -n 1)"
           if [ -z "$sdk" ]; then echo "Vulkan SDK was not extracted under $RUNNER_TEMP/VulkanSDK"; exit 1; fi
           echo "VULKAN_SDK=$sdk" >> "$GITHUB_ENV"
+
+      # the ArborToolkit plugin builds arbor-ffi from its submodule with cargo, through Corrosion
+      - uses: dtolnay/rust-toolchain@stable
 
       - name: Build
         env:

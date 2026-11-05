@@ -1,0 +1,36 @@
+Texture Arbor_needle_pine_shoot_albedo {
+    TextureDesc = {
+        Type = Texture2D
+        Format = BC7_SRGB
+        Extent = (640, 2176, 1)
+        MinFilterMode = Linear
+        MagFilterMode = Linear
+        TextureWrapMode = Repeat
+        NumLayers = 1
+        ImageUsage = Sampled
+        MipOffsets = [
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+        ]
+    }
+    ImageData = {
+        Key = "Engine://Textures/Arbor_needle_pine_shoot_albedo.TEX"
+        Size = 1392640
+    }
+    Compression = Auto
+    UUID = "ae71405d-2451-887c-b8ef-a1974fb91190"
+}

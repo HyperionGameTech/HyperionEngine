@@ -1,0 +1,36 @@
+Texture Arbor_bark_spruce_albedo {
+    TextureDesc = {
+        Type = Texture2D
+        Format = BC1_SRGB
+        Extent = (1024, 1024, 1)
+        MinFilterMode = Linear
+        MagFilterMode = Linear
+        TextureWrapMode = Repeat
+        NumLayers = 1
+        ImageUsage = Sampled
+        MipOffsets = [
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+        ]
+    }
+    ImageData = {
+        Key = "Engine://Textures/Arbor_bark_spruce_albedo.TEX"
+        Size = 524288
+    }
+    Compression = Auto
+    UUID = "583da938-41ac-8b05-9e16-91efeb153bf8"
+}

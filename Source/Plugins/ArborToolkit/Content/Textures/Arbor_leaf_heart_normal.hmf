@@ -1,0 +1,36 @@
+Texture Arbor_leaf_heart_normal {
+    TextureDesc = {
+        Type = Texture2D
+        Format = BC5
+        Extent = (1024, 512, 1)
+        MinFilterMode = Linear
+        MagFilterMode = Linear
+        TextureWrapMode = Repeat
+        NumLayers = 1
+        ImageUsage = Sampled
+        MipOffsets = [
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+        ]
+    }
+    ImageData = {
+        Key = "Engine://Textures/Arbor_leaf_heart_normal.TEX"
+        Size = 524288
+    }
+    Compression = Normal
+    UUID = "01e13801-4782-8f4d-a63f-fe025c03951a"
+}

@@ -1,0 +1,36 @@
+Texture Arbor_bark_oak_roughness {
+    TextureDesc = {
+        Type = Texture2D
+        Format = BC4
+        Extent = (1024, 1024, 1)
+        MinFilterMode = Linear
+        MagFilterMode = Linear
+        TextureWrapMode = Repeat
+        NumLayers = 1
+        ImageUsage = Sampled
+        MipOffsets = [
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+        ]
+    }
+    ImageData = {
+        Key = "Engine://Textures/Arbor_bark_oak_roughness.TEX"
+        Size = 524288
+    }
+    Compression = Mask
+    UUID = "597b786d-c5ab-81b7-bf49-90e52cc66fb0"
+}

@@ -3,7 +3,7 @@
  *  @date 2016-2026
  *  @licence MIT
  *
- *  Run: Hyperion.Editor.exe --exec buildarbortextures [--input=<dir>] [--output=<dir>] [--max-size=1024]
+ *  Run: Hyperion.Editor.exe --exec BuildArborTexturesCommandlet [--arbor=<dir>] [--output=<dir>] [--max-size=1024]
  */
 
 #include <EditorPch.hpp>
@@ -19,15 +19,24 @@
 #include <Rendering/Texture.hpp>
 
 #include <Core/CLI/CommandLine.hpp>
+
 #include <Core/FileSystem/FilePath.hpp>
+
 #include <Core/Math/MathUtil.hpp>
+
 #include <Core/Utilities/GlobalContext.hpp>
+#include <Core/Utilities/Uuid.hpp>
 
 #include <Core/Reflection/ClassUtils.hpp>
 #include <Core/Reflection/ClassRegistry.hpp>
 
 #include <Core/Core.hpp>
+
+#include <Core/IO/ByteReader.hpp>
+
 #include <Core/Logging/Logger.hpp>
+
+#include <string_view>
 
 namespace Hyperion {
 
@@ -139,6 +148,59 @@ FilePath GetArborPluginDirectory()
     return CoreApi::GetBaseDirectory() / "Source" / "Plugins" / "ArborToolkit";
 }
 
+Array<String> FindSpeciesTextureSets(const FilePath& speciesDirectory)
+{
+    Array<String> names;
+
+    for (const FilePath& path : speciesDirectory.GetAllFilesInDirectory())
+    {
+        if (path.GetExtension().ToLower() != "ron")
+        {
+            continue;
+        }
+
+        FileByteReader reader { path };
+        const ByteBuffer bytes = reader.Read();
+
+        const std::string_view text(reinterpret_cast<const char*>(bytes.Data()), bytes.Size());
+        constexpr std::string_view key = "texture: \"";
+
+        for (size_t at = text.find(key); at != std::string_view::npos; at = text.find(key, at + key.size()))
+        {
+            const size_t start = at + key.size();
+            const size_t end = text.find('"', start);
+
+            if (end == std::string_view::npos)
+            {
+                break;
+            }
+
+            const String name(text.data() + start, text.data() + end);
+
+            if (name.Any() && !names.Contains(name))
+            {
+                names.PushBack(name);
+            }
+        }
+    }
+
+    return names;
+}
+
+bool IsMapOfSets(const String& mapName, const Array<String>& sets)
+{
+    for (const String& set : sets)
+    {
+        if (mapName.StartsWith(set + "_") && mapName.Length() > set.Length() + 1
+            && !String(mapName.Substr(set.Length() + 1)).Contains("_"))
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 Result BuildArborTexture(const FilePath& path, uint32 maxShortSide, const Handle<AssetRegistry>& outputRegistry)
 {
     const String mapName = FilePath(path.Basename()).StripExtension();
@@ -198,6 +260,8 @@ Result BuildArborTexture(const FilePath& path, uint32 maxShortSide, const Handle
     Handle<Texture> texture = MakeHandle<Texture>(desc, rgba.ToByteView());
     texture->SetName(GetArborTextureAssetName(mapName));
 
+    texture->SetUUID(UUID::FromName(*texture->GetName()));
+
     texture->SetCompression(kind == ArborMapKind::Normal
             ? TextureCompressionMode::Normal
             : kind == ArborMapKind::Grey ? TextureCompressionMode::Mask
@@ -208,7 +272,19 @@ Result BuildArborTexture(const FilePath& path, uint32 maxShortSide, const Handle
         return compressResult;
     }
 
-    outputRegistry->PutAssetsDeep(texture, /* overwriteExisting */ true);
+    outputRegistry->PutAsset(texture);
+
+    const FilePath manifestPath = outputRegistry->GetManifestPath(texture->GetPath());
+
+    if (!manifestPath.BasePath().Exists() && !manifestPath.BasePath().MkDir())
+    {
+        return HYP_MAKE_ERROR(Error, "could not create {}", manifestPath.BasePath());
+    }
+
+    if (Result saveResult = texture->SaveAs(manifestPath); saveResult.HasError())
+    {
+        return saveResult;
+    }
 
     HYP_LOG(Arbor, Info, "Arbor texture {}: {}x{} {}", texture->GetName(), extent.x, extent.y, EnumToString(texture->GetFormat()));
 
@@ -234,9 +310,9 @@ public:
             s_initialized = true;
 
             s_definitions.Add(
-                "input",
-                "i",
-                "Folder of <name>_<map>.png texture sets. The plugin's External/arbor/textures when empty",
+                "arbor",
+                "a",
+                "The Arbor checkout to read assets/species and assets/textures from. The plugin's External/arbor submodule when empty",
                 CommandLineArgumentFlags::NONE,
                 CommandLineArgumentType::STRING,
                 JSON::Value(""));
@@ -264,7 +340,7 @@ public:
 protected:
     virtual Result Run(const CommandLineArguments& args) override
     {
-        const String inputPath = args["input"].ToString();
+        const String inputPath = args["arbor"].ToString();
         const String outputPath = args["output"].ToString();
         const uint32 maxShortSide = uint32(MathUtil::Max(args["max-size"].ToInt32(), 4));
 
@@ -287,12 +363,21 @@ protected:
 
     static void RunStatic(const String& inputPath, const String& outputPath, uint32 maxShortSide)
     {
-        const FilePath inputDirectory = inputPath.Empty() ? GetArborPluginDirectory() / "External" / "arbor" / "textures" : FilePath(inputPath);
+        const FilePath arborDirectory = inputPath.Empty() ? GetArborPluginDirectory() / "External" / "arbor" : FilePath(inputPath);
+        const FilePath inputDirectory = arborDirectory / "assets" / "textures";
         const FilePath outputDirectory = outputPath.Empty() ? GetArborPluginDirectory() / "Content" : FilePath(outputPath);
 
         if (!inputDirectory.IsDirectory())
         {
-            HYP_LOG(Arbor, Error, "{} is not a directory. Run tools/hyperion-drop.sh from the arbor repo first", inputDirectory);
+            HYP_LOG(Arbor, Error, "{} is not a directory. Run: git submodule update --init Source/Plugins/ArborToolkit/External/arbor", inputDirectory);
+            return;
+        }
+
+        const Array<String> textureSets = FindSpeciesTextureSets(arborDirectory / "assets" / "species");
+
+        if (textureSets.Empty())
+        {
+            HYP_LOG(Arbor, Error, "no species in {} name a texture set", arborDirectory / "assets" / "species");
             return;
         }
 
@@ -302,9 +387,13 @@ protected:
             return;
         }
 
-        // keeps the Engine id, so the textures resolve once the plugin's Content is mounted on the engine registry
+        // keeps the Engine id, so the textures resolve once the plugin's Content is mounted on the engine registry. An Engine-id
+        // asset saves through whatever the engine registry is, so this one stands in for it while the textures are written
         Handle<AssetRegistry> outputRegistry = MakeHandle<AssetRegistry>(AssetRegistryId::Engine, outputDirectory);
         outputRegistry->Initialize(nullptr);
+
+        const Handle<AssetRegistry> engineRegistry = GetEngineAssetRegistry();
+        SetEngineAssetRegistry(outputRegistry);
 
         GlobalContextScope assetRegistryScope { AssetRegistryContext { outputRegistry } };
 
@@ -313,7 +402,7 @@ protected:
 
         for (const FilePath& path : inputDirectory.GetAllFilesInDirectory())
         {
-            if (path.GetExtension().ToLower() != "png")
+            if (path.GetExtension().ToLower() != "png" || !IsMapOfSets(FilePath(path.Basename()).StripExtension(), textureSets))
             {
                 continue;
             }
@@ -330,7 +419,7 @@ protected:
             numBuilt++;
         }
 
-        outputRegistry->SaveDirtyAssets();
+        SetEngineAssetRegistry(engineRegistry);
 
         HYP_LOG(Arbor, Info, "{} built into {}, {} failed", numBuilt, outputRegistry->GetRootPath(), numFailed);
     }

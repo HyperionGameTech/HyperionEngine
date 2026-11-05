@@ -1,0 +1,36 @@
+Texture Arbor_leaf_oak_scan_translucency {
+    TextureDesc = {
+        Type = Texture2D
+        Format = BC7_SRGB
+        Extent = (768, 4608, 1)
+        MinFilterMode = Linear
+        MagFilterMode = Linear
+        TextureWrapMode = Repeat
+        NumLayers = 1
+        ImageUsage = Sampled
+        MipOffsets = [
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+        ]
+    }
+    ImageData = {
+        Key = "Engine://Textures/Arbor_leaf_oak_scan_translucency.TEX"
+        Size = 3538944
+    }
+    Compression = Auto
+    UUID = "4e34bc73-793d-8640-afa3-c9227d823c80"
+}
