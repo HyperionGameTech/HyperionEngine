@@ -11,6 +11,9 @@
 
 #include <Core/Memory/ByteBuffer.hpp>
 
+#include <Core/Math/Vector2.hpp>
+
+#include <Core/Name/Name.hpp>
 #include <Core/Types.hpp>
 
 struct ArborRecipe;
@@ -65,6 +68,9 @@ struct ArborControlValue
     float landed = 0.0f;
     uint32 integer = 0;
 };
+
+Name GetArborTextureAssetName(const UTF8StringView& mapName);
+bool ReadArborMap(const UTF8StringView& file, Vec2u& outExtent, ByteBuffer& outRgba);
 
 class ArborRecipeHandle
 {
