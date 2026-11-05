@@ -232,14 +232,21 @@ using debug::LogType;
 #    define HYP_PRINT_STACK_TRACE()
 #endif
 
-#define HYP_FAIL(...)                                                       \
-    do                                                                      \
-    {                                                                       \
-        HYP_PRINT_STACK_TRACE();                                            \
-        Assert(0, "\n\nAn engine crash has been triggered!\n" __VA_ARGS__); \
-        debug::DebugLog_FlushOutputStream();                                \
-                                                                            \
-        debug::TerminateProgram();                                          \
+#define HYP_FAIL(...)                                                           \
+    do                                                                          \
+    {                                                                           \
+        if HYP_CONSTEVAL_CONTEXT                                                \
+        {                                                                       \
+            CompileTimeError(__VA_ARGS__);                                      \
+        }                                                                       \
+        else                                                                    \
+        {                                                                       \
+            HYP_PRINT_STACK_TRACE();                                            \
+            Assert(0, "\n\nAn engine crash has been triggered!\n" __VA_ARGS__); \
+            debug::DebugLog_FlushOutputStream();                                \
+                                                                                \
+            debug::TerminateProgram();                                          \
+        }                                                                       \
     }                                                                       \
     while (0)
 

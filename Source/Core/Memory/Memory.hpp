@@ -89,7 +89,7 @@ public:
     template <class T>
     static constexpr bool StrEqual(const T* HYP_NOTNULL lhs, const T* HYP_NOTNULL rhs, size_t length, size_t index = 0)
     {
-        if (HYP_CONSTEVAL_CONTEXT)
+        if HYP_CONSTEVAL_CONTEXT
         {
             return *lhs == *rhs
                 && ((*lhs == '\0' || (!length || index >= length)) || StrEqual(lhs + 1, rhs + 1, length, index + 1));

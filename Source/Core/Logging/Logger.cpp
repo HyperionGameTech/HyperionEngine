@@ -937,8 +937,6 @@ void Logger::LogFatal(const LogChannel& channel, const LogMessage& message)
     {
         debug::TerminateProgram();
     }
-
-    HYP_UNREACHABLE();
 }
 
 void Logger::LogScript(const LogChannel& channel, LogLevel level, const String& message)

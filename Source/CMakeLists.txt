@@ -107,7 +107,7 @@ set(CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY_DEBUG ${CMAKE_THIRD_PARTY_LIBRARY_DIRECT
 
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "Configurations to build" FORCE)
 
-set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
+set(CMAKE_CXX_STANDARD 23 CACHE STRING "C++ standard to be used")
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -416,7 +416,7 @@ else()
   if(HYP_CLANG_WINDOWS)
     # clang-cl (Clang on Windows with the MSVC-compatible driver) only accepts
     # MSVC-style flags, so map the GCC-style flags above to their clang-cl equivalents.
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_HAS_EXCEPTIONS=0 /EHs-c- /std:c++20")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_HAS_EXCEPTIONS=0 /EHs-c- /std:c++latest")
 
     # no RTTI (clang-cl uses MSVC-style flag)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /GR-")
@@ -424,7 +424,7 @@ else()
     # clang-specific diagnostics that the clang-cl driver doesn't recognize go via -Xclang
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xclang -fno-recovery-ast")
   else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++23")
 
     # no exceptions
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions")

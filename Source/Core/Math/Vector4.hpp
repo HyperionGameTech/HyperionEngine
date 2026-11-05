@@ -795,7 +795,7 @@ struct alignas(alignof(Float16) * 4) Vec4<Float16>
           z(Float16::FromRaw(0)),
           w(Float16::FromRaw(0))
     {
-        if (std::is_constant_evaluated())
+        if HYP_CONSTEVAL_CONTEXT
         {
             x = other.x;
             y = other.y;
@@ -818,7 +818,7 @@ struct alignas(alignof(Float16) * 4) Vec4<Float16>
 
     constexpr explicit operator Vec4<float>() const
     {
-        if (std::is_constant_evaluated())
+        if HYP_CONSTEVAL_CONTEXT
         {
             return Vec4<float>(float(x), float(y), float(z), float(w));
         }
@@ -852,24 +852,24 @@ struct alignas(alignof(Float16) * 4) Vec4<Float16>
 
     constexpr Type operator[](size_t index) const
     {
-        if (!std::is_constant_evaluated())
+        if HYP_CONSTEVAL_CONTEXT
         {
-            Type result;
-            std::memcpy(&result, reinterpret_cast<const unsigned char*>(this) + index * sizeof(Type), sizeof(Type));
-            return result;
+            switch (index)
+            {
+            case 0:
+                return x;
+            case 1:
+                return y;
+            case 2:
+                return z;
+            default:
+                return w;
+            }
         }
 
-        switch (index)
-        {
-        case 0:
-            return x;
-        case 1:
-            return y;
-        case 2:
-            return z;
-        default:
-            return w;
-        }
+        Type result;
+        std::memcpy(&result, reinterpret_cast<const unsigned char*>(this) + index * sizeof(Type), sizeof(Type));
+        return result;
     }
 
     HYP_FORCE_INLINE Vec4 operator+(const Vec4& other) const

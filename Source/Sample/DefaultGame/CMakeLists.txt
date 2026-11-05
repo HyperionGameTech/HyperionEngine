@@ -44,7 +44,7 @@ if(EXISTS "${HYP_PLATFORM_DIR}" AND NOT HYP_ANDROID)
   list(APPEND HEADERS ${PLATFORM_HEADERS})
 endif()
 
-set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
+set(CMAKE_CXX_STANDARD 23 CACHE STRING "C++ standard to be used")
 include_directories(
     ${HYP_GENERATED_DIR}
     ${CMAKE_SOURCE_DIR}/../

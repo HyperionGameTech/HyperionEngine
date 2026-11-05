@@ -16,7 +16,7 @@ project(${BUILD_NAME} CXX C)
 
 message(STATUS "Building CodeGen Tool with compiler: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
 
-set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
+set(CMAKE_CXX_STANDARD 23 CACHE STRING "C++ standard to be used")
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # platform and compiler definitions

@@ -531,15 +531,13 @@ static inline const char* ToString(VertexType vt)
         return "Tree";
     case VertexType::VT_Foliage:
         return "Foliage";
+    default:
+        HYP_UNREACHABLE();
     }
-
-    return "";
 }
 
 static inline constexpr size_t PacketSize(VertexType vt)
 {
-    //AssertDebug(ByteUtil::BitCount(vt) == 1);
-
     switch (vt)
     {
     case VertexType::VT_Position:
@@ -557,13 +555,11 @@ static inline constexpr size_t PacketSize(VertexType vt)
     case VertexType::VT_Foliage:
         return sizeof(TVertexPacket<VT_Foliage>);
     default:
-        //HYP_UNREACHABLE();
-        return 0;
+        HYP_UNREACHABLE();
     }
 }
 
 namespace detail {
-
 
 template <uint8 TMask, uint8 TBit>
 static constexpr size_t TVertexSizeCalcConditional = (((TMask & TBit) != 0) ? PacketSize(VertexType(TBit)) : 0);

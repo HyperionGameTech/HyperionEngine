@@ -10,7 +10,7 @@ message(STATUS "Building ${BUILD_NAME} library, base directory: ${CMAKE_SOURCE_D
 link_directories(${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY})
 
 set(CMAKE_BUILD_PARALLEL_LEVEL 8)
-set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
+set(CMAKE_CXX_STANDARD 23 CACHE STRING "C++ standard to be used")
 
 include_directories(SYSTEM
     ${THIRD_PARTY_INCLUDE_DIR}

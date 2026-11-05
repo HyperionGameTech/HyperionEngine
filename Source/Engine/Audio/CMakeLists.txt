@@ -10,7 +10,7 @@ message(STATUS "Building ${BUILD_NAME} module, base directory: ${CMAKE_SOURCE_DI
 link_directories(${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY})
 
 set(CMAKE_BUILD_PARALLEL_LEVEL 8)
-set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
+set(CMAKE_CXX_STANDARD 23 CACHE STRING "C++ standard to be used")
 
 set(hyperion-audio_LIBRARIES "")
 
