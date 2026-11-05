@@ -47,21 +47,121 @@ void EditorInstancePainterState::SetActivePrefab(const Handle<Prefab>& prefab)
             AssertOnThread(g_simThread);
 
             m_activePrefab = prefab;
-            m_prefabBounds = BoundingBox::Empty();
 
-            if (!m_activePrefab.IsValid())
+            if (prefab.IsValid())
             {
-                return;
+                m_activePrefabSet.Reset();
             }
 
-            Array<InstanceGroupMember> members;
-            InstanceGroup::CollectMembers(*m_activePrefab, members);
-
-            for (const InstanceGroupMember& member : members)
-            {
-                m_prefabBounds = m_prefabBounds.Union(member.bounds);
-            }
+            DrawNextStamp();
         });
+}
+
+const Handle<PrefabSet>& EditorInstancePainterState::GetActivePrefabSet() const
+{
+    return m_activePrefabSet;
+}
+
+void EditorInstancePainterState::SetActivePrefabSet(const Handle<PrefabSet>& prefabSet)
+{
+    DispatchToSimThread([this, prefabSet]()
+        {
+            AssertOnThread(g_simThread);
+
+            m_activePrefabSet = prefabSet;
+
+            if (prefabSet.IsValid())
+            {
+                m_activePrefab.Reset();
+            }
+
+            DrawNextStamp();
+        });
+}
+
+float EditorInstancePainterState::GetScaleMin() const
+{
+    return m_scaleMin;
+}
+
+void EditorInstancePainterState::SetScaleMin(float scaleMin)
+{
+    DispatchToSimThread([this, scaleMin]()
+        {
+            m_scaleMin = MathUtil::Max(scaleMin, 0.01f);
+
+            DrawNextStamp();
+        });
+}
+
+float EditorInstancePainterState::GetScaleMax() const
+{
+    return m_scaleMax;
+}
+
+void EditorInstancePainterState::SetScaleMax(float scaleMax)
+{
+    DispatchToSimThread([this, scaleMax]()
+        {
+            m_scaleMax = MathUtil::Max(scaleMax, 0.01f);
+
+            DrawNextStamp();
+        });
+}
+
+void EditorInstancePainterState::DrawNextStamp()
+{
+    AssertOnThread(g_simThread);
+
+    m_nextPrefab = m_activePrefabSet.IsValid()
+        ? m_activePrefabSet->ChooseOne(RandomInRange(0.0f, 1.0f))
+        : m_activePrefab;
+
+    const float scaleLow = MathUtil::Min(m_scaleMin, m_scaleMax);
+    const float scaleHigh = MathUtil::Max(m_scaleMin, m_scaleMax);
+
+    m_nextScale = scaleHigh > scaleLow ? RandomInRange(scaleLow, scaleHigh) : scaleLow;
+
+    m_prefabBounds = BoundingBox::Empty();
+
+    if (!m_nextPrefab.IsValid())
+    {
+        return;
+    }
+
+    Array<InstanceGroupMember> members;
+    InstanceGroup::CollectMembers(*m_nextPrefab, members);
+
+    for (const InstanceGroupMember& member : members)
+    {
+        m_prefabBounds = m_prefabBounds.Union(member.bounds);
+    }
+}
+
+bool EditorInstancePainterState::IsPaintedPrefab(const Handle<Prefab>& prefab) const
+{
+    if (!prefab.IsValid())
+    {
+        return false;
+    }
+
+    if (prefab == m_activePrefab)
+    {
+        return true;
+    }
+
+    if (m_activePrefabSet.IsValid())
+    {
+        for (const PrefabSetEntry& entry : m_activePrefabSet->GetEntries())
+        {
+            if (entry.prefab == prefab)
+            {
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
 
 float EditorInstancePainterState::GetFootprintRadius() const
@@ -92,12 +192,12 @@ void EditorInstancePainterState::SetSinkDepth(float sinkDepth)
 
 bool EditorInstancePainterState::HasActiveAsset() const
 {
-    return m_activePrefab.IsValid();
+    return m_activePrefab.IsValid() || (m_activePrefabSet.IsValid() && m_activePrefabSet->GetValidEntries().Any());
 }
 
 Vec3f EditorInstancePainterState::GetPlacementScale() const
 {
-    return Vec3f(m_scale);
+    return Vec3f(m_scale * m_nextScale);
 }
 
 Transform EditorInstancePainterState::GetCursorTransform(const SurfaceHit& hit) const
@@ -126,7 +226,7 @@ bool EditorInstancePainterState::ShouldIgnoreHit(const RayHit& hit) const
     // otherwise a stroke would keep stacking instances on top of the ones it just placed
     Handle<InstanceGroup> group = clusterComponent->group.Lock();
 
-    return group.IsValid() && group->GetPrefab() == m_activePrefab;
+    return group.IsValid() && IsPaintedPrefab(group->GetPrefab());
 }
 
 Vec3f EditorInstancePainterState::GetPlacementPosition(const SurfaceHit& hit) const
@@ -139,7 +239,7 @@ Vec3f EditorInstancePainterState::GetPlacementPosition(const SurfaceHit& hit) co
     // Aligned to the surface, its base already follows the slope
     if (!m_alignToSurface && m_footprintRadius > 0.0f)
     {
-        const float radius = m_footprintRadius * m_scale;
+        const float radius = m_footprintRadius * GetPlacementScale().x;
 
         // probes that fall off a ledge or into a hole shouldn't drag it down with them
         const float lowestAllowed = hit.position.y - radius * 3.0f;
@@ -162,29 +262,29 @@ Vec3f EditorInstancePainterState::GetPlacementPosition(const SurfaceHit& hit) co
         }
     }
 
-    return Vec3f(hit.position.x, groundHeight - m_sinkDepth * m_scale, hit.position.z);
+    return Vec3f(hit.position.x, groundHeight - m_sinkDepth * GetPlacementScale().x, hit.position.z);
 }
 
-Handle<InstanceGroup> EditorInstancePainterState::FindOrCreateInstanceGroup(const Handle<Scene>& scene)
+Handle<InstanceGroup> EditorInstancePainterState::FindOrCreateInstanceGroup(const Handle<Scene>& scene, const Handle<Prefab>& prefab)
 {
     AssertOnThread(g_simThread);
 
     for (const auto& edit : m_stroke.GetEdits())
     {
-        if (edit.target->GetPrefab() == m_activePrefab)
+        if (edit.target->GetPrefab() == prefab)
         {
             return edit.target;
         }
     }
 
-    Handle<InstanceGroup> group = InstanceGroup::Find(scene.Get(), m_activePrefab);
+    Handle<InstanceGroup> group = InstanceGroup::Find(scene.Get(), prefab);
 
     if (group.IsValid())
     {
         return group;
     }
 
-    group = InstanceGroup::Create(scene.Get(), m_activePrefab);
+    group = InstanceGroup::Create(scene.Get(), prefab);
 
     if (!group.IsValid())
     {
@@ -202,12 +302,17 @@ void EditorInstancePainterState::StampAt(const SurfaceHit& hit)
 {
     AssertOnThread(g_simThread);
 
-    if (!m_activePrefab.IsValid() || !AcceptStrokeScene(hit.scene))
+    if (!m_nextPrefab.IsValid() || !IsPaintedPrefab(m_nextPrefab))
+    {
+        DrawNextStamp();
+    }
+
+    if (!m_nextPrefab.IsValid() || !AcceptStrokeScene(hit.scene))
     {
         return;
     }
 
-    Handle<InstanceGroup> group = FindOrCreateInstanceGroup(hit.scene);
+    Handle<InstanceGroup> group = FindOrCreateInstanceGroup(hit.scene, m_nextPrefab);
 
     if (!group.IsValid())
     {
@@ -220,6 +325,7 @@ void EditorInstancePainterState::StampAt(const SurfaceHit& hit)
     m_stroke.RecordAdded(group, InstanceRecord::FromTransform(id, transform));
 
     OnStamped(hit);
+    DrawNextStamp();
 }
 
 void EditorInstancePainterState::EraseAt(const SurfaceHit& hit)

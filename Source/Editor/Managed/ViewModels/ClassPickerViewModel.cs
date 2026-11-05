@@ -18,6 +18,7 @@ namespace Hyperion.Editor.ViewModels
             "Material",
             "Decal",
             "Prefab",
+            "PrefabSet",
             "World",
             "Scene",
             "GroundCover",

@@ -387,6 +387,11 @@ void EditorSurfacePainterState::OnStamped(const SurfaceHit& hit)
     }
 }
 
+float EditorSurfacePainterState::RandomInRange(float min, float max)
+{
+    return MathUtil::RandomInRange(m_rotationSeed, min, max);
+}
+
 void EditorSurfacePainterState::BeginStroke(const Vec2f& relativePos, bool erase)
 {
     AssertOnThread(g_simThread);

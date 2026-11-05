@@ -24,7 +24,7 @@ namespace Hyperion.Editor.ViewModels
             "Scene"                             => "AssetScene",
             "World"                             => "AssetWorld",
             "LightmapVolume"                    => "LightmapVolume",
-            "Prefab"                            => "AssetPrefab",
+            "Prefab" or "PrefabSet"             => "AssetPrefab",
             "FogVolume"                         => "FogVolume",
             "Decal" or "DecalProxy"             => "Decal",
             "TextSprite"                        => "TextSprite",

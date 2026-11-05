@@ -237,7 +237,7 @@ using debug::LogType;
     {                                                                           \
         if HYP_CONSTEVAL_CONTEXT                                                \
         {                                                                       \
-            CompileTimeError(__VA_ARGS__);                                      \
+            CompileTimeError();                                                 \
         }                                                                       \
         else                                                                    \
         {                                                                       \

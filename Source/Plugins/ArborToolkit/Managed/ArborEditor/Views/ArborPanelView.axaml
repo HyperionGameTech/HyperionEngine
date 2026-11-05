@@ -42,6 +42,15 @@
                     <TextBlock Classes="arbor-hint" Text="{Binding StatusText}" />
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                    <StackPanel
+                        VerticalAlignment="Center"
+                        IsVisible="{Binding CanSetVariantCount}"
+                        Orientation="Horizontal"
+                        Spacing="4"
+                        ToolTip.Tip="Bake this many variants, at seeds counting up from this one, into a set the instance painter paints with">
+                        <TextBlock Classes="arbor-hint" VerticalAlignment="Center" Text="Variants" />
+                        <TextBox MinWidth="44" Text="{Binding VariantCountText, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" />
+                    </StackPanel>
                     <Button
                         Padding="20,6"
                         Command="{Binding DiscardCommand}"

@@ -29,6 +29,7 @@
 #include <Scene/Entity.hpp>
 #include <Scene/EntityManager.hpp>
 #include <Scene/Prefab.hpp>
+#include <Scene/Instancing/PrefabSet.hpp>
 #include <Scene/Components/MeshComponent.hpp>
 
 #include <Rendering/Mesh.hpp>
@@ -221,6 +222,83 @@ HYP_EDITOR_TEST(ArborTools, NewPlantEditsUndoAndDiscard)
     HYP_TEST_CHECK(state->Exit(/* apply */ false));
     HYP_TEST_CHECK(!state->IsActive());
     HYP_TEST_CHECK(editorSubsystem->GetActiveScene() == previousScene);
+}
+
+HYP_EDITOR_TEST(PrefabSet, ChooseOneFollowsWeights)
+{
+    Handle<Prefab> light = MakeHandle<Prefab>(NAME("PickLight"), MakeHandle<Entity>(NAME("PickLight")));
+    Handle<Prefab> heavy = MakeHandle<Prefab>(NAME("PickHeavy"), MakeHandle<Entity>(NAME("PickHeavy")));
+    Handle<Prefab> never = MakeHandle<Prefab>(NAME("PickNever"), MakeHandle<Entity>(NAME("PickNever")));
+
+    Handle<PrefabSet> prefabSet = MakeHandle<PrefabSet>(NAME("PickSet"));
+
+    HYP_TEST_CHECK(!prefabSet->ChooseOne(0.5f).IsValid());
+
+    prefabSet->AddEntry(light, 1.0f);
+    prefabSet->AddEntry(never, 0.0f);
+    prefabSet->AddEntry(heavy, 3.0f);
+
+    PrefabSetEntry missing;
+    missing.weight = 10.0f;
+
+    Array<PrefabSetEntry> entries = prefabSet->GetEntries();
+    entries.PushBack(missing);
+    prefabSet->SetEntries(entries);
+
+    HYP_TEST_CHECK(prefabSet->GetValidEntries().Size() == 2);
+
+    HYP_TEST_CHECK(prefabSet->ChooseOne(0.0f) == light);
+    HYP_TEST_CHECK(prefabSet->ChooseOne(0.24f) == light);
+    HYP_TEST_CHECK(prefabSet->ChooseOne(0.26f) == heavy);
+    HYP_TEST_CHECK(prefabSet->ChooseOne(0.999f) == heavy);
+    HYP_TEST_CHECK(prefabSet->ChooseOne(1.0f) == heavy);
+}
+
+HYP_EDITOR_TEST(ArborTools, BakingVariantsMakesASetToPaintWith)
+{
+    Handle<EditorArborState> state = GetArborState();
+    HYP_TEST_REQUIRE(state.IsValid() && state->IsAvailable());
+
+    EditorSubsystem* editorSubsystem = GetEditorSubsystem();
+
+    HYP_TEST_REQUIRE(state->EnterNewPlant(uint32(ArborKind::Rock), "stone"));
+    HYP_TEST_CHECK(state->CanSetVariantCount());
+
+    state->SetVariantCount(3);
+    HYP_TEST_CHECK(state->GetVariantCount() == 3);
+
+    HYP_TEST_REQUIRE(state->GrowNow());
+
+    HYP_TEST_REQUIRE(state->Apply());
+
+    Handle<PrefabSet> prefabSet = TryCast<PrefabSet>(state->GetInspectedAsset());
+    HYP_TEST_REQUIRE(prefabSet.IsValid());
+    HYP_TEST_CHECK(prefabSet->IsRegistered());
+
+    const Array<PrefabSetEntry> entries = prefabSet->GetValidEntries();
+    HYP_TEST_REQUIRE(entries.Size() == 3);
+
+    Array<String> recipes;
+
+    for (const PrefabSetEntry& entry : entries)
+    {
+        HYP_TEST_CHECK(entry.prefab->IsRegistered());
+
+        const String recipe = ReadRecipeOf(entry.prefab->GetRoot().Get());
+        HYP_TEST_CHECK(recipe.Any());
+        HYP_TEST_CHECK(!recipes.Contains(recipe));
+
+        recipes.PushBack(recipe);
+    }
+
+    HYP_TEST_CHECK(state->Exit(/* apply */ false));
+
+    HYP_TEST_CHECK(editorSubsystem->FindEditStateForAsset(prefabSet) == state.Get());
+
+    HYP_TEST_REQUIRE(editorSubsystem->EnterEditStateForAsset(prefabSet));
+    HYP_TEST_CHECK(state->GetVariantCount() == 3);
+    HYP_TEST_CHECK(state->GetInspectedAsset().Get() == prefabSet.Get());
+    HYP_TEST_CHECK(state->Exit(/* apply */ false));
 }
 
 } // namespace arbor
