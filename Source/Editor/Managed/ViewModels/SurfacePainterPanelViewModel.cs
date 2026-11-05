@@ -20,6 +20,15 @@ namespace Hyperion.Editor.ViewModels
 
         public ObservableCollection<InspectorPropertyViewModelBase> Properties => _assetPicker.Properties;
 
+        protected virtual void OnActiveAssetChanged()
+        {
+        }
+
+        protected void RefreshActiveAsset()
+        {
+            _assetPicker.Refresh();
+        }
+
         private double _scale;
         public double Scale
         {
@@ -134,7 +143,7 @@ namespace Hyperion.Editor.ViewModels
             _eraseRadius = painterState.EraseRadius;
             _alignToSurface = painterState.AlignToSurface;
 
-            _assetPicker = new PainterAssetPicker(title, painterState, activeAssetPropertyName, assetBucket, editorSubsystem);
+            _assetPicker = new PainterAssetPicker(title, painterState, activeAssetPropertyName, assetBucket, editorSubsystem, OnActiveAssetChanged);
             _assetPicker.AssetBucketChanged += OnAssetBucketChanged;
 
             OnClosed = () =>
@@ -240,6 +249,38 @@ namespace Hyperion.Editor.ViewModels
 
         public string SinkDepthText => $"{_sinkDepth:0.0#} m";
 
+        private double _scaleMin;
+        public double ScaleMin
+        {
+            get => _scaleMin;
+            set
+            {
+                if (SetProperty(ref _scaleMin, value))
+                {
+                    _instancePainterState.SetScaleMin((float)value);
+                    OnPropertyChanged(nameof(ScaleRangeText));
+                }
+            }
+        }
+
+        private double _scaleMax;
+        public double ScaleMax
+        {
+            get => _scaleMax;
+            set
+            {
+                if (SetProperty(ref _scaleMax, value))
+                {
+                    _instancePainterState.SetScaleMax((float)value);
+                    OnPropertyChanged(nameof(ScaleRangeText));
+                }
+            }
+        }
+
+        public string ScaleRangeText => $"{Math.Min(_scaleMin, _scaleMax):0.00}x – {Math.Max(_scaleMin, _scaleMax):0.00}x";
+
+        private readonly PainterAssetPicker _prefabSetPicker;
+
         public InstancePainterPanelViewModel(EditorSubsystem? editorSubsystem, EditorInstancePainterState? painterState, Action? onClosed)
             : base("Instance Painter", "Prefab", "ActivePrefab", AssetBucket.Prefabs, editorSubsystem, painterState, onClosed)
         {
@@ -247,6 +288,29 @@ namespace Hyperion.Editor.ViewModels
 
             _footprintRadius = painterState!.FootprintRadius;
             _sinkDepth = painterState.SinkDepth;
+            _scaleMin = painterState.ScaleMin;
+            _scaleMax = painterState.ScaleMax;
+
+            _prefabSetPicker = new PainterAssetPicker("Instance Painter", painterState, "ActivePrefabSet", AssetBucket.Misc, editorSubsystem!, () => _ = EngineManager.PostToSimThread(RefreshActiveAsset));
+
+            foreach (InspectorPropertyViewModelBase property in _prefabSetPicker.Properties)
+            {
+                Properties.Add(property);
+            }
+
+            Action? baseOnClosed = OnClosed;
+
+            OnClosed = () =>
+            {
+                _prefabSetPicker.Dispose();
+
+                baseOnClosed?.Invoke();
+            };
+        }
+
+        protected override void OnActiveAssetChanged()
+        {
+            _ = EngineManager.PostToSimThread(() => _prefabSetPicker?.Refresh());
         }
     }
 }

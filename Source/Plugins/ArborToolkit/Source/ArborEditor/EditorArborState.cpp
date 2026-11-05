@@ -25,6 +25,7 @@
 #include <Core/Threading/Threads.hpp>
 
 #include <Core/Logging/Logger.hpp>
+#include <Core/Math/MathUtil.hpp>
 
 #include <EditorArborState.generated.inl>
 
@@ -77,6 +78,27 @@ void SetGrown(const Node* plant, bool generated)
     }
 }
 
+bool IsArborPrefab(const Prefab* prefab)
+{
+    return prefab && prefab->GetRoot().IsValid() && prefab->GetRoot()->HasDataEntry(g_nameArborRecipe);
+}
+
+template <class Container, class Predicate>
+bool AllOf(const Container& container, Predicate&& predicate)
+{
+    for (const auto& item : container)
+    {
+        if (!predicate(item))
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+constexpr uint32 MaxVariants = 32;
+
 } // namespace
 
 EditorArborState::EditorArborState() = default;
@@ -100,23 +122,58 @@ bool EditorArborState::IsActive() const
 
 bool EditorArborState::CanEditAsset(const Handle<AssetObject>& asset) const
 {
-    const Prefab* prefab = asset.IsValid() ? TryCast<Prefab>(asset.Get()) : nullptr;
+    if (!asset.IsValid())
+    {
+        return false;
+    }
 
-    return prefab && prefab->GetRoot().IsValid() && prefab->GetRoot()->HasDataEntry(g_nameArborRecipe);
+    if (const Prefab* prefab = TryCast<Prefab>(asset.Get()))
+    {
+        return IsArborPrefab(prefab);
+    }
+
+    if (const PrefabSet* prefabSet = TryCast<PrefabSet>(asset.Get()))
+    {
+        const Array<PrefabSetEntry> entries = prefabSet->GetValidEntries();
+
+        return entries.Any() && AllOf(entries, [](const PrefabSetEntry& entry) { return IsArborPrefab(entry.prefab.Get()); });
+    }
+
+    return false;
 }
 
 bool EditorArborState::EnterAsset(const Handle<AssetObject>& asset)
 {
-    return CanEditAsset(asset) && EnterPrefab(TryCast<Prefab>(asset));
+    if (!CanEditAsset(asset))
+    {
+        return false;
+    }
+
+    if (Handle<PrefabSet> prefabSet = TryCast<PrefabSet>(asset))
+    {
+        return EnterPrefabSet(prefabSet);
+    }
+
+    return EnterPrefab(TryCast<Prefab>(asset));
 }
 
 Handle<AssetObject> EditorArborState::GetInspectedAsset() const
 {
+    if (m_sourceSet.IsValid())
+    {
+        return m_sourceSet;
+    }
+
     return m_sourcePrefab;
 }
 
 String EditorArborState::GetDisplayName() const
 {
+    if (m_sourceSet.IsValid())
+    {
+        return String(*m_sourceSet->GetName());
+    }
+
     return m_sourcePrefab.IsValid() ? String(*m_sourcePrefab->GetName()) : m_recipe.GetName();
 }
 
@@ -224,6 +281,53 @@ bool EditorArborState::EnterPrefab(const Handle<Prefab>& prefab)
     return true;
 }
 
+bool EditorArborState::EnterPrefabSet(const Handle<PrefabSet>& prefabSet)
+{
+    AssertOnThread(g_simThread);
+
+    if (!CanEditAsset(prefabSet))
+    {
+        return false;
+    }
+
+    const Array<PrefabSetEntry> entries = prefabSet->GetValidEntries();
+
+    if (!EnterPrefab(entries[0].prefab))
+    {
+        return false;
+    }
+
+    m_sourcePrefab.Reset();
+    m_sourceSet = prefabSet;
+    m_variantCount = uint32(entries.Size());
+
+    OnStateChanged();
+
+    return true;
+}
+
+uint32 EditorArborState::GetVariantCount() const
+{
+    return m_variantCount;
+}
+
+void EditorArborState::SetVariantCount(uint32 variantCount)
+{
+    if (!CanSetVariantCount())
+    {
+        return;
+    }
+
+    m_variantCount = MathUtil::Clamp(variantCount, 1u, MaxVariants);
+
+    OnStateChanged();
+}
+
+bool EditorArborState::CanSetVariantCount() const
+{
+    return IsNewPlant() || m_sourceSet.IsValid();
+}
+
 bool EditorArborState::EnterPlant(const Handle<Entity>& plant, ArborKind kind, ArborRecipeHandle&& recipe, Name sceneName)
 {
     if (!BeginEnter())
@@ -258,6 +362,9 @@ void EditorArborState::ClearTarget()
 {
     m_plant.Reset();
     m_sourcePrefab.Reset();
+    m_sourceSet.Reset();
+    m_variantCount = 1;
+    m_bakingVariants = false;
     m_recipe = ArborRecipeHandle();
     m_controls.Clear();
     m_layoutVersion++;
@@ -540,12 +647,12 @@ void EditorArborState::CommitEdit()
 
 bool EditorArborState::IsGenerating() const
 {
-    return m_generating || m_regrowPending;
+    return m_generating || m_regrowPending || m_bakingVariants;
 }
 
 bool EditorArborState::IsNewPlant() const
 {
-    return IsActive() && !m_sourcePrefab.IsValid();
+    return IsActive() && !m_sourcePrefab.IsValid() && !m_sourceSet.IsValid();
 }
 
 bool EditorArborState::CanBake() const
@@ -570,6 +677,13 @@ bool EditorArborState::Apply()
         return false;
     }
 
+    if (BakesVariants())
+    {
+        Array<Handle<Node>> grownNodes;
+
+        return GrowVariantsNow(grownNodes) && BakeVariantSet(grownNodes);
+    }
+
     Handle<Node> root = m_plant->Clone();
 
     if (!root.IsValid())
@@ -586,7 +700,6 @@ bool EditorArborState::Apply()
         root->SetName(m_sourcePrefab->GetName());
 
         m_sourcePrefab->SetRoot(root);
-        m_sourcePrefab->SetRevision(m_sourcePrefab->GetRevision() + 1);
 
         GetCurrentAssetRegistry()->PutAssetsDeep(m_sourcePrefab);
 
@@ -628,11 +741,23 @@ void EditorArborState::Bake()
         return;
     }
 
+    if (m_bakingVariants)
+    {
+        return;
+    }
+
     if (IsGenerating())
     {
         m_bakeRequested = true;
         m_statusText = "Baking once it has grown...";
         OnStateChanged();
+
+        return;
+    }
+
+    if (BakesVariants())
+    {
+        StartBakingVariants();
 
         return;
     }
@@ -673,13 +798,322 @@ Handle<Prefab> EditorArborState::BakeNewPrefab(const Handle<Node>& root)
         return Handle<Prefab>::Null();
     }
 
-    FileBakedAssets(prefab);
+    FileAssetsDeep(prefab, MakeBakeFolder(prefab->GetName()));
 
     return prefab;
 }
 
-// filed as an import is: the prefab and all it uses in a folder named after it, in the content browser's current folder
-void EditorArborState::FileBakedAssets(const Handle<Prefab>& prefab)
+bool EditorArborState::BakesVariants() const
+{
+    return m_sourceSet.IsValid() || (IsNewPlant() && m_variantCount > 1);
+}
+
+Handle<Node> EditorArborState::CloneGrownPlant() const
+{
+    for (const Handle<Node>& child : m_plant->GetChildren())
+    {
+        if (child.IsValid() && (child->GetNodeFlags() & NodeFlags::Generated))
+        {
+            Handle<Node> clone = child->Clone();
+            Prefab::UntagAsPrefabInstance(clone.Get());
+
+            return clone;
+        }
+    }
+
+    return Handle<Node>::Null();
+}
+
+Handle<Node> EditorArborState::MakeVariantRoot(Name name, const ArborRecipeHandle& recipe, const Handle<Node>& grownNode) const
+{
+    Handle<Entity> root = MakeHandle<Entity>(name);
+    WriteRecipe(root.Get(), m_kind, recipe.ToRon());
+
+    grownNode->SetNodeFlags((grownNode->GetNodeFlags() & ~NodeFlags::Generated) | NodeFlags::HideInSceneOutline);
+    root->AddChild(grownNode);
+
+    InitObject(root);
+
+    return root;
+}
+
+bool EditorArborState::GrowVariantsNow(Array<Handle<Node>>& outGrownNodes)
+{
+    outGrownNodes.Clear();
+    outGrownNodes.PushBack(CloneGrownPlant());
+
+    for (uint32 index = 1; index < m_variantCount; index++)
+    {
+        ArborRecipeHandle variant = m_recipe.Clone();
+        variant.SetSeed(m_recipe.GetSeed() + index);
+
+        TResult<Handle<Prefab>> grown = GrowPrefab(variant);
+
+        if (grown.HasError())
+        {
+            m_statusText = HYP_FORMAT("Could not grow variant {}: {}", index + 1, grown.GetError().GetMessage());
+            OnStateChanged();
+
+            return false;
+        }
+
+        Handle<Node> grownNode = grown.GetValue()->GetRoot()->Clone();
+        Prefab::UntagAsPrefabInstance(grownNode.Get());
+
+        outGrownNodes.PushBack(grownNode);
+    }
+
+    return outGrownNodes[0].IsValid();
+}
+
+bool EditorArborState::BakeVariantSet(const Array<Handle<Node>>& grownNodes)
+{
+    const Name plantName = m_plant->GetName();
+    const uint64 baseSeed = m_recipe.GetSeed();
+    const bool isNewSet = !m_sourceSet.IsValid();
+
+    Handle<PrefabSet> prefabSet = isNewSet ? MakeHandle<PrefabSet>(NAME_FMT("{}_Variants", plantName)) : m_sourceSet;
+
+    const Array<PrefabSetEntry> previousEntries = prefabSet->GetEntries();
+
+    Array<PrefabSetEntry> entries;
+    Array<Handle<Prefab>> added;
+
+    for (uint32 index = 0; index < grownNodes.Size(); index++)
+    {
+        if (!grownNodes[index].IsValid())
+        {
+            return false;
+        }
+
+        ArborRecipeHandle variant = m_recipe.Clone();
+        variant.SetSeed(baseSeed + index);
+
+        Handle<Node> root = MakeVariantRoot(NAME_FMT("{}_{}", plantName, baseSeed + index), variant, grownNodes[index]);
+
+        PrefabSetEntry entry;
+
+        if (index < previousEntries.Size() && previousEntries[index].prefab.IsValid())
+        {
+            entry = previousEntries[index];
+
+            root->SetName(entry.prefab->GetName());
+            entry.prefab->SetRoot(root);
+        }
+        else
+        {
+            entry.prefab = MakeHandle<Prefab>(root->GetName(), root);
+            added.PushBack(entry.prefab);
+        }
+
+        entries.PushBack(entry);
+    }
+
+    prefabSet->SetEntries(entries);
+
+    GetCurrentAssetRegistry()->PutAssetsDeep(prefabSet);
+
+    if (!prefabSet->IsRegistered())
+    {
+        HYP_LOG(Arbor, Error, "could not register {}", prefabSet->GetName());
+
+        return false;
+    }
+
+    const Handle<EditorProject>& project = m_subsystem->GetCurrentProject();
+
+    if (isNewSet)
+    {
+        FileAssetsDeep(prefabSet, MakeBakeFolder(prefabSet->GetName()));
+    }
+    else if (project.IsValid() && project->GetAssetFolders().IsValid())
+    {
+        const String folder = project->GetAssetFolders()->GetAssetFolder(prefabSet->GetPath());
+
+        for (const Handle<Prefab>& prefab : added)
+        {
+            FileAssetsDeep(prefab, folder);
+        }
+    }
+
+    m_subsystem->SyncStalePrefabInstances();
+
+    m_sourceSet = prefabSet;
+
+    m_statusText = HYP_FORMAT("Baked {} variants into {}", entries.Size(), prefabSet->GetName());
+    HYP_LOG(Arbor, Info, "{}", m_statusText);
+
+    m_appliedRecipe = m_recipe.ToRon();
+
+    ResetActionStack();
+    SetDirty(false);
+
+    OnStateChanged();
+
+    return true;
+}
+
+void EditorArborState::StartBakingVariants()
+{
+    m_bakingVariants = true;
+    m_statusText = HYP_FORMAT("Growing {} variants...", m_variantCount);
+    OnStateChanged();
+
+    Array<UniquePtr<ArborRecipeHandle>> jobs;
+
+    for (uint32 index = 1; index < m_variantCount; index++)
+    {
+        UniquePtr<ArborRecipeHandle> variant = MakeUnique<ArborRecipeHandle>(m_recipe.Clone());
+        variant->SetSeed(m_recipe.GetSeed() + index);
+
+        jobs.PushBack(std::move(variant));
+    }
+
+    const WeakHandle<EditorArborState> weakThis = WeakHandleFromThis();
+    const String bakedRecipe = m_recipe.ToRon();
+
+    TaskSystem::GetInstance().Enqueue(
+        [weakThis, bakedRecipe, jobs = std::move(jobs)]() mutable
+        {
+            Array<Handle<Prefab>> grown;
+            String error;
+
+            for (const UniquePtr<ArborRecipeHandle>& job : jobs)
+            {
+                TResult<Handle<Prefab>> prefab = GrowPrefab(*job);
+
+                if (prefab.HasError())
+                {
+                    error = prefab.GetError().GetMessage();
+
+                    break;
+                }
+
+                grown.PushBack(std::move(prefab.GetValue()));
+            }
+
+            jobs.Clear();
+
+            GetThreadById(g_simThread)->GetScheduler().Enqueue(
+                [weakThis, bakedRecipe, error, grown = std::move(grown)]() mutable
+                {
+                    if (Handle<EditorArborState> state = weakThis.Lock())
+                    {
+                        state->FinishBakingVariants(std::move(grown), error, bakedRecipe);
+                    }
+                },
+                TaskEnqueueFlags::FIRE_AND_FORGET);
+        },
+        TaskThreadPoolName::THREAD_POOL_BACKGROUND,
+        TaskEnqueueFlags::FIRE_AND_FORGET);
+}
+
+void EditorArborState::FinishBakingVariants(Array<Handle<Prefab>>&& grown, const String& error, const String& bakedRecipe)
+{
+    if (!m_bakingVariants)
+    {
+        return;
+    }
+
+    m_bakingVariants = false;
+
+    if (!IsActive() || error.Any() || grown.Size() + 1 != m_variantCount)
+    {
+        m_statusText = error.Any() ? HYP_FORMAT("Could not grow the variants: {}", error) : String("Baking was interrupted");
+        OnStateChanged();
+
+        return;
+    }
+
+    if (m_recipe.ToRon() != bakedRecipe)
+    {
+        m_statusText = "The plant changed while baking: bake again";
+        OnStateChanged();
+
+        return;
+    }
+
+    Array<Handle<Node>> grownNodes;
+    grownNodes.PushBack(CloneGrownPlant());
+
+    for (const Handle<Prefab>& prefab : grown)
+    {
+        Handle<Node> grownNode = prefab->GetRoot()->Clone();
+        Prefab::UntagAsPrefabInstance(grownNode.Get());
+
+        grownNodes.PushBack(grownNode);
+    }
+
+    if (BakeVariantSet(grownNodes))
+    {
+        Exit(/* apply */ false);
+    }
+}
+
+bool EditorArborState::GrowNow()
+{
+    if (!HasTarget() || m_generating)
+    {
+        return false;
+    }
+
+    m_regrowPending = false;
+    m_generating = true;
+
+    GrownPlant grown;
+    grown.Take(GrowPrefab(m_recipe));
+
+    FinishGrowing(m_plant, std::move(grown));
+
+    return CloneGrownPlant().IsValid();
+}
+
+TResult<Handle<Prefab>> EditorArborState::GrowPrefab(const ArborRecipeHandle& recipe)
+{
+    ByteBuffer glb;
+
+    if (!recipe.GenerateGlb(glb))
+    {
+        return HYP_MAKE_ERROR(Error, "Arbor could not grow it: {}", ArborRecipeHandle::GetLastError());
+    }
+
+    const FilePath virtualPath = FilePath(HYP_FORMAT("{}_{}.glb", recipe.GetName(), recipe.GetSeed()));
+
+    AssetLoadResult result = GLTFModelLoader::LoadFromMemory(glb.ToByteView(), virtualPath, AssetLoadHint::Transient);
+
+    if (result.HasError())
+    {
+        return HYP_MAKE_ERROR(Error, "the grown plant did not load: {}", result.GetError().GetMessage());
+    }
+
+    LoadedAsset& loaded = result.GetValue();
+    loaded.OnPostLoad();
+
+    Handle<Prefab> prefab = loaded.ExtractAs<Prefab>();
+
+    if (!prefab.IsValid())
+    {
+        return HYP_MAKE_ERROR(Error, "the grown plant loaded as something other than a prefab");
+    }
+
+    return prefab;
+}
+
+String EditorArborState::MakeBakeFolder(Name name) const
+{
+    const Handle<EditorProject>& project = m_subsystem->GetCurrentProject();
+
+    if (!project.IsValid() || !project->GetAssetFolders().IsValid())
+    {
+        return String::empty;
+    }
+
+    const String& parentFolder = m_subsystem->GetCurrentAssetFolder();
+
+    return EditorAssetFolders::JoinFolderPath(parentFolder, project->GetAssetFolders()->MakeUniqueFolderName(parentFolder, String(*name)));
+}
+
+void EditorArborState::FileAssetsDeep(const Handle<AssetObject>& asset, const String& folder)
 {
     const Handle<EditorProject>& project = m_subsystem->GetCurrentProject();
 
@@ -690,24 +1124,21 @@ void EditorArborState::FileBakedAssets(const Handle<Prefab>& prefab)
 
     EditorAssetFolders& assetFolders = *project->GetAssetFolders();
 
-    const String& parentFolder = m_subsystem->GetCurrentAssetFolder();
-    const String folder = EditorAssetFolders::JoinFolderPath(parentFolder, assetFolders.MakeUniqueFolderName(parentFolder, String(*prefab->GetName())));
-
     Set<uint32, EditorAllocator> changedBuckets;
 
-    auto fileAsset = [&](const Handle<AssetObject>& asset)
+    auto fileAsset = [&](const Handle<AssetObject>& found)
     {
-        if (!asset.IsValid() || !asset->IsRegistered() || asset->GetPath().registryId != AssetRegistryId::Game)
+        if (!found.IsValid() || !found->IsRegistered() || found->GetPath().registryId != AssetRegistryId::Game)
         {
             return;
         }
 
-        assetFolders.SetAssetFolder(asset->GetPath(), folder);
-        changedBuckets.Insert(asset->GetPath().GetBucket().GetIndex());
+        assetFolders.SetAssetFolder(found->GetPath(), folder);
+        changedBuckets.Insert(found->GetPath().GetBucket().GetIndex());
     };
 
-    fileAsset(prefab);
-    AssetRegistry::WalkAssetDeep(BoxedValue(prefab), fileAsset);
+    fileAsset(asset);
+    AssetRegistry::WalkAssetDeep(BoxedValue(asset), fileAsset);
 
     for (uint32 bucketIndex : changedBuckets)
     {
@@ -752,7 +1183,7 @@ void EditorArborState::RecipeChanged(bool reshaped)
     }
 
     m_regrowPending = true;
-    m_regrowRequestedAt = Clock::now();
+    m_regrowRequestedAt = Time::Now();
 
     OnStateChanged();
 }
@@ -799,30 +1230,7 @@ void EditorArborState::StartGrowing(ArborRecipeHandle&& recipe)
             const Clock::time_point startedAt = Clock::now();
 
             GrownPlant grown;
-            ByteBuffer glb;
-
-            if (!job->GenerateGlb(glb))
-            {
-                grown.error = ArborRecipeHandle::GetLastError();
-            }
-            else
-            {
-                const FilePath virtualPath = FilePath(HYP_FORMAT("{}_{}.glb", job->GetName(), job->GetSeed()));
-
-                AssetLoadResult result = GLTFModelLoader::LoadFromMemory(glb.ToByteView(), virtualPath, AssetLoadHint::Transient);
-
-                if (result.HasError())
-                {
-                    grown.error = result.GetError().GetMessage();
-                }
-                else
-                {
-                    LoadedAsset& loaded = result.GetValue();
-                    loaded.OnPostLoad();
-
-                    grown.prefab = loaded.ExtractAs<Prefab>();
-                }
-            }
+            grown.Take(GrowPrefab(*job));
 
             grown.milliseconds = std::chrono::duration<double, std::milli>(Clock::now() - startedAt).count();
 

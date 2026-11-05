@@ -45,6 +45,8 @@ namespace Hyperion.Editor.ViewModels
         public ArborControlSnapshot[] Controls = Array.Empty<ArborControlSnapshot>();
         public bool IsGenerating;
         public bool IsNewPlant;
+        public uint VariantCount = 1;
+        public bool CanSetVariantCount;
         public bool CanBake;
         public string StatusText = string.Empty;
 
@@ -70,6 +72,8 @@ namespace Hyperion.Editor.ViewModels
                 snapshot.HasLayout = knownLayoutVersion != snapshot.LayoutVersion;
                 snapshot.IsGenerating = state.IsGenerating();
                 snapshot.IsNewPlant = state.IsNewPlant();
+                snapshot.VariantCount = state.GetVariantCount();
+                snapshot.CanSetVariantCount = state.CanSetVariantCount();
                 snapshot.CanBake = state.CanBake();
 
                 uint presetCount = state.GetPresetCount((uint)snapshot.Kind);
@@ -421,7 +425,23 @@ namespace Hyperion.Editor.ViewModels
         public ObservableCollection<ArborSectionViewModel> Sections { get; } = new();
 
         public string Heading => _state.IsNewPlant ? $"{_state.TargetName} (new)" : _state.TargetName;
-        public string BakeText => _state.IsNewPlant ? "Bake" : "Bake Changes";
+        public string BakeText => _state.VariantCount > 1
+            ? $"Bake {_state.VariantCount} Variants"
+            : _state.IsNewPlant ? "Bake" : "Bake Changes";
+
+        public bool CanSetVariantCount => _state.CanSetVariantCount;
+
+        public string VariantCountText
+        {
+            get => _state.VariantCount.ToString(CultureInfo.InvariantCulture);
+            set
+            {
+                if (uint.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out uint count) && count != _state.VariantCount)
+                {
+                    _post(state => state.SetVariantCount(count));
+                }
+            }
+        }
         public string StatusText => _state.StatusText;
         public bool IsGenerating => _state.IsGenerating;
 
@@ -516,6 +536,8 @@ namespace Hyperion.Editor.ViewModels
 
             OnPropertyChanged(nameof(Heading));
             OnPropertyChanged(nameof(BakeText));
+            OnPropertyChanged(nameof(CanSetVariantCount));
+            OnPropertyChanged(nameof(VariantCountText));
             OnPropertyChanged(nameof(StatusText));
             OnPropertyChanged(nameof(IsGenerating));
             OnPropertyChanged(nameof(SeedText));

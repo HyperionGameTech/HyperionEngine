@@ -154,6 +154,8 @@ protected:
     /// Call after each successful stamp
     void OnStamped(const SurfaceHit& hit);
 
+    float RandomInRange(float min, float max);
+
     EditorSubsystem* m_subsystem = nullptr;
 
     bool m_enabled = false;

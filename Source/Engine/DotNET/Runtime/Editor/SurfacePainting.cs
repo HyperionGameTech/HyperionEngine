@@ -31,8 +31,14 @@ namespace Hyperion
     {
         public Prefab? ActivePrefab => this.GetActivePrefab();
 
+        public PrefabSet? ActivePrefabSet => this.GetActivePrefabSet();
+
         public float FootprintRadius => this.GetFootprintRadius();
 
         public float SinkDepth => this.GetSinkDepth();
+
+        public float ScaleMin => this.GetScaleMin();
+
+        public float ScaleMax => this.GetScaleMax();
     }
 }

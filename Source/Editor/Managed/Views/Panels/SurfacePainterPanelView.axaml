@@ -56,6 +56,23 @@
                         Minimum="0"
                         Value="{ReflectionBinding SinkDepth}" />
                 </StackPanel>
+
+                <StackPanel Spacing="6">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Classes="section-label" Text="Random Scale" />
+                        <TextBlock Grid.Column="1" Classes="hint-text" Text="{ReflectionBinding ScaleRangeText}" />
+                    </Grid>
+                    <Slider
+                        Maximum="3"
+                        Minimum="0.1"
+                        ToolTip.Tip="Smallest scale an instance is drawn at, times the brush scale"
+                        Value="{ReflectionBinding ScaleMin}" />
+                    <Slider
+                        Maximum="3"
+                        Minimum="0.1"
+                        ToolTip.Tip="Largest scale an instance is drawn at, times the brush scale"
+                        Value="{ReflectionBinding ScaleMax}" />
+                </StackPanel>
             </StackPanel>
             <StackPanel Spacing="6">
                 <CheckBox Content="Random rotation" IsChecked="{Binding RandomRotation}" />

@@ -12,6 +12,8 @@
 
 #include <Core/Types.hpp>
 
+#include <cstdlib>
+
 namespace Hyperion {
 
 // tuple forward declaration
@@ -285,8 +287,10 @@ constexpr TypeNameParseResult<Capacity> ParseTypeNameFromSignature(const char (&
 
 #pragma region CompileTimeError
 
-/// This function is intentionally not implemented to break the build when called.
-[[noreturn]] void CompileTimeError(...);
+[[noreturn]] inline void CompileTimeError(...)
+{
+    std::abort();
+}
 
 #pragma endregion CompileTimeError
 

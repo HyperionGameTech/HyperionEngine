@@ -8,8 +8,12 @@
 
 #include <Editor/EditorIsolatedEditState.hpp>
 
+#include <Scene/Instancing/PrefabSet.hpp>
+
 #include <Core/Containers/Array.hpp>
 #include <Core/Containers/String.hpp>
+
+#include <Core/Utilities/Result.hpp>
 
 #include <Core/Math/Vector3.hpp>
 
@@ -61,6 +65,18 @@ public:
 
     HYP_METHOD()
     bool EnterPrefab(const Handle<Prefab>& prefab);
+
+    HYP_METHOD()
+    bool EnterPrefabSet(const Handle<PrefabSet>& prefabSet);
+
+    HYP_METHOD()
+    uint32 GetVariantCount() const;
+
+    HYP_METHOD()
+    void SetVariantCount(uint32 variantCount);
+
+    HYP_METHOD()
+    bool CanSetVariantCount() const;
 
     HYP_METHOD()
     bool HasTarget() const;
@@ -174,6 +190,10 @@ public:
 
     void Update();
 
+    static TResult<Handle<Prefab>> GrowPrefab(const ArborRecipeHandle& recipe);
+
+    bool GrowNow();
+
     HYP_FIELD()
     ScriptableDelegate<void> OnStateChanged;
 
@@ -188,6 +208,18 @@ private:
         Handle<Prefab> prefab;
         String error;
         double milliseconds = 0.0;
+
+        void Take(TResult<Handle<Prefab>>&& result)
+        {
+            if (result.HasError())
+            {
+                error = result.GetError().GetMessage();
+            }
+            else
+            {
+                prefab = std::move(result.GetValue());
+            }
+        }
     };
 
     bool EnterPlant(const Handle<Entity>& plant, ArborKind kind, ArborRecipeHandle&& recipe, Name sceneName);
@@ -197,13 +229,29 @@ private:
     void RecipeChanged(bool reshaped);
 
     Handle<Prefab> BakeNewPrefab(const Handle<Node>& root);
-    void FileBakedAssets(const Handle<Prefab>& prefab);
+
+    bool BakesVariants() const;
+
+    Handle<Node> CloneGrownPlant() const;
+    Handle<Node> MakeVariantRoot(Name name, const ArborRecipeHandle& recipe, const Handle<Node>& grownNode) const;
+
+    bool BakeVariantSet(const Array<Handle<Node>>& grownNodes);
+    bool GrowVariantsNow(Array<Handle<Node>>& outGrownNodes);
+    void StartBakingVariants();
+    void FinishBakingVariants(Array<Handle<Prefab>>&& grown, const String& error, const String& bakedRecipe);
+
+    String MakeBakeFolder(Name name) const;
+    void FileAssetsDeep(const Handle<AssetObject>& asset, const String& folder);
 
     void StartGrowing(ArborRecipeHandle&& recipe);
     void FinishGrowing(const Handle<Entity>& plant, GrownPlant&& grown);
 
     Handle<Entity> m_plant;
     Handle<Prefab> m_sourcePrefab;
+    Handle<PrefabSet> m_sourceSet;
+
+    uint32 m_variantCount = 1;
+    bool m_bakingVariants = false;
 
     ArborRecipeHandle m_recipe;
     ArborKind m_kind = ArborKind::Tree;
