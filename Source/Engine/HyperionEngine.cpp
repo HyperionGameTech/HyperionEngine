@@ -790,6 +790,8 @@ extern "C"
 
         g_engineDriver->Shutdown();
 
+        g_streamingManager->Stop();
+
         PluginManager::GetInstance().Shutdown();
 
         if (g_gameServer != nullptr)
@@ -901,7 +903,6 @@ extern "C"
 #endif // HYP_EDITOR
         }
 
-        g_streamingManager->Stop();
         g_streamingManager.Reset();
 
         g_audioManager->Shutdown();
