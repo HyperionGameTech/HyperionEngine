@@ -31,7 +31,6 @@ HYP_MAKE_ENUM_FLAGS(AssemblyFlags)
 namespace dotnet {
 
 class ManagedClass;
-class Assembly;
 class ManagedMethod;
 
 class ENGINE_API Assembly : public SharedFromThis<Assembly>

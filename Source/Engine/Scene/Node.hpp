@@ -68,6 +68,9 @@ enum class NodeFlags : uint32
     ExcludeFromParentBounds = 0x8,                                                              //!< @title="Does not affect parent node's bounds"
     ExcludeFromOctree = 0x10,                                                                   //!< @title="Not included in the Scene's octree"
 
+    // built from something an ancestor owns (e.g. a component) and rebuilt from it, so never saved with the scene
+    Generated = 0x20,                                                                           //!< @editor=false
+
     HideInSceneOutline = 0x1000,                                                                //!< @editor=false
 
     Mobility = 0xE000,                                                                          //!< @editor=false
@@ -988,6 +991,10 @@ protected:
     Handle<Node> AddChild_Internal(const Handle<Node>& node, bool keepWorldTransform, uint32 index = ~0u);
 
     ///Serialization
+
+    // leaves out Generated children
+    HYP_METHOD(Property = "Children", NoScriptBindings, Serialize)
+    NodeList GetChildren_Serialized() const;
 
     HYP_METHOD(Property = "Children", NoScriptBindings, Serialize)
     void SetChildren(const NodeList& children); // use setter so we can manage parent pointers

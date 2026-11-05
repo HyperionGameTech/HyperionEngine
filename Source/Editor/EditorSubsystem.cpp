@@ -480,8 +480,11 @@ void EditorSubsystem::UnregisterIsolatedEditState(EditorIsolatedEditState* editS
 
 EditorIsolatedEditState* EditorSubsystem::FindEditStateForAsset(const Handle<AssetObject>& asset) const
 {
-    for (const IsolatedEditStateEntry& entry : m_isolatedEditStates)
+    // latest registered first: plugin modes register after the built-in prefab mode, so one that claims some prefabs gets them
+    for (size_t index = m_isolatedEditStates.Size(); index > 0; index--)
     {
+        const IsolatedEditStateEntry& entry = m_isolatedEditStates[index - 1];
+
         if (entry.editState->CanEditAsset(asset))
         {
             return entry.editState.Get();

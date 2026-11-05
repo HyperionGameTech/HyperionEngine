@@ -173,6 +173,8 @@ namespace Hyperion.Editor
                 AddSceneContextMenu.Items.Add(entry);
             }
 
+            AddSceneContextMenu.Opened += (_, _) => RefreshPluginAddMenuEntries(AddSceneContextMenu.Items);
+
             WorldNameEditor.AddHandler(KeyDownEvent, OnWorldNameEditorKeyDown, RoutingStrategies.Tunnel);
 
             PanelService.Instance.ActivePanelChanged += OnPanelServiceActivePanelChanged;
@@ -732,18 +734,58 @@ namespace Hyperion.Editor
             }
         }
 
+        private static MenuItem AddMenuGroupHeader(string text) => new MenuItem
+        {
+            Margin = new Thickness(0, 2),
+            Padding = new Thickness(8, 4),
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+            FontSize = 12,
+            Foreground = Brush.Parse("#808080"),
+            Header = text,
+            IsEnabled = false,
+        };
+
+        private static readonly object PluginAddMenuEntryTag = new object();
+
+        // entries from enabled editor plugins go after the built-in ones, under each plugin's heading; rebuilt on every open
+        // since plugins change with the project and a submenu's entries may change with them
+        private static void RefreshPluginAddMenuEntries(ItemCollection items)
+        {
+            foreach (Control staleEntry in items.OfType<Control>().Where(item => ReferenceEquals(item.Tag, PluginAddMenuEntryTag)).ToList())
+            {
+                items.Remove(staleEntry);
+            }
+
+            foreach (IGrouping<string, EditorAddMenuItem> group in EditorPluginService.Instance.AddMenuItems.GroupBy(item => item.Group))
+            {
+                items.Add(new Separator { Tag = PluginAddMenuEntryTag });
+
+                MenuItem header = AddMenuGroupHeader(group.Key);
+                header.Tag = PluginAddMenuEntryTag;
+                items.Add(header);
+
+                foreach (EditorAddMenuItem pluginItem in group)
+                {
+                    MenuItem menuItem = new MenuItem { Header = pluginItem.Header, Command = pluginItem.Command, Tag = PluginAddMenuEntryTag };
+
+                    if (pluginItem.Children != null)
+                    {
+                        foreach (EditorPluginMenuItem child in pluginItem.Children())
+                        {
+                            menuItem.Items.Add(new MenuItem { Header = child.Header, Command = child.Command });
+                        }
+
+                        menuItem.IsEnabled = menuItem.Items.Count > 0;
+                    }
+
+                    items.Add(menuItem);
+                }
+            }
+        }
+
         private static IEnumerable<Control> BuildAddSceneMenuEntries(MainWindowViewModel viewModel)
         {
-            static MenuItem GroupHeader(string text) => new MenuItem
-            {
-                Margin = new Thickness(0, 2),
-                Padding = new Thickness(8, 4),
-                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
-                FontSize = 12,
-                Foreground = Brush.Parse("#808080"),
-                Header = text,
-                IsEnabled = false,
-            };
+            static MenuItem GroupHeader(string text) => AddMenuGroupHeader(text);
 
             static MenuItem Entry(string header, ICommand command) => new MenuItem
             {
@@ -1716,13 +1758,18 @@ namespace Hyperion.Editor
             }
 
             if (contextMenu.Items.OfType<MenuItem>()
-                    .FirstOrDefault(item => item.Tag as string == "AddSceneMenu") is { Items.Count: 0 } addMenuItem
+                    .FirstOrDefault(item => item.Tag as string == "AddSceneMenu") is { } addMenuItem
                 && MainWindowViewModel.Instance is { } mainViewModel)
             {
-                foreach (Control entry in BuildAddSceneMenuEntries(mainViewModel))
+                if (addMenuItem.Items.Count == 0)
                 {
-                    addMenuItem.Items.Add(entry);
+                    foreach (Control entry in BuildAddSceneMenuEntries(mainViewModel))
+                    {
+                        addMenuItem.Items.Add(entry);
+                    }
                 }
+
+                RefreshPluginAddMenuEntries(addMenuItem.Items);
             }
         }
 

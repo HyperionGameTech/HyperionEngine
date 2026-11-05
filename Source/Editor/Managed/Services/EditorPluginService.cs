@@ -31,6 +31,9 @@ namespace Hyperion.Editor.Services
 
     public sealed record EditorNodeMenuItem(string Header, Func<Node, bool> CanExecute, Action<Node> Execute);
 
+    /// An entry under a plugin's own heading in the scene Add menus; with Children it's a submenu, read each time the menu opens
+    public sealed record EditorAddMenuItem(string Group, string Header, ICommand? Command, Func<IReadOnlyList<EditorPluginMenuItem>>? Children = null);
+
     public delegate InspectorPropertyViewModelBase? PropertyEditorFactory(IntPtr classAddress, Func<IntPtr> targetAddressResolver, Property property, bool isReadOnly, Entity ownerEntity, bool isNameType);
 
     public delegate InspectorPropertyViewModelBase? ObjectPropertyEditorFactory(ObjectBase target, Property property, bool isReadOnly, bool isNameType);
@@ -102,6 +105,7 @@ namespace Hyperion.Editor.Services
         internal readonly Dictionary<Type, Func<Control>> Views = new();
         internal readonly List<EditorPluginMenuItem> ToolMenuItems = new();
         internal readonly List<EditorNodeMenuItem> NodeMenuItems = new();
+        internal readonly List<EditorAddMenuItem> AddMenuItems = new();
         internal readonly List<EditorDocumentViewModel> Documents = new();
         internal readonly List<EditModeBarViewModel> EditModeBars = new();
         internal readonly List<EditorMeshToolViewModel> MeshTools = new();
@@ -138,6 +142,18 @@ namespace Hyperion.Editor.Services
         public void AddNodeMenuItem(string header, Func<Node, bool> canExecute, Action<Node> execute)
         {
             NodeMenuItems.Add(new EditorNodeMenuItem(header, canExecute, execute));
+        }
+
+        /// An entry in the scene Add menus (toolbar dropdown and scene outline), under the heading `group`
+        public void AddAddMenuItem(string group, string header, ICommand command)
+        {
+            AddMenuItems.Add(new EditorAddMenuItem(group, header, command));
+        }
+
+        /// A submenu in the scene Add menus under the heading `group`, whose entries are read each time it opens
+        public void AddAddSubmenu(string group, string header, Func<IReadOnlyList<EditorPluginMenuItem>> children)
+        {
+            AddMenuItems.Add(new EditorAddMenuItem(group, header, null, children));
         }
 
         public void AddDocument(EditorDocumentViewModel document)
@@ -235,6 +251,7 @@ namespace Hyperion.Editor.Services
 
         public IEnumerable<EditorPluginMenuItem> ToolMenuItems => _registries.Values.SelectMany(registry => registry.ToolMenuItems);
         public IEnumerable<EditorNodeMenuItem> NodeMenuItems => _registries.Values.SelectMany(registry => registry.NodeMenuItems);
+        public IEnumerable<EditorAddMenuItem> AddMenuItems => _registries.Values.SelectMany(registry => registry.AddMenuItems);
         public IEnumerable<Func<Entity, string?>> InspectorWarnings => _registries.Values.SelectMany(registry => registry.InspectorWarnings);
         public IEnumerable<EditorMeshToolViewModel> MeshTools => _registries.Values.SelectMany(registry => registry.MeshTools);
 
@@ -339,7 +356,7 @@ namespace Hyperion.Editor.Services
                 }
 
                 Logger.Log(PluginsLogChannel, LogLevel.Verbose, "Registered editor plugin {0} ({1} view(s), {2} menu item(s))",
-                    pluginName, registry.Views.Count, registry.ToolMenuItems.Count + registry.NodeMenuItems.Count);
+                    pluginName, registry.Views.Count, registry.ToolMenuItems.Count + registry.NodeMenuItems.Count + registry.AddMenuItems.Count);
             }
 
             MeshToolsChanged?.Invoke();
