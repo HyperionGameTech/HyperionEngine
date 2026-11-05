@@ -92,19 +92,19 @@ class EDITOR_API EditorProjectSettings final : public ObjectBase
 public:
     EditorProjectSettings() = default;
 
-    HYP_FIELD(Property = "GameTitle", Serialize, Editor, Title = "Game Title")
+    HYP_FIELD(Property = "GameTitle", Serialize, Editor, Label = "Game Title")
     String gameTitle;
 
     HYP_FIELD(Property = "ModuleName", Serialize)
     String moduleName;
 
-    HYP_FIELD(Property = "NetSettings", Serialize, Editor, Title = "Networking")
+    HYP_FIELD(Property = "NetSettings", Serialize, Editor, Label = "Networking")
     EditorNetSettings netSettings;
 
     HYP_FIELD(Property = "PlatformSettings", Serialize)
     EditorPlatformSettings platformSettings;
 
-    HYP_FIELD(Property = "CompressImportedTextures", Serialize, Editor, Title = "Compress Imported Textures")
+    HYP_FIELD(Property = "CompressImportedTextures", Serialize, Editor, Label = "Compress Imported Textures")
     bool compressImportedTextures = true;
 
     HYP_FIELD(Property = "Plugins", Serialize)

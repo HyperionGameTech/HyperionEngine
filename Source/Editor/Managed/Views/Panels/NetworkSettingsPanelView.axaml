@@ -52,11 +52,17 @@
                         Text="{Binding CachePort, Mode=TwoWay}"
                         PlaceholderText="8081" />
                 </StackPanel>
-
-                <TextBlock
-                    Foreground="{DynamicResource Brush.TextMuted}"
-                    Text="Project content will be served from a cache server on this port for Play As Dedicated Server mode. Clients can sync from it by passing --cacheserver=http://127.0.0.1:&lt;port&gt; as a launch argument"
-                    TextWrapping="Wrap" />
+              
+                <TextBlock Foreground="{DynamicResource Brush.TextMuted}" TextWrapping="Wrap">
+                    This project's content will be served on this port for
+                    <Run FontWeight="Bold">Play As Dedicated Server</Run> mode.
+                    <LineBreak />
+                    <LineBreak />
+                    Standalone clients can receieve content by passing
+                    <Run FontWeight="Bold">--cacheserver=http://127.0.0.1:&lt;port&gt;</Run>
+                    as a command line argument (or saving it in their local
+                    <Run FontWeight="Bold">args.txt</Run>).
+                </TextBlock>
 
                 <TextBlock
                     Foreground="{DynamicResource Brush.Danger}"

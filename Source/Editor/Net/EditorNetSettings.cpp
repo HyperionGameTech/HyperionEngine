@@ -16,7 +16,7 @@ Array<String> EditorNetSettings::GetGameArgs() const
 {
     Array<String> args;
 
-    if (singlePlayer || !multiplayer)
+    if (!multiplayer)
     {
         args.PushBack("--singleplayer");
     }

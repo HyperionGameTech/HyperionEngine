@@ -143,6 +143,44 @@
             <Setter Property="Foreground" Value="{DynamicResource Brush.TextMuted}" />
         </Style>
 
+        <Style Selector="Button.chrome-crumb">
+            <Setter Property="Height" Value="22" />
+            <Setter Property="Padding" Value="6,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="4" />
+        </Style>
+        <Style Selector="Button.chrome-crumb:pointerover, Button.chrome-crumb:over">
+            <Setter Property="Background" Value="#17FFFFFF" />
+        </Style>
+        <Style Selector="Button.chrome-crumb:pressed">
+            <Setter Property="Background" Value="#0DFFFFFF" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+        </Style>
+        <Style Selector="Button.chrome-crumb:pointerover TextBlock.chrome-world, Button.chrome-crumb:over TextBlock.chrome-world, Button.chrome-crumb.open TextBlock.chrome-world">
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+        </Style>
+        <Style Selector="Button.chrome-crumb.open">
+            <Setter Property="Background" Value="#17FFFFFF" />
+        </Style>
+
+        <Style Selector="TextBox.chrome-crumb-edit">
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Height" Value="22" />
+            <Setter Property="MinWidth" Value="140" />
+            <Setter Property="Padding" Value="6,0" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Background" Value="#17FFFFFF" />
+            <Setter Property="CornerRadius" Value="4" />
+        </Style>
+        <Style Selector="TextBox.chrome-crumb-edit.invalid /template/ Border#PART_BorderElement, TextBox.chrome-crumb-edit.invalid:focus /template/ Border#PART_BorderElement">
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Danger}" />
+        </Style>
+
         <Style Selector="Border.chrome-state-stripe">
             <Setter Property="Height" Value="2" />
             <Setter Property="VerticalAlignment" Value="Top" />
@@ -1007,24 +1045,53 @@
                     Grid.ColumnSpan="2"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center"
-                    Classes="chrome-content"
-                    IsHitTestVisible="False">
+                    Classes="chrome-content">
                     <StackPanel Orientation="Horizontal" Spacing="10">
                         <StackPanel
                             VerticalAlignment="Center"
                             IsVisible="{Binding ProjectDisplayName, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}"
                             Orientation="Horizontal">
-                            <TextBlock Classes="chrome-project" Text="{Binding ProjectDisplayName}" />
+                            <Button
+                                Classes="chrome-crumb"
+                                Click="OnProjectSettingsClick"
+                                ToolTip.Tip="Project Settings">
+                                <TextBlock Classes="chrome-project" Text="{Binding ProjectDisplayName}" />
+                            </Button>
                             <controls:Codicon
-                                Margin="6,0"
+                                Margin="0"
                                 VerticalAlignment="Center"
                                 Foreground="{DynamicResource Brush.TextFaint}"
+                                IsHitTestVisible="False"
                                 Kind="ChevronRight"
                                 Size="12" />
-                            <TextBlock Classes="chrome-world" Text="{Binding WorldDisplayName}" />
+                            <Button
+                                x:Name="WorldCrumbButton"
+                                Classes="chrome-crumb"
+                                Click="OnWorldCrumbClick"
+                                ToolTip.Tip="Switch World">
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <TextBlock Classes="chrome-world" Text="{Binding WorldDisplayName}" />
+                                    <controls:Codicon
+                                        VerticalAlignment="Center"
+                                        Foreground="{DynamicResource Brush.TextFaint}"
+                                        Kind="ChevronDown"
+                                        Size="10" />
+                                </StackPanel>
+                            </Button>
+                            <TextBox
+                                x:Name="WorldNameEditor"
+                                Classes="chrome-crumb-edit"
+                                IsVisible="False"
+                                LostFocus="OnWorldNameEditorLostFocus"
+                                TextChanged="OnWorldNameEditorTextChanged"
+                                ToolTip.Placement="Bottom"
+                                ToolTip.ShowDelay="0" />
                         </StackPanel>
 
-                        <Border x:Name="ChromeStatePill" Classes="chrome-state-pill">
+                        <Border
+                            x:Name="ChromeStatePill"
+                            Classes="chrome-state-pill"
+                            IsHitTestVisible="False">
                             <StackPanel Orientation="Horizontal" Spacing="6">
                                 <Ellipse
                                     Width="6"
@@ -2028,7 +2095,7 @@
                                             CommandParameter="3"
                                             Header="Force LOD 3" />
                                     </MenuItem>
-                                    <MenuItem Header="{Binding CameraMoveSpeedText}" ToolTip.Tip="Editor camera move speed&#x0a;Scroll +/- while moving or Ctrl held:&#x09;increase/decrease&#x0a;Shift:&#x09;increase speed while held">
+                                    <MenuItem Header="{Binding CameraMoveSpeedText}" ToolTip.Tip="Editor camera move speed">
                                         <MenuItem
                                             Command="{Binding ResetCameraMoveSpeed}"
                                             Header="Reset Move Speed" />

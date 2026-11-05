@@ -865,6 +865,11 @@ void EngineDriver::Simulate(float delta, Game* gameInstance)
 
             if (HYP_UNLIKELY(m_isShuttingDown.LoadVolatile()))
             {
+                for (Scene* scene : scenes)
+                {
+                    scene->GetEntityManager()->Unlock();
+                }
+
                 return;
             }
         }

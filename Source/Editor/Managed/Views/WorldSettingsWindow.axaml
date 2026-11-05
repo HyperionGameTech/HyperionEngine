@@ -74,7 +74,7 @@
                         <TextBlock
                             Classes="muted"
                             FontSize="11"
-                            Text="Sky look, sky light, exposure, color and height fog for the World."
+                            Text="Look and atmosphere of the World"
                             TextWrapping="Wrap" />
                     </StackPanel>
 
