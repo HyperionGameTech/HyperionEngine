@@ -1,6 +1,6 @@
 # Compiling the Engine
 
-Hyperion is a cross-platform 3D game engine written in C++20 using CMake (3.10+) as its build system.
+Hyperion is a cross-platform 3D game engine written in C++23 using CMake (3.10+) as its build system.
 The engine compiles as a shared library (`hyperion`) with the editor and sample app linking against it.
 
 ## Required Dependencies

@@ -86,8 +86,12 @@ auto GenericPipelineCache<PipelineType>::GetOrCreate(Name shaderName, const Shad
 
     const uint32 index = m_indexAllocator.Allocate();
 
+    // Take the pointer before moving.
+    // Cache holds the handle, so it remains valid
+    PipelineType* pPipeline = pipeline.Get();
+
     CachedPipeline cached {};
-    cached.pipeline = pipeline;
+    cached.pipeline = std::move(pipeline);
     cached.key = key;
 
     // re-lock
@@ -96,7 +100,7 @@ auto GenericPipelineCache<PipelineType>::GetOrCreate(Name shaderName, const Shad
     m_pipelines.Set(index, std::move(cached));
     m_keyToIndex[key] = index;
 
-    return pipeline;
+    return pPipeline;
 }
 
 template <class PipelineType>

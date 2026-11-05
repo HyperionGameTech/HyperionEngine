@@ -573,7 +573,7 @@ struct FormatString_ProcessTuple_Impl
     constexpr auto operator()() const
     {
 #if 0
-        if constexpr (HYP_CONSTEVAL_CONTEXT)
+        if HYP_CONSTEVAL_CONTEXT
             return FormatString_ProcessTuple_ProcessElements_CompileTime(args, std::make_index_sequence<sizeof...(Ts)>());
         else
 #endif

@@ -145,17 +145,25 @@
 #define HYP_CONCAT(a, b) HYP_CONCAT_INNER(a, b)
 #define HYP_CONCAT_INNER(a, b) a##b
 
-#if defined(__cplusplus) && __cplusplus < 202002L
+#if defined(__cplusplus)
+
+#if __cplusplus >= 202002L
+#define HYP_CONSTEVAL consteval
+#define HYP_CONCEPT concept
+#else // pre c++20
 // Fallback for pre-c++20 compilers to "support" consteval.
 #define HYP_CONSTEVAL constexpr
 // Same for concept, but only usable for `concept bool ...` stuff. Falls back to C++14 constexpr variable templates.
 #define HYP_CONCEPT constexpr bool
-#define HYP_CONSTEVAL_CONTEXT false
-#else
-#define HYP_CONSTEVAL consteval
-#define HYP_CONCEPT concept
-#define HYP_CONSTEVAL_CONTEXT std::is_constant_evaluated()
-#endif
+#endif // c++20
+
+#if __cplusplus >= 202302L
+#define HYP_CONSTEVAL_CONTEXT consteval
+#else  // pre c++23
+#define HYP_CONSTEVAL_CONTEXT (std::is_constant_evaluated())
+#endif // c++23
+
+#endif // __cplusplus
 
 // https://mpark.github.io/programming/2017/05/26/constexpr-function-parameters/
 #define HYP_MAKE_CONST_ARG(value) \

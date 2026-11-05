@@ -283,6 +283,13 @@ constexpr TypeNameParseResult<Capacity> ParseTypeNameFromSignature(const char (&
 
 #pragma endregion TypeNameParser
 
+#pragma region CompileTimeError
+
+/// This function is intentionally not implemented to break the build when called.
+[[noreturn]] void CompileTimeError(...);
+
+#pragma endregion CompileTimeError
+
 #pragma region TypeName
 
 /*! \brief Returns the name of the type T as a StaticString.
