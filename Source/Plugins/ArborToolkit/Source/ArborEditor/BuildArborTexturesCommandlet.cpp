@@ -36,8 +36,6 @@
 
 #include <Core/Logging/Logger.hpp>
 
-#include <string_view>
-
 namespace Hyperion {
 
 ARBOREDITOR_API HYP_DECLARE_LOG_CHANNEL(Arbor);
@@ -162,20 +160,20 @@ Array<String> FindSpeciesTextureSets(const FilePath& speciesDirectory)
         FileByteReader reader { path };
         const ByteBuffer bytes = reader.Read();
 
-        const std::string_view text(reinterpret_cast<const char*>(bytes.Data()), bytes.Size());
-        constexpr std::string_view key = "texture: \"";
+        const ANSIStringView text(bytes.ToByteView());
+        const ANSIStringView key = "texture: \"";
 
-        for (size_t at = text.find(key); at != std::string_view::npos; at = text.find(key, at + key.size()))
+        for (size_t at = text.FindFirstIndex(key); at != ANSIStringView::NotFound; at = text.FindFirstIndex(key, at + key.Length()))
         {
-            const size_t start = at + key.size();
-            const size_t end = text.find('"', start);
+            const size_t start = at + key.Length();
+            const size_t end = text.FindFirstIndex('"', start);
 
-            if (end == std::string_view::npos)
+            if (end == ANSIStringView::NotFound)
             {
                 break;
             }
 
-            const String name(text.data() + start, text.data() + end);
+            const String name(text.Substr(start, end));
 
             if (name.Any() && !names.Contains(name))
             {

@@ -14,10 +14,12 @@
 #include <Core/Containers/String.hpp>
 
 #include <Core/Utilities/Result.hpp>
+#include <Core/Utilities/EnumFlags.hpp>
+#include <Core/Utilities/Span.hpp>
 
 #include <Core/Math/Vector3.hpp>
 
-#include <Core/Utilities/Time.hpp>
+#include <Core/Utilities/ClockTimer.hpp>
 
 #include <ArborEditor/ArborShared.hpp>
 
@@ -27,6 +29,17 @@ class EditorSubsystem;
 class Entity;
 class Node;
 class Prefab;
+
+enum class ArborWorkFlags : uint32
+{
+    None = 0x0,
+    RegrowPending = 0x1,
+    Growing = 0x2,
+    BakingVariants = 0x4,
+    BakeRequested = 0x8
+};
+
+HYP_MAKE_ENUM_FLAGS(ArborWorkFlags);
 
 HYP_CLASS(Serialize = false)
 class ARBOREDITOR_API EditorArborState final : public EditorIsolatedEditState
@@ -105,7 +118,6 @@ public:
     HYP_METHOD()
     void RandomizeSeed();
 
-    // bumped whenever the control list changes shape, so the panel knows to rebuild its rows
     HYP_METHOD()
     uint32 GetLayoutVersion() const;
 
@@ -172,7 +184,6 @@ public:
     HYP_METHOD()
     void SetControlInteger(uint32 index, uint32 value);
 
-    // puts the edits made since the last commit on the undo stack as one action, e.g. when a slider is let go
     HYP_METHOD()
     void CommitEdit();
 
@@ -191,6 +202,36 @@ public:
     HYP_METHOD()
     String GetStatusText() const;
 
+    HYP_METHOD()
+    String GetRecipeRon() const;
+
+    HYP_METHOD()
+    bool SetRecipeRon(const String& ron);
+
+    HYP_METHOD()
+    int32 FindControl(const String& id) const;
+
+    HYP_METHOD()
+    bool SetControlRangedById(const String& id, bool isRange, float lo, float hi);
+
+    HYP_METHOD()
+    bool SetControlIntegerById(const String& id, uint32 value);
+
+    HYP_METHOD()
+    String DescribeControls() const;
+
+    HYP_METHOD()
+    uint32 GetPlantKindCount() const;
+
+    HYP_METHOD()
+    String GetPlantKindName(uint32 kind) const;
+
+    HYP_METHOD()
+    String GetLastBakedAssetPath() const;
+
+    HYP_METHOD()
+    Handle<AssetObject> GetLastBakedAsset() const;
+
     void Update();
 
     static TResult<Handle<Prefab>> GrowPrefab(const ArborRecipeHandle& recipe);
@@ -204,8 +245,6 @@ protected:
     void ClearTarget() override;
 
 private:
-    using Clock = std::chrono::steady_clock;
-
     struct GrownPlant
     {
         Handle<Prefab> prefab;
@@ -228,8 +267,9 @@ private:
     bool EnterPlant(const Handle<Entity>& plant, ArborKind kind, ArborRecipeHandle&& recipe, Name sceneName);
     void RebuildControls();
 
-    // writes the recipe back to the plant and schedules a regrow
     void RecipeChanged(bool reshaped);
+    bool SetControlValue(uint32 index, const ArborControlValue& value);
+    void RestoreRecipe(const String& ron);
 
     Handle<Prefab> BakeNewPrefab(const Handle<Node>& root);
 
@@ -237,9 +277,9 @@ private:
 
     Handle<Node> CloneGrownPlant() const;
     Handle<Node> MakeVariantRoot(Name name, const ArborRecipeHandle& recipe, const Handle<Node>& grownNode) const;
+    Array<Handle<Node>> CollectVariantNodes(Span<const Handle<Prefab>> grown) const;
 
     bool BakeVariantSet(const Array<Handle<Node>>& grownNodes);
-    bool GrowVariantsNow(Array<Handle<Node>>& outGrownNodes);
     void StartBakingVariants();
     void FinishBakingVariants(Array<Handle<Prefab>>&& grown, const String& error, const String& bakedRecipe);
 
@@ -253,8 +293,9 @@ private:
     Handle<Prefab> m_sourcePrefab;
     Handle<PrefabSet> m_sourceSet;
 
+    Handle<AssetObject> m_lastBaked;
+
     uint32 m_variantCount = 1;
-    bool m_bakingVariants = false;
 
     ArborRecipeHandle m_recipe;
     ArborKind m_kind = ArborKind::Tree;
@@ -262,15 +303,11 @@ private:
     Array<ArborControlDesc> m_controls;
     uint32 m_layoutVersion = 0;
 
-    // the recipe as last applied, which Revert goes back to; and as last put on the undo stack
     String m_appliedRecipe;
     String m_committedRecipe;
 
-    bool m_regrowPending = false;
-    Time m_regrowRequestedAt;
-
-    bool m_generating = false;
-    bool m_bakeRequested = false;
+    EnumFlags<ArborWorkFlags> m_work = ArborWorkFlags::None;
+    ClockTimer m_regrowTimer;
 
     String m_statusText;
 

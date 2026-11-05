@@ -27,6 +27,10 @@
 #include <Core/Logging/Logger.hpp>
 #include <Core/Math/MathUtil.hpp>
 
+#include <Core/DataProcessing/JSON/JSON.hpp>
+
+#include <Core/Utilities/Time.hpp>
+
 #include <EditorArborState.generated.inl>
 
 namespace Hyperion {
@@ -35,7 +39,7 @@ ARBOREDITOR_API HYP_DECLARE_LOG_CHANNEL(Arbor);
 
 namespace {
 
-constexpr TimeDiff RegrowDelay { 80 };
+constexpr ClockTimer::TickUnit RegrowDelay = 0.08f;
 
 const Name g_nameArborKind = NAME("ArborKind");
 const Name g_nameArborRecipe = NAME("ArborRecipe");
@@ -81,6 +85,63 @@ void SetGrown(const Node* plant, bool generated)
 bool IsArborPrefab(const Prefab* prefab)
 {
     return prefab && prefab->GetRoot().IsValid() && prefab->GetRoot()->HasDataEntry(g_nameArborRecipe);
+}
+
+bool IsGrownNode(const Handle<Node>& node)
+{
+    return node.IsValid() && (node->GetNodeFlags() & NodeFlags::Generated);
+}
+
+Handle<Node> FindGrownChild(const Node* plant)
+{
+    for (const Handle<Node>& child : plant->GetChildren())
+    {
+        if (IsGrownNode(child))
+        {
+            return child;
+        }
+    }
+
+    return Handle<Node>::Null();
+}
+
+Handle<Node> CloneUntagged(const Node* node)
+{
+    Handle<Node> clone = node->Clone();
+    Prefab::UntagAsPrefabInstance(clone.Get());
+
+    return clone;
+}
+
+ArborRecipeHandle MakeVariantRecipe(
+    const ArborRecipeHandle& recipe,
+    uint32 index)
+{
+    ArborRecipeHandle variant = recipe.Clone();
+    variant.SetSeed(recipe.GetSeed() + index);
+
+    return variant;
+}
+
+TResult<Array<Handle<Prefab>>> GrowVariants(
+    const ArborRecipeHandle& recipe,
+    uint32 variantCount)
+{
+    Array<Handle<Prefab>> grown;
+
+    for (uint32 index = 1; index < variantCount; index++)
+    {
+        TResult<Handle<Prefab>> prefab = EditorArborState::GrowPrefab(MakeVariantRecipe(recipe, index));
+
+        if (prefab.HasError())
+        {
+            return HYP_MAKE_ERROR(Error, "variant {}: {}", index + 1, prefab.GetError().GetMessage());
+        }
+
+        grown.PushBack(std::move(prefab.GetValue()));
+    }
+
+    return grown;
 }
 
 template <class Container, class Predicate>
@@ -149,7 +210,7 @@ bool EditorArborState::EnterAsset(const Handle<AssetObject>& asset)
         return false;
     }
 
-    if (Handle<PrefabSet> prefabSet = TryCast<PrefabSet>(asset))
+    if (Handle<PrefabSet> prefabSet = TryCast<PrefabSet>(asset); prefabSet.IsValid())
     {
         return EnterPrefabSet(prefabSet);
     }
@@ -237,14 +298,13 @@ bool EditorArborState::EnterPrefab(const Handle<Prefab>& prefab)
         return false;
     }
 
-    Handle<Entity> plant = TryCast<Entity>(prefab->GetRoot()->Clone());
+    Handle<Entity> plant = TryCast<Entity>(CloneUntagged(prefab->GetRoot().Get()));
 
     if (!plant.IsValid())
     {
         return false;
     }
 
-    Prefab::UntagAsPrefabInstance(plant.Get());
     plant->SetName(prefab->GetName());
 
     ArborKind kind = ArborKind::Tree;
@@ -274,7 +334,7 @@ bool EditorArborState::EnterPrefab(const Handle<Prefab>& prefab)
     }
 
     m_sourcePrefab = prefab;
-    m_regrowPending = false;
+    m_work &= ~ArborWorkFlags::RegrowPending;
 
     OnStateChanged();
 
@@ -345,9 +405,8 @@ bool EditorArborState::EnterPlant(const Handle<Entity>& plant, ArborKind kind, A
     m_recipe = std::move(recipe);
     m_appliedRecipe = m_recipe.ToRon();
     m_committedRecipe = m_appliedRecipe;
-    m_bakeRequested = false;
-    m_regrowPending = true;
-    m_regrowRequestedAt = Time::Now() - RegrowDelay;
+    m_work &= ~ArborWorkFlags::BakeRequested;
+    m_work |= ArborWorkFlags::RegrowPending;
 
     RebuildControls();
 
@@ -364,12 +423,10 @@ void EditorArborState::ClearTarget()
     m_sourcePrefab.Reset();
     m_sourceSet.Reset();
     m_variantCount = 1;
-    m_bakingVariants = false;
+    m_work &= ~(ArborWorkFlags::RegrowPending | ArborWorkFlags::BakingVariants | ArborWorkFlags::BakeRequested);
     m_recipe = ArborRecipeHandle();
     m_controls.Clear();
     m_layoutVersion++;
-    m_regrowPending = false;
-    m_bakeRequested = false;
     m_appliedRecipe = String::empty;
     m_committedRecipe = String::empty;
 
@@ -463,7 +520,7 @@ void EditorArborState::SetSeed(uint32 seed)
 
 void EditorArborState::RandomizeSeed()
 {
-    const uint64 ticks = uint64(Clock::now().time_since_epoch().count());
+    const uint64 ticks = Time::Now().ToMilliseconds();
 
     SetSeed(uint32((ticks * 0x9E3779B97F4A7C15ull) >> 40));
 }
@@ -583,6 +640,20 @@ uint32 EditorArborState::GetControlInteger(uint32 index) const
     return m_recipe.GetValue(index, value) ? value.integer : 0;
 }
 
+bool EditorArborState::SetControlValue(uint32 index, const ArborControlValue& value)
+{
+    bool reshaped = false;
+
+    if (!HasTarget() || !m_recipe.SetValue(index, value, reshaped))
+    {
+        return false;
+    }
+
+    RecipeChanged(reshaped);
+
+    return true;
+}
+
 void EditorArborState::SetControlRanged(uint32 index, bool isRange, float lo, float hi)
 {
     ArborControlValue value;
@@ -590,14 +661,7 @@ void EditorArborState::SetControlRanged(uint32 index, bool isRange, float lo, fl
     value.lo = lo;
     value.hi = isRange ? hi : lo;
 
-    bool reshaped = false;
-
-    if (!HasTarget() || !m_recipe.SetValue(index, value, reshaped))
-    {
-        return;
-    }
-
-    RecipeChanged(reshaped);
+    SetControlValue(index, value);
 }
 
 void EditorArborState::SetControlInteger(uint32 index, uint32 integer)
@@ -605,14 +669,208 @@ void EditorArborState::SetControlInteger(uint32 index, uint32 integer)
     ArborControlValue value;
     value.integer = integer;
 
-    bool reshaped = false;
+    SetControlValue(index, value);
+}
 
-    if (!HasTarget() || !m_recipe.SetValue(index, value, reshaped))
+String EditorArborState::GetRecipeRon() const
+{
+    return HasTarget() ? m_recipe.ToRon() : String::empty;
+}
+
+bool EditorArborState::SetRecipeRon(const String& ron)
+{
+    if (!HasTarget())
     {
-        return;
+        return false;
     }
 
-    RecipeChanged(reshaped);
+    ArborRecipeHandle recipe = ArborRecipeHandle::FromRon(uint32(m_kind), ron);
+
+    if (!recipe.IsValid())
+    {
+        m_statusText = HYP_FORMAT("Not a {} recipe: {}", GetPlantKindName(uint32(m_kind)), ArborRecipeHandle::GetLastError());
+        OnStateChanged();
+
+        return false;
+    }
+
+    m_recipe = std::move(recipe);
+    RecipeChanged(/* reshaped */ true);
+    CommitEdit();
+
+    return true;
+}
+
+int32 EditorArborState::FindControl(const String& id) const
+{
+    for (uint32 index = 0; index < m_controls.Size(); index++)
+    {
+        if (m_controls[index].id == id)
+        {
+            return int32(index);
+        }
+    }
+
+    return -1;
+}
+
+bool EditorArborState::SetControlRangedById(const String& id, bool isRange, float lo, float hi)
+{
+    const int32 index = FindControl(id);
+
+    if (index < 0 || m_controls[index].kind != ArborControlKind::Ranged)
+    {
+        return false;
+    }
+
+    ArborControlValue value;
+    value.isRange = isRange;
+    value.lo = lo;
+    value.hi = isRange ? hi : lo;
+
+    if (!SetControlValue(uint32(index), value))
+    {
+        return false;
+    }
+
+    // the panel commits when a drag ends; a call by id is the whole edit
+    CommitEdit();
+
+    return true;
+}
+
+bool EditorArborState::SetControlIntegerById(const String& id, uint32 integer)
+{
+    const int32 index = FindControl(id);
+
+    if (index < 0 || m_controls[index].kind == ArborControlKind::Ranged)
+    {
+        return false;
+    }
+
+    ArborControlValue value;
+    value.integer = integer;
+
+    if (!SetControlValue(uint32(index), value))
+    {
+        return false;
+    }
+
+    CommitEdit();
+
+    return true;
+}
+
+String EditorArborState::DescribeControls() const
+{
+    constexpr ANSIStringView Names[] = {
+        "ranged", "count", "choice", "toggle"
+    };
+
+    JSON::JArray controls;
+
+    for (uint32 index = 0; index < m_controls.Size(); index++)
+    {
+        const ArborControlDesc& desc = m_controls[index];
+
+        JSON::Object control;
+        control.Set("index", JSON::Value(double(index)));
+        control.Set("id", JSON::Value(desc.id));
+        control.Set("section", JSON::Value(desc.section));
+        control.Set("group", JSON::Value(desc.group));
+        control.Set("label", JSON::Value(desc.label));
+        control.Set("help", JSON::Value(desc.help));
+        control.Set("kind", JSON::Value(String(Names[MathUtil::Min(uint32(desc.kind), 3u)])));
+
+        ArborControlValue value;
+        const bool hasValue = m_recipe.GetValue(index, value);
+
+        if (desc.kind == ArborControlKind::Ranged)
+        {
+            control.Set("min", JSON::Value(double(desc.min)));
+            control.Set("max", JSON::Value(double(desc.max)));
+            control.Set("log", JSON::Value(desc.log));
+
+            if (hasValue)
+            {
+                control.Set("isRange", JSON::Value(value.isRange));
+                control.Set("lo", JSON::Value(double(value.lo)));
+                control.Set("hi", JSON::Value(double(value.hi)));
+                // where this seed lands in the range
+                control.Set("landed", JSON::Value(double(value.landed)));
+            }
+        }
+        else
+        {
+            if (desc.kind == ArborControlKind::Count)
+            {
+                control.Set("min", JSON::Value(double(desc.countMin)));
+                control.Set("max", JSON::Value(double(desc.countMax)));
+            }
+
+            if (desc.kind == ArborControlKind::Choice)
+            {
+                JSON::JArray options;
+
+                for (const String& option : desc.options)
+                {
+                    options.PushBack(JSON::Value(option));
+                }
+
+                control.Set("options", JSON::Value(std::move(options)));
+            }
+
+            if (hasValue)
+            {
+                control.Set("value", JSON::Value(double(value.integer)));
+            }
+        }
+
+        control.Set("regrows", JSON::Value(desc.regrows));
+
+        controls.PushBack(JSON::Value(std::move(control)));
+    }
+
+    JSON::Object result;
+    result.Set("layoutVersion", JSON::Value(double(m_layoutVersion)));
+    result.Set("controls", JSON::Value(std::move(controls)));
+
+    return String(JSON::Value(std::move(result)).ToString());
+}
+
+uint32 EditorArborState::GetPlantKindCount() const
+{
+    return uint32(ArborKind::Max);
+}
+
+String EditorArborState::GetPlantKindName(uint32 kind) const
+{
+    switch (ArborKind(kind))
+    {
+    case ArborKind::Tree:
+        return "Tree";
+    case ArborKind::Cover:
+        return "Cover";
+    case ArborKind::Rock:
+        return "Rock";
+    default:
+        return String::empty;
+    }
+}
+
+String EditorArborState::GetLastBakedAssetPath() const
+{
+    if (!m_lastBaked.IsValid() || !m_lastBaked->IsRegistered())
+    {
+        return String::empty;
+    }
+
+    return HYP_FORMAT("{}/{}", m_lastBaked->GetPath().GetBucket().GetName(), m_lastBaked->GetName());
+}
+
+Handle<AssetObject> EditorArborState::GetLastBakedAsset() const
+{
+    return m_lastBaked;
 }
 
 void EditorArborState::CommitEdit()
@@ -639,14 +897,15 @@ void EditorArborState::CommitEdit()
     {
         Handle<EditorArborState> state = weakThis.Lock();
 
-        if (!state.IsValid() || !state->IsActive() || state->m_plant != weakPlant.Lock() || state->m_recipe.ToRon() == ron)
+        if (!state.IsValid()
+            || !state->IsActive()
+            || state->m_plant != weakPlant.Lock()
+            || state->m_recipe.ToRon() == ron)
         {
             return;
         }
 
-        state->m_recipe = ArborRecipeHandle::FromRon(uint32(state->m_kind), ron);
-        state->m_committedRecipe = ron;
-        state->RecipeChanged(/* reshaped */ true);
+        state->RestoreRecipe(ron);
     };
 
     Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
@@ -676,7 +935,7 @@ void EditorArborState::CommitEdit()
 
 bool EditorArborState::IsGenerating() const
 {
-    return m_generating || m_regrowPending || m_bakingVariants;
+    return bool(m_work & (ArborWorkFlags::Growing | ArborWorkFlags::RegrowPending | ArborWorkFlags::BakingVariants));
 }
 
 bool EditorArborState::IsNewPlant() const
@@ -708,19 +967,26 @@ bool EditorArborState::Apply()
 
     if (BakesVariants())
     {
-        Array<Handle<Node>> grownNodes;
+        TResult<Array<Handle<Prefab>>> grown = GrowVariants(m_recipe, m_variantCount);
 
-        return GrowVariantsNow(grownNodes) && BakeVariantSet(grownNodes);
+        if (grown.HasError())
+        {
+            m_statusText = HYP_FORMAT("Could not grow the variants: {}", grown.GetError().GetMessage());
+            OnStateChanged();
+
+            return false;
+        }
+
+        return BakeVariantSet(CollectVariantNodes(grown.GetValue().ToSpan()));
     }
 
-    Handle<Node> root = m_plant->Clone();
+    Handle<Node> root = CloneUntagged(m_plant.Get());
 
     if (!root.IsValid())
     {
         return false;
     }
 
-    Prefab::UntagAsPrefabInstance(root.Get());
     SetGrown(root.Get(), /* generated */ false);
     InitObject(root);
 
@@ -753,6 +1019,7 @@ bool EditorArborState::Apply()
 
     HYP_LOG(Arbor, Info, "{}", m_statusText);
 
+    m_lastBaked = m_sourcePrefab;
     m_appliedRecipe = m_recipe.ToRon();
 
     ResetActionStack();
@@ -770,14 +1037,14 @@ void EditorArborState::Bake()
         return;
     }
 
-    if (m_bakingVariants)
+    if (m_work & ArborWorkFlags::BakingVariants)
     {
         return;
     }
 
     if (IsGenerating())
     {
-        m_bakeRequested = true;
+        m_work |= ArborWorkFlags::BakeRequested;
         m_statusText = "Baking once it has grown...";
         OnStateChanged();
 
@@ -804,10 +1071,7 @@ void EditorArborState::Revert()
         return;
     }
 
-    m_recipe = ArborRecipeHandle::FromRon(uint32(m_kind), m_appliedRecipe);
-    m_committedRecipe = m_appliedRecipe;
-
-    RecipeChanged(/* reshaped */ true);
+    RestoreRecipe(m_appliedRecipe);
 
     ResetActionStack();
     SetDirty(IsNewPlant());
@@ -839,18 +1103,14 @@ bool EditorArborState::BakesVariants() const
 
 Handle<Node> EditorArborState::CloneGrownPlant() const
 {
-    for (const Handle<Node>& child : m_plant->GetChildren())
-    {
-        if (child.IsValid() && (child->GetNodeFlags() & NodeFlags::Generated))
-        {
-            Handle<Node> clone = child->Clone();
-            Prefab::UntagAsPrefabInstance(clone.Get());
+    const Handle<Node> grownNode = FindGrownChild(m_plant.Get());
 
-            return clone;
-        }
+    if (!grownNode.IsValid())
+    {
+        return Handle<Node>::Null();
     }
 
-    return Handle<Node>::Null();
+    return CloneUntagged(grownNode.Get());
 }
 
 Handle<Node> EditorArborState::MakeVariantRoot(Name name, const ArborRecipeHandle& recipe, const Handle<Node>& grownNode) const
@@ -866,33 +1126,17 @@ Handle<Node> EditorArborState::MakeVariantRoot(Name name, const ArborRecipeHandl
     return root;
 }
 
-bool EditorArborState::GrowVariantsNow(Array<Handle<Node>>& outGrownNodes)
+Array<Handle<Node>> EditorArborState::CollectVariantNodes(Span<const Handle<Prefab>> grown) const
 {
-    outGrownNodes.Clear();
-    outGrownNodes.PushBack(CloneGrownPlant());
+    Array<Handle<Node>> grownNodes;
+    grownNodes.PushBack(CloneGrownPlant());
 
-    for (uint32 index = 1; index < m_variantCount; index++)
+    for (const Handle<Prefab>& prefab : grown)
     {
-        ArborRecipeHandle variant = m_recipe.Clone();
-        variant.SetSeed(m_recipe.GetSeed() + index);
-
-        TResult<Handle<Prefab>> grown = GrowPrefab(variant);
-
-        if (grown.HasError())
-        {
-            m_statusText = HYP_FORMAT("Could not grow variant {}: {}", index + 1, grown.GetError().GetMessage());
-            OnStateChanged();
-
-            return false;
-        }
-
-        Handle<Node> grownNode = grown.GetValue()->GetRoot()->Clone();
-        Prefab::UntagAsPrefabInstance(grownNode.Get());
-
-        outGrownNodes.PushBack(grownNode);
+        grownNodes.PushBack(CloneUntagged(prefab->GetRoot().Get()));
     }
 
-    return outGrownNodes[0].IsValid();
+    return grownNodes;
 }
 
 bool EditorArborState::BakeVariantSet(const Array<Handle<Node>>& grownNodes)
@@ -915,10 +1159,10 @@ bool EditorArborState::BakeVariantSet(const Array<Handle<Node>>& grownNodes)
             return false;
         }
 
-        ArborRecipeHandle variant = m_recipe.Clone();
-        variant.SetSeed(baseSeed + index);
-
-        Handle<Node> root = MakeVariantRoot(NAME_FMT("{}_{}", plantName, baseSeed + index), variant, grownNodes[index]);
+        Handle<Node> root = MakeVariantRoot(
+            NAME_FMT("{}_{}", plantName, baseSeed + index),
+            MakeVariantRecipe(m_recipe, index),
+            grownNodes[index]);
 
         PrefabSetEntry entry;
 
@@ -968,6 +1212,7 @@ bool EditorArborState::BakeVariantSet(const Array<Handle<Node>>& grownNodes)
     m_subsystem->SyncStalePrefabInstances();
 
     m_sourceSet = prefabSet;
+    m_lastBaked = prefabSet;
 
     m_statusText = HYP_FORMAT("Baked {} variants into {}", entries.Size(), prefabSet->GetName());
     HYP_LOG(Arbor, Info, "{}", m_statusText);
@@ -984,49 +1229,39 @@ bool EditorArborState::BakeVariantSet(const Array<Handle<Node>>& grownNodes)
 
 void EditorArborState::StartBakingVariants()
 {
-    m_bakingVariants = true;
+    m_work |= ArborWorkFlags::BakingVariants;
     m_statusText = HYP_FORMAT("Generating... ({} variants)", m_variantCount);
     OnStateChanged();
 
-    Array<UniquePtr<ArborRecipeHandle>> jobs;
-
-    for (uint32 index = 1; index < m_variantCount; index++)
-    {
-        UniquePtr<ArborRecipeHandle> variant = MakeUnique<ArborRecipeHandle>(m_recipe.Clone());
-        variant->SetSeed(m_recipe.GetSeed() + index);
-
-        jobs.PushBack(std::move(variant));
-    }
-
     const WeakHandle<EditorArborState> weakThis = WeakHandleFromThis();
     const String bakedRecipe = m_recipe.ToRon();
+    const uint32 variantCount = m_variantCount;
+
+    UniquePtr<ArborRecipeHandle> job = MakeUnique<ArborRecipeHandle>(m_recipe.Clone());
 
     TaskSystem::GetInstance().Enqueue(
-        [weakThis, bakedRecipe, jobs = std::move(jobs)]() mutable
+        [weakThis, bakedRecipe, variantCount, job = std::move(job)]() mutable
         {
             Array<Handle<Prefab>> grown;
             String error;
 
-            for (const UniquePtr<ArborRecipeHandle>& job : jobs)
+            TResult<Array<Handle<Prefab>>> result = GrowVariants(*job, variantCount);
+
+            if (result.HasError())
             {
-                TResult<Handle<Prefab>> prefab = GrowPrefab(*job);
-
-                if (prefab.HasError())
-                {
-                    error = prefab.GetError().GetMessage();
-
-                    break;
-                }
-
-                grown.PushBack(std::move(prefab.GetValue()));
+                error = result.GetError().GetMessage();
+            }
+            else
+            {
+                grown = std::move(result.GetValue());
             }
 
-            jobs.Clear();
+            job.Reset();
 
             GetThreadById(g_simThread)->GetScheduler().Enqueue(
                 [weakThis, bakedRecipe, error, grown = std::move(grown)]() mutable
                 {
-                    if (Handle<EditorArborState> state = weakThis.Lock())
+                    if (Handle<EditorArborState> state = weakThis.Lock(); state.IsValid())
                     {
                         state->FinishBakingVariants(std::move(grown), error, bakedRecipe);
                     }
@@ -1039,12 +1274,12 @@ void EditorArborState::StartBakingVariants()
 
 void EditorArborState::FinishBakingVariants(Array<Handle<Prefab>>&& grown, const String& error, const String& bakedRecipe)
 {
-    if (!m_bakingVariants)
+    if (!(m_work & ArborWorkFlags::BakingVariants))
     {
         return;
     }
 
-    m_bakingVariants = false;
+    m_work &= ~ArborWorkFlags::BakingVariants;
 
     if (!IsActive() || error.Any() || grown.Size() + 1 != m_variantCount)
     {
@@ -1062,18 +1297,7 @@ void EditorArborState::FinishBakingVariants(Array<Handle<Prefab>>&& grown, const
         return;
     }
 
-    Array<Handle<Node>> grownNodes;
-    grownNodes.PushBack(CloneGrownPlant());
-
-    for (const Handle<Prefab>& prefab : grown)
-    {
-        Handle<Node> grownNode = prefab->GetRoot()->Clone();
-        Prefab::UntagAsPrefabInstance(grownNode.Get());
-
-        grownNodes.PushBack(grownNode);
-    }
-
-    if (BakeVariantSet(grownNodes))
+    if (BakeVariantSet(CollectVariantNodes(grown.ToSpan())))
     {
         Exit(/* apply */ false);
     }
@@ -1081,13 +1305,13 @@ void EditorArborState::FinishBakingVariants(Array<Handle<Prefab>>&& grown, const
 
 bool EditorArborState::GrowNow()
 {
-    if (!HasTarget() || m_generating)
+    if (!HasTarget() || (m_work & ArborWorkFlags::Growing))
     {
         return false;
     }
 
-    m_regrowPending = false;
-    m_generating = true;
+    m_work &= ~ArborWorkFlags::RegrowPending;
+    m_work |= ArborWorkFlags::Growing;
 
     GrownPlant grown;
     grown.Take(GrowPrefab(m_recipe));
@@ -1211,10 +1435,18 @@ void EditorArborState::RecipeChanged(bool reshaped)
         RebuildControls();
     }
 
-    m_regrowPending = true;
-    m_regrowRequestedAt = Time::Now();
+    m_work |= ArborWorkFlags::RegrowPending;
+    m_regrowTimer.Reset();
 
     OnStateChanged();
+}
+
+void EditorArborState::RestoreRecipe(const String& ron)
+{
+    m_recipe = ArborRecipeHandle::FromRon(uint32(m_kind), ron);
+    m_committedRecipe = ron;
+
+    RecipeChanged(/* reshaped */ true);
 }
 
 void EditorArborState::Update()
@@ -1230,21 +1462,21 @@ void EditorArborState::Update()
         SetDirty(true);
     }
 
-    if (m_generating
-        || !m_regrowPending
-        || Time::Now() - m_regrowRequestedAt < RegrowDelay)
+    if ((m_work & ArborWorkFlags::Growing)
+        || !(m_work & ArborWorkFlags::RegrowPending)
+        || m_regrowTimer.Interval(ClockTimer::Now()) < RegrowDelay)
     {
         return;
     }
 
-    m_regrowPending = false;
+    m_work &= ~ArborWorkFlags::RegrowPending;
 
     StartGrowing(m_recipe.Clone());
 }
 
 void EditorArborState::StartGrowing(ArborRecipeHandle&& recipe)
 {
-    m_generating = true;
+    m_work |= ArborWorkFlags::Growing;
     m_statusText = "Generating...";
     OnStateChanged();
 
@@ -1256,19 +1488,19 @@ void EditorArborState::StartGrowing(ArborRecipeHandle&& recipe)
     TaskSystem::GetInstance().Enqueue(
         [weakThis, weakPlant, job = std::move(job)]() mutable
         {
-            const Clock::time_point startedAt = Clock::now();
+            const ClockTimer timer;
 
             GrownPlant grown;
             grown.Take(GrowPrefab(*job));
 
-            grown.milliseconds = std::chrono::duration<double, std::milli>(Clock::now() - startedAt).count();
+            grown.milliseconds = timer.IntervalHighPrec(ClockTimer::Now()) * 1000.0;
 
             job.Reset();
 
             GetThreadById(g_simThread)->GetScheduler().Enqueue(
                 [weakThis, weakPlant, grown = std::move(grown)]() mutable
                 {
-                    if (Handle<EditorArborState> state = weakThis.Lock())
+                    if (Handle<EditorArborState> state = weakThis.Lock(); state.IsValid())
                     {
                         state->FinishGrowing(weakPlant.Lock(), std::move(grown));
                     }
@@ -1281,9 +1513,8 @@ void EditorArborState::StartGrowing(ArborRecipeHandle&& recipe)
 
 void EditorArborState::FinishGrowing(const Handle<Entity>& plant, GrownPlant&& grown)
 {
-    m_generating = false;
+    m_work &= ~ArborWorkFlags::Growing;
 
-    // the mode was left, or another plant entered, while this one grew
     if (!plant.IsValid() || plant != m_plant)
     {
         return;
@@ -1293,7 +1524,7 @@ void EditorArborState::FinishGrowing(const Handle<Entity>& plant, GrownPlant&& g
     {
         HYP_LOG(Arbor, Warning, "could not grow {}: {}", plant->GetName(), grown.error);
 
-        m_bakeRequested = false;
+        m_work &= ~ArborWorkFlags::BakeRequested;
         m_statusText = HYP_FORMAT("Could not grow: {}", grown.error);
         OnStateChanged();
 
@@ -1304,17 +1535,16 @@ void EditorArborState::FinishGrowing(const Handle<Entity>& plant, GrownPlant&& g
 
     for (const Handle<Node>& child : previous)
     {
-        if (child.IsValid() && (child->GetNodeFlags() & NodeFlags::Generated))
+        if (IsGrownNode(child))
         {
             child->Remove();
         }
     }
 
-    Handle<Node> grownNode = grown.prefab->GetRoot()->Clone();
+    Handle<Node> grownNode = CloneUntagged(grown.prefab->GetRoot().Get());
 
     if (grownNode.IsValid())
     {
-        Prefab::UntagAsPrefabInstance(grownNode.Get());
         grownNode->SetNodeFlags(grownNode->GetNodeFlags() | NodeFlags::Generated | NodeFlags::HideInSceneOutline);
 
         plant->AddChild(grownNode);
@@ -1322,9 +1552,9 @@ void EditorArborState::FinishGrowing(const Handle<Entity>& plant, GrownPlant&& g
 
     m_statusText = HYP_FORMAT("Grown in {}ms", uint32(grown.milliseconds));
 
-    if (m_bakeRequested && !m_regrowPending)
+    if ((m_work & ArborWorkFlags::BakeRequested) && !(m_work & ArborWorkFlags::RegrowPending))
     {
-        m_bakeRequested = false;
+        m_work &= ~ArborWorkFlags::BakeRequested;
 
         Bake();
 
