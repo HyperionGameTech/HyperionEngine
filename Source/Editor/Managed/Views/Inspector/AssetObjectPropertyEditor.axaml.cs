@@ -23,8 +23,6 @@ namespace Hyperion.Editor.Views.Inspector
         
         private const double GizmoSize = 30;
         private const double GizmoSpacing = 2;
-        private const double GizmoRowGap = 6;
-        private const double ActionsExpandHysteresis = 12;
 
         public AssetObjectPropertyEditor()
         {
@@ -65,7 +63,6 @@ namespace Hyperion.Editor.Views.Inspector
         private ObjectPropertyViewModel? _subscribedVm;
         private AssetObjectEditPanelViewModel? _editPanel;
         private bool _isResolvingEditMode;
-        private bool _actionsCollapsed;
 
         private void OnDataContextChanged(object? sender, EventArgs e)
         {
@@ -254,25 +251,38 @@ namespace Hyperion.Editor.Views.Inspector
                 return;
             }
 
-            int actionCount = PART_ActionButtons.Children.Count(child => child.IsVisible);
-            double actionsWidth = actionCount * GizmoSize + Math.Max(actionCount - 1, 0) * GizmoSpacing;
-            double expandedWidth = PART_PrimaryGizmos.DesiredSize.Width + GizmoRowGap + actionsWidth;
+            Control[] actions = { PART_NewButton, PART_CloneButton, PART_CopyButton, PART_PasteButton };
+            int wantedCount = actions.Count(IsActionWanted);
+            double slotWidth = GizmoSize + GizmoSpacing;
+            double actionRoom = availableWidth - PART_PrimaryGizmos.DesiredSize.Width;
+            int shownCount = wantedCount;
 
-            if (!_actionsCollapsed && expandedWidth > availableWidth)
+            if (actionRoom >= GizmoSize && actionRoom < wantedCount * slotWidth - GizmoSpacing)
             {
-                SetActionsCollapsed(true);
+                shownCount = Math.Clamp((int)Math.Floor((actionRoom - GizmoSize) / slotWidth), 0, wantedCount);
             }
-            else if (_actionsCollapsed && expandedWidth + ActionsExpandHysteresis <= availableWidth)
+
+            int index = 0;
+
+            foreach (Control action in actions)
             {
-                SetActionsCollapsed(false);
+                if (!IsActionWanted(action))
+                {
+                    action.IsVisible = false;
+                    continue;
+                }
+
+                action.IsVisible = index < shownCount;
+                index++;
             }
+
+            PART_ActionButtons.IsVisible = shownCount > 0;
+            PART_MoreButton.IsVisible = shownCount < wantedCount;
         }
 
-        private void SetActionsCollapsed(bool collapsed)
+        private bool IsActionWanted(Control action)
         {
-            _actionsCollapsed = collapsed;
-            PART_ActionButtons.IsVisible = !collapsed;
-            PART_MoreButton.IsVisible = collapsed;
+            return action != PART_CloneButton || DataContext is ObjectPropertyViewModel { HasSubObject: true };
         }
 
         private void UpdateEnabled()

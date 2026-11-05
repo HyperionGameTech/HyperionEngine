@@ -114,13 +114,10 @@
                 </Grid>
             </Border>
 
-            <Grid
-                x:Name="PART_GizmoRow"
-                ColumnDefinitions="*,Auto"
-                ColumnSpacing="6">
+            <WrapPanel x:Name="PART_GizmoRow">
                 <StackPanel
                     x:Name="PART_PrimaryGizmos"
-                    Grid.Column="0"
+                    Margin="0,0,6,0"
                     Orientation="Horizontal"
                     Spacing="2">
                     <Button
@@ -154,11 +151,11 @@
                 </StackPanel>
 
                 <StackPanel
-                    Grid.Column="1"
                     Orientation="Horizontal"
                     Spacing="2">
                     <StackPanel x:Name="PART_ActionButtons" Orientation="Horizontal" Spacing="2">
                         <Button
+                            x:Name="PART_NewButton"
                             Classes="gizmo"
                             Command="{Binding NewCommand}"
                             IsEnabled="{Binding CanCreateNew}"
@@ -166,10 +163,10 @@
                             <controls:Codicon Kind="Add" Size="14" />
                         </Button>
                         <Button
+                            x:Name="PART_CloneButton"
                             Classes="gizmo"
                             Command="{Binding CloneCommand}"
                             IsEnabled="{Binding CanClone}"
-                            IsVisible="{Binding HasSubObject}"
                             ToolTip.Tip="Clone and Assign">
                             <controls:Codicon Kind="Layers" Size="14" />
                         </Button>
@@ -227,7 +224,7 @@
                         </Button.Flyout>
                     </Button>
                 </StackPanel>
-            </Grid>
+            </WrapPanel>
 
             <Border
                 Padding="10,8,10,8"

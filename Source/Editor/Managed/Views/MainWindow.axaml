@@ -24,6 +24,62 @@
     x:DataType="vm:MainWindowViewModel"
     mc:Ignorable="d">
 
+    <Window.Resources>
+        <CombinedGeometry x:Key="HyperionMarkGeometry" GeometryCombineMode="Union">
+            <CombinedGeometry.Geometry1>
+                <CombinedGeometry GeometryCombineMode="Exclude">
+                    <CombinedGeometry.Geometry1>
+                        <EllipseGeometry
+                            Center="255.5,264.5"
+                            RadiusX="89.5"
+                            RadiusY="89.5" />
+                    </CombinedGeometry.Geometry1>
+                    <CombinedGeometry.Geometry2>
+                        <CombinedGeometry GeometryCombineMode="Intersect">
+                            <CombinedGeometry.Geometry1>
+                                <EllipseGeometry
+                                    Center="258.5,285"
+                                    RadiusX="150"
+                                    RadiusY="17">
+                                    <EllipseGeometry.Transform>
+                                        <RotateTransform Angle="13" CenterX="258.5" CenterY="285" />
+                                    </EllipseGeometry.Transform>
+                                </EllipseGeometry>
+                            </CombinedGeometry.Geometry1>
+                            <CombinedGeometry.Geometry2>
+                                <StreamGeometry>M90,246 L430,324 L430,600 L90,600 Z</StreamGeometry>
+                            </CombinedGeometry.Geometry2>
+                        </CombinedGeometry>
+                    </CombinedGeometry.Geometry2>
+                </CombinedGeometry>
+            </CombinedGeometry.Geometry1>
+            <CombinedGeometry.Geometry2>
+                <CombinedGeometry GeometryCombineMode="Exclude">
+                    <CombinedGeometry.Geometry1>
+                        <EllipseGeometry
+                            Center="258.5,285"
+                            RadiusX="186"
+                            RadiusY="40">
+                            <EllipseGeometry.Transform>
+                                <RotateTransform Angle="13" CenterX="258.5" CenterY="285" />
+                            </EllipseGeometry.Transform>
+                        </EllipseGeometry>
+                    </CombinedGeometry.Geometry1>
+                    <CombinedGeometry.Geometry2>
+                        <EllipseGeometry
+                            Center="258.5,285"
+                            RadiusX="150"
+                            RadiusY="17">
+                            <EllipseGeometry.Transform>
+                                <RotateTransform Angle="13" CenterX="258.5" CenterY="285" />
+                            </EllipseGeometry.Transform>
+                        </EllipseGeometry>
+                    </CombinedGeometry.Geometry2>
+                </CombinedGeometry>
+            </CombinedGeometry.Geometry2>
+        </CombinedGeometry>
+    </Window.Resources>
+
     <Window.Styles>
         <Style Selector="Grid#TitleBar">
             <Setter Property="Background" Value="{DynamicResource Brush.Background}" />
@@ -589,90 +645,45 @@
                             Orientation="Horizontal"
                             Spacing="6">
                             <Path
-                                Width="30"
-                                Height="15"
+                                Width="24"
+                                Height="12"
                                 Margin="0,0,4,0"
                                 VerticalAlignment="Center"
                                 Classes="chrome-mark"
-                                Stretch="Uniform">
-                                <Path.Data>
-                                    <CombinedGeometry GeometryCombineMode="Union">
-                                        <CombinedGeometry.Geometry1>
-                                            <CombinedGeometry GeometryCombineMode="Exclude">
-                                                <CombinedGeometry.Geometry1>
-                                                    <EllipseGeometry
-                                                        Center="255.5,264.5"
-                                                        RadiusX="89.5"
-                                                        RadiusY="89.5" />
-                                                </CombinedGeometry.Geometry1>
-                                                <CombinedGeometry.Geometry2>
-                                                    <CombinedGeometry GeometryCombineMode="Intersect">
-                                                        <CombinedGeometry.Geometry1>
-                                                            <EllipseGeometry
-                                                                Center="258.5,285"
-                                                                RadiusX="150"
-                                                                RadiusY="17">
-                                                                <EllipseGeometry.Transform>
-                                                                    <RotateTransform Angle="13" CenterX="258.5" CenterY="285" />
-                                                                </EllipseGeometry.Transform>
-                                                            </EllipseGeometry>
-                                                        </CombinedGeometry.Geometry1>
-                                                        <CombinedGeometry.Geometry2>
-                                                            <StreamGeometry>M90,246 L430,324 L430,600 L90,600 Z</StreamGeometry>
-                                                        </CombinedGeometry.Geometry2>
-                                                    </CombinedGeometry>
-                                                </CombinedGeometry.Geometry2>
-                                            </CombinedGeometry>
-                                        </CombinedGeometry.Geometry1>
-                                        <CombinedGeometry.Geometry2>
-                                            <CombinedGeometry GeometryCombineMode="Exclude">
-                                                <CombinedGeometry.Geometry1>
-                                                    <EllipseGeometry
-                                                        Center="258.5,285"
-                                                        RadiusX="186"
-                                                        RadiusY="40">
-                                                        <EllipseGeometry.Transform>
-                                                            <RotateTransform Angle="13" CenterX="258.5" CenterY="285" />
-                                                        </EllipseGeometry.Transform>
-                                                    </EllipseGeometry>
-                                                </CombinedGeometry.Geometry1>
-                                                <CombinedGeometry.Geometry2>
-                                                    <EllipseGeometry
-                                                        Center="258.5,285"
-                                                        RadiusX="150"
-                                                        RadiusY="17">
-                                                        <EllipseGeometry.Transform>
-                                                            <RotateTransform Angle="13" CenterX="258.5" CenterY="285" />
-                                                        </EllipseGeometry.Transform>
-                                                    </EllipseGeometry>
-                                                </CombinedGeometry.Geometry2>
-                                            </CombinedGeometry>
-                                        </CombinedGeometry.Geometry2>
-                                    </CombinedGeometry>
-                                </Path.Data>
-                            </Path>
+                                Data="{StaticResource HyperionMarkGeometry}"
+                                Stretch="Uniform" />
                             <Menu Classes="chrome-menu">
                                 <MenuItem Header="_File" SubmenuOpened="OnFileMenuSubmenuOpened">
                                     <MenuItem
                                         Command="{Binding NewProject}"
                                         Header="_New Project..."
+                                        InputGesture="Ctrl+N"
                                         IsEnabled="{Binding !IsSimulating}" />
                                     <MenuItem
                                         Command="{Binding OpenProject}"
                                         Header="_Open Project..."
+                                        InputGesture="Ctrl+O"
                                         IsEnabled="{Binding !IsSimulating}" />
                                     <MenuItem
                                         x:Name="FileOpenRecentMenuItem"
                                         Header="Open _Recent"
                                         IsEnabled="{Binding !IsSimulating}" />
+                                    <MenuItem
+                                        Command="{Binding ToggleAlwaysOpenLastProject}"
+                                        Header="Reopen Last Project on Startup"
+                                        IsChecked="{Binding AlwaysOpenLastProject, Mode=OneWay}"
+                                        ToggleType="CheckBox"
+                                        ToolTip.Tip="Skip the start screen and reopen the most recent project when the editor starts" />
                                     <Separator />
                                     <MenuItem
                                         Command="{Binding SaveProject}"
                                         Header="_Save Project"
+                                        InputGesture="Ctrl+S"
                                         IsEnabled="{Binding !IsSimulating}" />
                                     <MenuItem
                                         Command="{Binding SaveProjectAs}"
                                         Header="Save Project _As..."
+                                        InputGesture="Ctrl+Shift+S"
                                         IsEnabled="{Binding !IsSimulating}" />
                                     <Separator />
                                     <MenuItem
@@ -680,54 +691,312 @@
                                         Header="Close Project"
                                         IsEnabled="{Binding !IsSimulating}" />
                                     <Separator />
-                                    <MenuItem Command="{Binding Exit}" Header="_Exit" />
+                                    <MenuItem Command="{Binding Exit}" Header="E_xit" />
                                 </MenuItem>
                                 <MenuItem Header="_Edit" IsEnabled="{Binding !IsSimulating}">
                                     <MenuItem
                                         Command="{Binding Undo}"
                                         Header="{Binding UndoHeader}"
+                                        InputGesture="Ctrl+Z"
                                         IsEnabled="{Binding CanUndo}" />
                                     <MenuItem
                                         Command="{Binding Redo}"
                                         Header="{Binding RedoHeader}"
+                                        InputGesture="Ctrl+Y"
                                         IsEnabled="{Binding CanRedo}" />
                                     <Separator />
                                     <MenuItem
                                         Command="{Binding Copy}"
                                         Header="{Binding CopyHeader}"
+                                        InputGesture="Ctrl+C"
                                         IsEnabled="{Binding CanCopy}" />
                                     <MenuItem
                                         Command="{Binding Paste}"
                                         Header="{Binding PasteHeader}"
+                                        InputGesture="Ctrl+V"
                                         IsEnabled="{Binding CanPaste}" />
-                                    <MenuItem Command="{Binding Delete}" Header="{Binding DeleteHeader}" />
-                                    <Separator />
-                                    <MenuItem Command="{Binding SelectAll}" Header="Select _All" />
-                                    <MenuItem Command="{Binding SelectAllInViewport}" Header="Select All in Viewport" />
-                                    <MenuItem Command="{Binding SelectNone}" Header="Select None" />
-                                </MenuItem>
-                                <MenuItem Header="_Layout">
                                     <MenuItem
-                                        Click="OnResetLayoutClick"
-                                        Header="_Reset Layout"
-                                        ToolTip.Tip="Restore the default dock layout" />
+                                        Command="{Binding Delete}"
+                                        Header="{Binding DeleteHeader}"
+                                        InputGesture="Delete" />
+                                    <Separator />
+                                    <MenuItem
+                                        Command="{Binding SelectAll}"
+                                        Header="Select _All"
+                                        InputGesture="Ctrl+A" />
+                                    <MenuItem Command="{Binding SelectAllInViewport}" Header="Select All in Viewport" />
+                                    <MenuItem
+                                        Command="{Binding SelectNone}"
+                                        Header="Select None"
+                                        InputGesture="Ctrl+Shift+A" />
+                                    <Separator />
+                                    <MenuItem
+                                        Command="{Binding SelectTransformModeTranslate}"
+                                        Header="Translate"
+                                        IsChecked="{Binding IsTransformModeTranslateActive, Mode=OneWay}"
+                                        IsEnabled="{Binding CanSelectTransformModeTranslate}"
+                                        ToggleType="Radio" />
+                                    <MenuItem
+                                        Command="{Binding SelectTransformModeRotate}"
+                                        Header="Rotate"
+                                        IsChecked="{Binding IsTransformModeRotateActive, Mode=OneWay}"
+                                        IsEnabled="{Binding CanSelectTransformModeRotate}"
+                                        ToggleType="Radio" />
+                                    <MenuItem
+                                        Command="{Binding SelectTransformModeScale}"
+                                        Header="Scale"
+                                        IsChecked="{Binding IsTransformModeScaleActive, Mode=OneWay}"
+                                        IsEnabled="{Binding CanSelectTransformModeScale}"
+                                        ToggleType="Radio" />
+                                    <MenuItem
+                                        Command="{Binding SelectTransformModeReshapeVolume}"
+                                        Header="Edit Volume"
+                                        IsChecked="{Binding IsTransformModeReshapeVolumeActive, Mode=OneWay}"
+                                        IsEnabled="{Binding CanSelectGizmo}"
+                                        IsVisible="{Binding CanUseVolumeEditTool}"
+                                        ToggleType="Radio" />
+                                    <Separator />
+                                    <MenuItem
+                                        Command="{Binding ToggleSnapToGrid}"
+                                        Header="Snap to Grid"
+                                        IsChecked="{Binding IsSnapToGridEnabled, Mode=OneWay}"
+                                        ToggleType="CheckBox" />
+                                    <Separator IsVisible="{Binding IsInEditMode}" />
+                                    <MenuItem
+                                        Command="{Binding ApplyEditModeCommand}"
+                                        Header="Apply Prefab Changes"
+                                        IsVisible="{Binding IsInEditMode}" />
+                                    <MenuItem
+                                        Command="{Binding RevertEditModeCommand}"
+                                        Header="Revert Prefab Changes"
+                                        IsVisible="{Binding IsInEditMode}" />
+                                    <MenuItem
+                                        Command="{Binding ExitEditModeCommand}"
+                                        Header="{Binding ExitEditModeHeader}"
+                                        IsVisible="{Binding IsInEditMode}" />
                                 </MenuItem>
-                                <MenuItem Header="_Build" IsEnabled="{Binding !IsSimulating}">
-                                    <MenuItem Command="{Binding BuildReflectionProbes}" Header="Reflection Probes" />
-                                    <MenuItem Command="{Binding BuildIrradianceProbes}" Header="Irradiance Probes" />
+                                <MenuItem Header="_View" SubmenuOpened="OnViewMenuSubmenuOpened">
+                                    <MenuItem Header="Layout">
+                                        <MenuItem Click="OnViewportLayoutSingleClick" Header="Single Viewport" />
+                                        <MenuItem Click="OnViewportLayoutGridClick" Header="Four Viewports" />
+                                        <MenuItem Click="OnViewportLayoutOneOverThreeClick" Header="Perspective + Three" />
+                                        <Separator />
+                                        <MenuItem Click="OnResetLayoutClick" Header="Reset Layout" />
+                                    </MenuItem>
                                     <Separator />
-                                    <MenuItem Command="{Binding BuildLightmaps}" Header="Lightmaps" />
+                                    <MenuItem
+                                        Command="{Binding ToggleGridVisible}"
+                                        Header="Show Grid"
+                                        IsChecked="{Binding IsGridVisible, Mode=OneWay}"
+                                        ToggleType="CheckBox" />
+                                    <MenuItem
+                                        Command="{Binding ToggleShowStats}"
+                                        Header="Show Stats"
+                                        IsChecked="{Binding IsShowStatsEnabled, Mode=OneWay}"
+                                        ToggleType="CheckBox" />
                                     <Separator />
-                                    <MenuItem Command="{Binding BuildStaticShadows}" Header="Static Shadows" />
+                                    <MenuItem Header="{Binding ViewportLodText}">
+                                        <MenuItem
+                                            Command="{Binding SetViewportLod}"
+                                            CommandParameter="-1"
+                                            Header="Auto"
+                                            IsChecked="{Binding IsViewportLodAutomatic, Mode=OneWay}"
+                                            ToggleType="CheckBox" />
+                                        <Separator />
+                                        <MenuItem
+                                            Command="{Binding SetViewportLod}"
+                                            CommandParameter="0"
+                                            Header="Force LOD 0" />
+                                        <MenuItem
+                                            Command="{Binding SetViewportLod}"
+                                            CommandParameter="1"
+                                            Header="Force LOD 1" />
+                                        <MenuItem
+                                            Command="{Binding SetViewportLod}"
+                                            CommandParameter="2"
+                                            Header="Force LOD 2" />
+                                        <MenuItem
+                                            Command="{Binding SetViewportLod}"
+                                            CommandParameter="3"
+                                            Header="Force LOD 3" />
+                                    </MenuItem>
+                                    <MenuItem Header="{Binding CameraMoveSpeedText}">
+                                        <MenuItem Command="{Binding ResetCameraMoveSpeed}" Header="Reset Move Speed" />
+                                        <Separator />
+                                        <MenuItem
+                                            Command="{Binding SetCameraMoveSpeed}"
+                                            CommandParameter="0.25"
+                                            Header="0.25x" />
+                                        <MenuItem
+                                            Command="{Binding SetCameraMoveSpeed}"
+                                            CommandParameter="0.5"
+                                            Header="0.5x" />
+                                        <MenuItem
+                                            Command="{Binding SetCameraMoveSpeed}"
+                                            CommandParameter="1"
+                                            Header="1x" />
+                                        <MenuItem
+                                            Command="{Binding SetCameraMoveSpeed}"
+                                            CommandParameter="2"
+                                            Header="2x" />
+                                        <MenuItem
+                                            Command="{Binding SetCameraMoveSpeed}"
+                                            CommandParameter="4"
+                                            Header="4x" />
+                                        <MenuItem
+                                            Command="{Binding SetCameraMoveSpeed}"
+                                            CommandParameter="8"
+                                            Header="8x" />
+                                    </MenuItem>
+                                </MenuItem>
+                                <MenuItem Header="_Build" SubmenuOpened="OnBuildMenuSubmenuOpened">
+                                    <MenuItem
+                                        Command="{Binding GameProjectMenuCommand}"
+                                        Header="{Binding NativeProjectMenuText}"
+                                        IsEnabled="{Binding !IsSimulating}" />
+                                    <MenuItem
+                                        Command="{Binding ChangeGameProjectLanguageCommand}"
+                                        Header="Change Language..."
+                                        IsEnabled="{Binding !IsSimulating}"
+                                        IsVisible="{Binding CanChangeGameProjectLanguage}" />
                                     <Separator />
-                
-                                    <!-- Same as elsewhere. We don't actually USE BN in the engine yet. Commenting out for now to prevent any confusion. -->
-                                    <!-- <MenuItem Command="{Binding BuildBentNormals}" Header="Bent Normals" />
-                                    <Separator /> -->
-                                    <MenuItem Command="{Binding RebuildMeshBVHs}" Header="Rebuild Mesh BVHs" />
+                                    <MenuItem
+                                        Command="{Binding BuildNativeGame}"
+                                        Header="Compile Game Module"
+                                        IsEnabled="{Binding !IsSimulating}" />
+                                    <MenuItem
+                                        Command="{Binding ReloadGameModule}"
+                                        Header="Reload Game Module"
+                                        IsEnabled="{Binding !IsSimulating}" />
                                     <Separator />
-                                    <MenuItem Command="{Binding CookGameContent}" Header="Cook Game Content" />
-                                    <MenuItem Command="{Binding CompressProjectTextures}" Header="Compress Project Textures" />
+                                    <MenuItem Header="Bake" IsEnabled="{Binding !IsSimulating}">
+                                        <MenuItem Command="{Binding BuildReflectionProbes}" Header="Reflection Probes" />
+                                        <MenuItem Command="{Binding BuildIrradianceProbes}" Header="Irradiance Probes" />
+                                        <Separator />
+                                        <MenuItem Command="{Binding BuildLightmaps}" Header="Lightmaps" />
+                                        <Separator />
+                                        <MenuItem Command="{Binding BuildStaticShadows}" Header="Static Shadows" />
+                                    </MenuItem>
+                                    <MenuItem
+                                        Command="{Binding RebuildMeshBVHs}"
+                                        Header="Rebuild Mesh BVHs"
+                                        IsEnabled="{Binding !IsSimulating}" />
+                                    <Separator />
+                                    <MenuItem
+                                        Command="{Binding CookGameContent}"
+                                        Header="Cook Game Content"
+                                        IsEnabled="{Binding !IsSimulating}" />
+                                    <MenuItem
+                                        Command="{Binding CompressProjectTextures}"
+                                        Header="Compress Project Textures"
+                                        IsEnabled="{Binding !IsSimulating}" />
+                                    <Separator />
+                                    <MenuItem
+                                        Command="{Binding PackageGame}"
+                                        Header="Package Game"
+                                        IsEnabled="{Binding !IsSimulating}" />
+                                    <MenuItem
+                                        Command="{Binding BuildWebGame}"
+                                        Header="Package for Web"
+                                        IsEnabled="{Binding !IsSimulating}" />
+                                    <Separator />
+                                    <MenuItem Click="OnPackagingSettingsClick" Header="Packaging Settings..." />
+                                </MenuItem>
+
+                                <MenuItem Header="_Tools" SubmenuOpened="OnToolsMenuSubmenuOpened">
+                                  <MenuItem Click="OnPluginsClick" Header="Plugins..." />
+                                  <MenuItem Click="OnProjectSettingsClick" Header="Project Settings..." />
+                                  <MenuItem Click="OnWorldSettingsClick" Header="World Settings..." />
+                                  <Separator />
+                                  <MenuItem
+                                      Command="{Binding ToggleMeshEditMode}"
+                                      Header="Mesh Edit"
+                                      IsChecked="{Binding IsMeshEditModeEnabled, Mode=OneWay}"
+                                      IsEnabled="{Binding CanEnableMeshEditMode}"
+                                      ToggleType="CheckBox" />
+                                  <Separator />
+                                  <MenuItem
+                                      Command="{Binding ToggleTerrainSculptMode}"
+                                      Header="Terrain Sculptor"
+                                      IsChecked="{Binding IsSculptModeActive, Mode=OneWay}"
+                                      IsEnabled="{Binding CanToggleTerrainSculptMode}"
+                                      ToggleType="CheckBox" />
+                                  <MenuItem
+                                      Command="{Binding ToggleTerrainPaintMode}"
+                                      Header="Terrain Painter"
+                                      IsChecked="{Binding IsPaintModeActive, Mode=OneWay}"
+                                      IsEnabled="{Binding CanToggleTerrainSculptMode}"
+                                      ToggleType="CheckBox" />
+                                  <MenuItem Header="Terrain Layers">
+                                    <MenuItem
+                                        Command="{Binding AddTerrainLayer}"
+                                        Header="Add Terrain Layer"
+                                        IsEnabled="{Binding CanAddTerrainLayer}" />
+                                    <MenuItem
+                                        Command="{Binding AddFlatTerrainLayer}"
+                                        Header="Add Flat Terrain Layer"
+                                        IsEnabled="{Binding CanAddTerrainLayer}" />
+                                    <MenuItem
+                                        Command="{Binding ImportTerrainHeightmapTiles}"
+                                        Header="Import Heightmap Tiles..."
+                                        IsEnabled="{Binding CanToggleTerrainSculptMode}" />
+                                  </MenuItem>
+                                  <Separator />
+                                  <MenuItem
+                                      Command="{Binding ToggleDecalPainterMode}"
+                                      Header="Decal Painter"
+                                      IsChecked="{Binding IsDecalPainterActive, Mode=OneWay}"
+                                      IsEnabled="{Binding CanTogglePainterMode}"
+                                      ToggleType="CheckBox" />
+                                  <MenuItem
+                                      Command="{Binding ToggleInstancePainterMode}"
+                                      Header="Instance Painter"
+                                      IsChecked="{Binding IsInstancePainterActive, Mode=OneWay}"
+                                      IsEnabled="{Binding CanTogglePainterMode}"
+                                      ToggleType="CheckBox" />
+                                  <MenuItem
+                                      Command="{Binding ToggleGroundCoverPainterMode}"
+                                      Header="Ground Cover Painter"
+                                      IsChecked="{Binding IsGroundCoverPainterActive, Mode=OneWay}"
+                                      IsEnabled="{Binding CanToggleTerrainSculptMode}"
+                                      ToggleType="CheckBox" />
+                                  <Separator />
+                                  <MenuItem
+                                      Command="{Binding AddNewLayerCommand}"
+                                      Header="Add New Layer..."
+                                      IsEnabled="{Binding !IsSimulating}" />
+                                  <MenuItem
+                                      Command="{Binding AddNewSwatchCommand}"
+                                      Header="New Swatch..."
+                                      IsEnabled="{Binding !IsSimulating}" />
+                                </MenuItem>
+                                <MenuItem Header="_Help">
+                                    <MenuItem Click="OnDocumentationClick">
+                                        <MenuItem.Header>
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <TextBlock Text="Documentation" />
+                                                <controls:Codicon
+                                                    Kind="LinkExternal"
+                                                    Size="10"
+                                                    VerticalAlignment="Center"
+                                                    Opacity="0.7" />
+                                            </StackPanel>
+                                        </MenuItem.Header>
+                                    </MenuItem>
+                                    <MenuItem Click="OnSubmitIssueClick">
+                                        <MenuItem.Header>
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <TextBlock Text="Submit Issue" />
+                                                <controls:Codicon
+                                                    Kind="LinkExternal"
+                                                    Size="10"
+                                                    VerticalAlignment="Center"
+                                                    Opacity="0.7" />
+                                            </StackPanel>
+                                        </MenuItem.Header>
+                                    </MenuItem>
+                                    <Separator />
+                                    <MenuItem Click="OnAboutClick" Header="About Hyperion" />
                                 </MenuItem>
                             </Menu>
                         </StackPanel>
@@ -2397,7 +2666,6 @@
                                                                     HorizontalAlignment="Right"
                                                                     VerticalAlignment="Center"
                                                                     Content="Add"
-                                                                    Classes="Primary"
                                                                     IsEnabled="{Binding HasAddableComponents}">
                                                                     <Button.Flyout>
                                                                         <MenuFlyout ItemsSource="{Binding AddableComponents}">

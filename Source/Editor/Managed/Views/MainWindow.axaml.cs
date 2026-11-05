@@ -5,6 +5,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
+using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Platform;
 using Avalonia.Platform.Storage;
@@ -37,6 +38,12 @@ namespace Hyperion.Editor
     public partial class MainWindow : Window
     {
         private const bool IsRenderingOnMainThread = true;
+
+        /// For help menu
+        private const string DocumentationUrl = "https://hyperionengine.dev/docs";
+        private const string WebsiteUrl = "https://hyperionengine.dev";
+        private const string RepositoryUrl = "https://github.com/HyperionGameTech/HyperionEngine";
+        private const string SubmitIssueUrl = RepositoryUrl + "/issues/new";
 
         private static readonly DataFormat<NodeViewModel> NodeViewModelDragFormat =
             DataFormat.CreateInProcessFormat<NodeViewModel>("hyperion-nodeviewmodel");
@@ -406,6 +413,12 @@ namespace Hyperion.Editor
         private void OnTitleBarPointerPressed(object? sender, PointerPressedEventArgs e)
         {
             if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+            {
+                return;
+            }
+
+            if (e.Source is Visual source
+                && (!ReferenceEquals(TopLevel.GetTopLevel(source), this) || source.FindLogicalAncestorOfType<MenuItem>(includeSelf: true) != null))
             {
                 return;
             }
@@ -1028,16 +1041,27 @@ namespace Hyperion.Editor
             var bottomDock = new ProportionalDock { Id = "Bottom", Orientation = Orientation.Horizontal, Proportion = 0.4, VisibleDockables = CreateDockList(assetsPane, new ProportionalDockSplitter(), consolePane) };
             var centerDock = new ProportionalDock { Id = "Center", Orientation = Orientation.Vertical, VisibleDockables = CreateDockList(BuildViewportArea(documentsPane), new ProportionalDockSplitter(), bottomDock) };
 
-            var dynamicPanelsPane = new ToolDock { Id = "DynamicPanelsPane", Alignment = Alignment.Right, Proportion = 0.3, VisibleDockables = CreateDockList() };
+            var dynamicPanelsPane = new ToolDock { Id = "DynamicPanelsPane", Alignment = Alignment.Right, Proportion = 0.4, VisibleDockables = CreateDockList() };
 
             var mainLayout = new ProportionalDock
             {
                 Id = "MainLayout",
                 Orientation = Orientation.Horizontal,
-                VisibleDockables = CreateDockList(leftDock, new ProportionalDockSplitter(), centerDock, new ProportionalDockSplitter(), dynamicPanelsPane)
+                VisibleDockables = CreateDockList(
+                    leftDock,
+                    new ProportionalDockSplitter(),
+                    centerDock,
+                    new ProportionalDockSplitter(),
+                    dynamicPanelsPane)
             };
 
-            return new RootDock { Id = "Root", IsCollapsable = false, DefaultDockable = mainLayout, VisibleDockables = CreateDockList(mainLayout) };
+            return new RootDock
+            {
+                Id = "Root",
+                IsCollapsable = false,
+                DefaultDockable = mainLayout,
+                VisibleDockables = CreateDockList(mainLayout)
+            };
         }
 
         /// <summary>
@@ -1081,7 +1105,9 @@ namespace Hyperion.Editor
             DockControl.Layout = root;
 
             // Mirror DockControl.OnAttachedToVisualTree: give the new root its window model.
-            if (root is IRootDock rootDock && rootDock.Window == null && root.Factory is { } factory)
+            if (root is IRootDock rootDock
+                    && rootDock.Window == null
+                    && root.Factory is { } factory)
             {
                 IDockWindow? windowModel = factory.CreateWindowFrom(rootDock);
                 if (windowModel != null)
@@ -1507,7 +1533,8 @@ namespace Hyperion.Editor
                 AddPluginNodeMenuItems(contextMenu, nodeViewModel.Node);
             }
 
-            if (contextMenu.Items.OfType<MenuItem>().FirstOrDefault(item => item.Tag as string == "AddSceneMenu") is { Items.Count: 0 } addMenuItem
+            if (contextMenu.Items.OfType<MenuItem>()
+                    .FirstOrDefault(item => item.Tag as string == "AddSceneMenu") is { Items.Count: 0 } addMenuItem
                 && MainWindowViewModel.Instance is { } mainViewModel)
             {
                 foreach (Control entry in BuildAddSceneMenuEntries(mainViewModel))
@@ -1520,7 +1547,9 @@ namespace Hyperion.Editor
         // entries from editor plugins go where the anchor sits; whether each applies is read on the sim thread
         private static void AddPluginNodeMenuItems(ContextMenu contextMenu, Node node)
         {
-            foreach (Control staleEntry in contextMenu.Items.OfType<Control>().Where(item => ReferenceEquals(item.Tag, PluginMenuEntryTag)).ToList())
+            foreach (Control staleEntry in contextMenu.Items.OfType<Control>()
+                    .Where(item => ReferenceEquals(item.Tag, PluginMenuEntryTag))
+                    .ToList())
             {
                 contextMenu.Items.Remove(staleEntry);
             }
@@ -1534,11 +1563,16 @@ namespace Hyperion.Editor
 
             _ = EngineManager.PostToSimThread(() =>
             {
-                List<EditorNodeMenuItem> applicableItems = pluginItems.Where(pluginItem => pluginItem.CanExecute(node)).ToList();
+                List<EditorNodeMenuItem> applicableItems = pluginItems
+                    .Where(pluginItem => pluginItem.CanExecute(node))
+                    .ToList();
 
                 Dispatcher.UIThread.Post(() =>
                 {
-                    int anchorIndex = contextMenu.Items.IndexOf(contextMenu.Items.OfType<Control>().FirstOrDefault(item => item.Tag as string == "PluginNodeMenuAnchor"));
+                    int anchorIndex = contextMenu.Items
+                        .IndexOf(contextMenu.Items.OfType<Control>()
+                            .FirstOrDefault(item => item.Tag as string == "PluginNodeMenuAnchor"));
+
                     int insertIndex = anchorIndex >= 0 ? anchorIndex + 1 : contextMenu.Items.Count;
 
                     foreach (EditorNodeMenuItem pluginItem in applicableItems)
@@ -1573,7 +1607,8 @@ namespace Hyperion.Editor
         private async void OnAssetListContextMenuOpened(object? sender, RoutedEventArgs e)
         {
             if (sender is ContextMenu contextMenu
-                && contextMenu.Items.OfType<MenuItem>().FirstOrDefault(item => item.Tag as string == "AddAssetMenu") is { } addMenuItem)
+                && contextMenu.Items.OfType<MenuItem>()
+                    .FirstOrDefault(item => item.Tag as string == "AddAssetMenu") is { } addMenuItem)
             {
                 await PopulateAddAssetMenuItems(addMenuItem.Items);
             }
@@ -1589,7 +1624,9 @@ namespace Hyperion.Editor
             IReadOnlyList<AssetCreationEntry> entries = await contentBrowser.GetCreatableAssetEntriesAsync();
 
             // Swap in the new entries only once they are ready, so two overlapping opens can't stack duplicates
-            foreach (object staleEntry in items.OfType<Control>().Where(item => ReferenceEquals(item.Tag, AssetCreationEntryTag)).ToList())
+            foreach (object staleEntry in items.OfType<Control>()
+                    .Where(item => ReferenceEquals(item.Tag, AssetCreationEntryTag))
+                    .ToList())
             {
                 items.Remove(staleEntry);
             }
@@ -1619,7 +1656,9 @@ namespace Hyperion.Editor
                 return;
             }
 
-            foreach (Control staleEntry in menu.Items.OfType<Control>().Where(item => ReferenceEquals(item.Tag, PluginMenuEntryTag)).ToList())
+            foreach (Control staleEntry in menu.Items.OfType<Control>()
+                    .Where(item => ReferenceEquals(item.Tag, PluginMenuEntryTag))
+                    .ToList())
             {
                 menu.Items.Remove(staleEntry);
             }
@@ -1730,6 +1769,178 @@ namespace Hyperion.Editor
             {
                 FileOpenRecentMenuItem.Items.Add(entry);
             }
+        }
+
+        private void OnViewMenuSubmenuOpened(object? sender, RoutedEventArgs e)
+        {
+            if (!ReferenceEquals(e.Source, sender) || DataContext is not MainWindowViewModel viewModel)
+            {
+                return;
+            }
+
+            viewModel.RefreshDebugOverlayToggleStates();
+            viewModel.RefreshCameraMoveSpeed();
+        }
+
+        private void OnBuildMenuSubmenuOpened(object? sender, RoutedEventArgs e)
+        {
+            if (!ReferenceEquals(e.Source, sender) || DataContext is not MainWindowViewModel viewModel)
+            {
+                return;
+            }
+
+            viewModel.RefreshNativeProjectMenuText();
+        }
+
+        private void OnToolsMenuSubmenuOpened(object? sender, RoutedEventArgs e)
+        {
+            if (!ReferenceEquals(e.Source, sender) || sender is not MenuItem menu)
+            {
+                return;
+            }
+
+            foreach (Control staleEntry in menu.Items.OfType<Control>()
+                    .Where(item => ReferenceEquals(item.Tag, PluginMenuEntryTag))
+                    .ToList())
+            {
+                menu.Items.Remove(staleEntry);
+            }
+
+            List<EditorMeshToolViewModel> meshTools = EditorPluginService.Instance.MeshTools.ToList();
+            List<EditorPluginMenuItem> pluginItems = EditorPluginService.Instance.ToolMenuItems.ToList();
+
+            if (meshTools.Count == 0 && pluginItems.Count == 0)
+            {
+                return;
+            }
+
+            menu.Items.Add(new Separator { Tag = PluginMenuEntryTag });
+
+            foreach (EditorMeshToolViewModel tool in meshTools)
+            {
+                MenuItem menuItem = new MenuItem
+                {
+                    Header = tool.Header,
+                    Command = tool.ToggleCommand,
+                    ToggleType = MenuItemToggleType.CheckBox,
+                    IsChecked = tool.IsActive,
+                    IsEnabled = tool.CanEnable,
+                    Tag = PluginMenuEntryTag
+                };
+
+                ToolTip.SetTip(menuItem, tool.Tooltip);
+
+                menu.Items.Add(menuItem);
+            }
+
+            foreach (EditorPluginMenuItem pluginItem in pluginItems)
+            {
+                var menuItem = new MenuItem
+                {
+                    Header = pluginItem.Header,
+                    Command = pluginItem.Command,
+                    Tag = PluginMenuEntryTag
+                };
+
+                if (pluginItem.IsChecked != null)
+                {
+                    menuItem.ToggleType = MenuItemToggleType.CheckBox;
+                    menuItem.IsChecked = pluginItem.IsChecked();
+                }
+
+                menu.Items.Add(menuItem);
+            }
+        }
+
+        private void OpenUrl(string url) => _ = Launcher.LaunchUriAsync(new Uri(url));
+
+        private void OnDocumentationClick(object? sender, RoutedEventArgs e) => OpenUrl(DocumentationUrl);
+
+        private void OnSubmitIssueClick(object? sender, RoutedEventArgs e) => OpenUrl(SubmitIssueUrl);
+
+        private async void OnAboutClick(object? sender, RoutedEventArgs e)
+        {
+            string version = typeof(MainWindow).Assembly.GetName().Version?.ToString(3) ?? "";
+
+            Button CreateLinkButton(string text, string url)
+            {
+                Button button = new Button { Content = text, Padding = new Thickness(10, 4) };
+                button.Click += (_, _) => OpenUrl(url);
+
+                return button;
+            }
+
+            Window window = new Window
+            {
+                Title = "About Hyperion",
+                Icon = Icon,
+                Width = 340,
+                SizeToContent = SizeToContent.Height,
+                CanResize = false,
+                ShowInTaskbar = false,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                Background = (IBrush?)this.FindResource("Brush.Background"),
+            };
+
+            Button closeButton = new Button { Content = "Close", Classes = { "Primary" }, Padding = new Thickness(14, 4), IsDefault = true, IsCancel = true };
+            closeButton.Click += (_, _) => window.Close();
+
+            window.Content = new StackPanel
+            {
+                Margin = new Thickness(24, 28, 24, 20),
+                Spacing = 6,
+                Children =
+                {
+                    new Avalonia.Controls.Shapes.Path
+                    {
+                        Data = (Geometry?)this.FindResource("HyperionMarkGeometry"),
+                        Fill = (IBrush?)this.FindResource("Brush.Text"),
+                        Stretch = Stretch.Uniform,
+                        Width = 96,
+                        Height = 48,
+                        Margin = new Thickness(0, 0, 0, 10),
+                        HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                    },
+                    new TextBlock
+                    {
+                        Text = "Hyperion Engine",
+                        FontSize = 18,
+                        FontWeight = FontWeight.SemiBold,
+                        HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                    },
+                    new TextBlock
+                    {
+                        Text = $"Version {version}",
+                        Foreground = (IBrush?)this.FindResource("Brush.TextMuted"),
+                        HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                    },
+                    new TextBlock
+                    {
+                        Text = "Hyperion was created by Andrew MacDonald (ajmd.dev) circa 2016.\n\n"
+                            + "© 2026 The Hyperion Contributors. Licensed under MIT.",
+                        FontSize = 11,
+                        HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                    },
+                    new StackPanel
+                    {
+                        Orientation = Avalonia.Layout.Orientation.Horizontal,
+                        Spacing = 8,
+                        Margin = new Thickness(0, 18, 0, 0),
+                        HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                        Children =
+                        {
+                            CreateLinkButton("Website", WebsiteUrl),
+                            //CreateLinkButton("Documentation", DocumentationUrl),
+                            //CreateLinkButton("GitHub", RepositoryUrl),
+                            closeButton,
+                        }
+                    }
+                }
+            };
+
+            window.Opened += (_, _) => DarkTitleBar.Apply(window, GetThemeColor("Color.Background"), GetThemeColor("Color.Text"), GetThemeColor("Color.Border"));
+
+            await window.ShowDialog(this);
         }
 
         private static List<Control> BuildRecentProjectMenuEntries(MainWindowViewModel viewModel)

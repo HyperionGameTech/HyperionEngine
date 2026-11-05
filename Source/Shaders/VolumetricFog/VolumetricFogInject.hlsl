@@ -88,6 +88,8 @@ static const float FogWindSpeed = 12.0;
 
 static const float LightMinDistance = 0.5;
 
+static const int SunShadowSamples = 4;
+
 struct ParticipatingMedium
 {
     float extinction;
@@ -113,7 +115,8 @@ uint GetShadowMapIndexForLight(uint lightIndex)
     return LightToShadowMapIndex.Load(lightIndex * sizeof(uint));
 }
 
-float GetSunShadow(float3 positionWS)
+// averaged over the cell's width, so foliage casts soft shade into the fog instead of crisp, misplaced silhouettes
+float GetSunShadow(float3 positionWS, float footprintRadius, float rotation)
 {
     float4 positionLS = mul(shadowViewMat, float4(positionWS, 1.0));
     positionLS /= positionLS.w;
@@ -135,11 +138,23 @@ float GetSunShadow(float3 positionWS)
     cascadeIndex = select(insideMask.y > 0.5, 1, cascadeIndex);
     cascadeIndex = select(insideMask.x > 0.5, 0, cascadeIndex);
 
-    const float4 shadowMapCoord = float4(uvX[cascadeIndex], uvY[cascadeIndex], uvZ[cascadeIndex], (float)atlasSlice[cascadeIndex]);
+    const float2 atlasUV = float2(atlasU[cascadeIndex], atlasV[cascadeIndex]);
+    const float2 atlasScale = float2(atlasScaleX[cascadeIndex], atlasScaleY[cascadeIndex]);
+    const float2 footprintUV = footprintRadius * float2(cascadeScaleX[cascadeIndex], cascadeScaleY[cascadeIndex]);
 
-    return GetShadowCSM(shadowMapCoord,
-        float2(atlasU[cascadeIndex], atlasV[cascadeIndex]),
-        float2(atlasScaleX[cascadeIndex], atlasScaleY[cascadeIndex]));
+    float shadow = 0.0;
+
+    [unroll]
+    for (int sampleIndex = 0; sampleIndex < SunShadowSamples; sampleIndex++)
+    {
+        const float2 offset = VogelDisk(sampleIndex, SunShadowSamples, rotation) * footprintUV;
+
+        const float4 shadowMapCoord = float4(uvX[cascadeIndex] + offset.x, uvY[cascadeIndex] + offset.y, uvZ[cascadeIndex], (float)atlasSlice[cascadeIndex]);
+
+        shadow += GetShadowCSM(shadowMapCoord, atlasUV, atlasScale);
+    }
+
+    return shadow / float(SunShadowSamples);
 }
 
 float GetHeightFogDensity(float height)
@@ -151,13 +166,19 @@ float GetHeightFogDensity(float height)
     return density * exp(clamp(-heightFalloff * (height - baseHeight), -60.0, 60.0));
 }
 
-float GetHeightFogOpticalDepthToSun(float height, float densityAtHeight, float directionToSunY)
+// noise-free, so the light reaching a cell doesn't follow the cell's own wisps
+float GetHeightFogOpticalDepth(float height, float directionY, float rayLength)
 {
+    if ((world_shader_data.environment_flags & WORLD_ENVIRONMENT_FLAG_VOLUMETRIC_FOG) == 0)
+    {
+        return 0.0;
+    }
+
     const float heightFalloff = world_shader_data.height_fog_params.y;
-    const float heightChange = max(heightFalloff * directionToSunY * SunOpticalDepthDistance, -60.0);
+    const float heightChange = max(heightFalloff * directionY * rayLength, -60.0);
     const float integralFactor = abs(heightChange) > 1e-4 ? (1.0 - exp(-heightChange)) / heightChange : 1.0;
 
-    return densityAtHeight * SunOpticalDepthDistance * integralFactor;
+    return GetHeightFogDensity(height) * rayLength * integralFactor;
 }
 
 FogNoise GetFogNoise(float3 positionWS, float fogHeight)
@@ -374,6 +395,7 @@ float GetLocalLightAttenuation(float3 positionWS, float3 lightPosition, float ra
 
 float3 GetLocalLighting(
     float3 positionWS,
+    float fogHeight,
     float3 rayDirection,
     float viewSpaceZ,
     float2 uv,
@@ -454,7 +476,7 @@ float3 GetLocalLighting(
             continue;
         }
 
-        const float opticalDepthToLight = pm.extinction * distanceToLight;
+        const float opticalDepthToLight = GetHeightFogOpticalDepth(fogHeight, directionToLight.y, distanceToLight);
         const float phase = GetMediumPhase(pm, dot(rayDirection, directionToLight), opticalDepthToLight, octaves);
 
         lighting += light.color.rgb * light.position_intensity.w * volumetricIntensity * attenuation * shadow * phase;
@@ -467,6 +489,8 @@ float3 GetSunLighting(
     float3 positionWS,
     float fogHeight,
     float3 rayDirection,
+    float cellWidth,
+    float shadowRotation,
     ParticipatingMedium pm,
     uint octaves)
 {
@@ -491,7 +515,7 @@ float3 GetSunLighting(
         return (float3)0.0;
     }
 
-    float shadow = (directionalLight.flags & LF_SHADOW_CASTER) != 0 ? GetSunShadow(positionWS) : 1.0;
+    float shadow = (directionalLight.flags & LF_SHADOW_CASTER) != 0 ? GetSunShadow(positionWS, cellWidth, shadowRotation) * 0.0 : 1.0;
 
     if (shadow <= 0.0)
     {
@@ -500,7 +524,7 @@ float3 GetSunLighting(
 
     shadow *= GetCloudShadow(CloudWeatherMapTexture, CloudShadowMapTexture, SamplerLinear, cloudVolume, cloudWeatherMap, cloudShadowMap, positionWS, directionToSun);
 
-    const float opticalDepthToSun = GetHeightFogOpticalDepthToSun(fogHeight, GetHeightFogDensity(fogHeight), directionToSun.y);
+    const float opticalDepthToSun = GetHeightFogOpticalDepth(fogHeight, directionToSun.y, SunOpticalDepthDistance);
     const float phase = GetMediumPhase(pm, dot(rayDirection, directionToSun), opticalDepthToSun, octaves);
 
     return directionalLight.color.rgb * directionalLight.atmosphere_tint.rgb * sunIntensity
@@ -550,8 +574,11 @@ void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
 
     const float viewSpaceZ = mul(camera.view, float4(positionWS, 1.0)).z;
 
-    float3 radiance = GetSunLighting(positionWS, fogHeight, rayDirection, pm, octaves);
-    radiance += GetLocalLighting(positionWS, rayDirection, viewSpaceZ, uv, pm, octaves);
+    const float cellWidth = 2.0 * depth / max(camera.projection[0][0] * float(grid.dimensions.x), 1e-4);
+    const float shadowRotation = frac(cellNoise.x + grid.jitter.x) * HYP_FMATH_TWO_PI;
+
+    float3 radiance = GetSunLighting(positionWS, fogHeight, rayDirection, cellWidth, shadowRotation, pm, octaves);
+    radiance += GetLocalLighting(positionWS, fogHeight, rayDirection, viewSpaceZ, uv, pm, octaves);
     radiance += ambientSample.rgb * pm.ambientScale;
 
     const float3 inScatter = radiance * pm.scattering + pm.emission;
