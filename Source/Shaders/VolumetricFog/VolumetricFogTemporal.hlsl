@@ -24,7 +24,6 @@ DECLARE_BUFFER_DYNAMIC(VolumetricFog, VolumetricFogTemporalConstants) cbuffer Vo
     uint4 historyParams; // x = 1 when the history is usable
 };
 
-// a cell whose light changes this much between frames (relative) stops trusting its history
 static const float ChangeRejectionScale = 4.0;
 
 static const int3 NeighbourOffsets[6] =
@@ -100,9 +99,9 @@ void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
     const float4 history = HistoryTexture.SampleLevel(SamplerLinear, previousUVW, 0);
     const float4 clampedHistory = clamp(history, neighbourMin, neighbourMax);
 
-    const float currentLuma = dot(current.rgb, (float3)(1.0 / 3.0));
     const float historyLuma = dot(history.rgb, (float3)(1.0 / 3.0));
-    const float relativeChange = abs(currentLuma - historyLuma) / max(max(currentLuma, historyLuma), 1e-5);
+    const float clampedLuma = dot(clampedHistory.rgb, (float3)(1.0 / 3.0));
+    const float relativeChange = abs(historyLuma - clampedLuma) / max(max(historyLuma, clampedLuma), 1e-5);
 
     const float historyWeight = grid.jitter.w * saturate(1.0 - max(relativeChange * ChangeRejectionScale - 1.0, 0.0) * 0.5);
 
