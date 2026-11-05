@@ -506,6 +506,13 @@ private:
     {
         Mutex::Guard guard(m_futuresMutex);
 
+        if (!g_simThreadInstance->IsRunning())
+        {
+            m_cellsAfterSimStop.PushBack(std::move(cell));
+
+            return;
+        }
+
         Task<void>& future = m_futures.EmplaceBack();
         TaskPromise<void>* promise = future.Promise();
 
@@ -537,6 +544,7 @@ private:
 
     Array<Pair<Handle<StreamingCell>, StreamingCellState>> m_cellUpdatesSim;
     List<Task<void>> m_futures;
+    Array<Handle<StreamingCell>> m_cellsAfterSimStop;
     Mutex m_futuresMutex;
 
     StreamingNotifier m_notifier;
@@ -955,7 +963,7 @@ void StreamingManager::AddStreamingVolume(const Handle<StreamingVolumeBase>& vol
 {
     HYP_SCOPE;
 
-    if (!volume)
+    if (!volume || !m_thread)
     {
         return;
     }
@@ -969,7 +977,7 @@ void StreamingManager::RemoveStreamingVolume(StreamingVolumeBase* volume)
 {
     HYP_SCOPE;
 
-    if (!volume)
+    if (!volume || !m_thread)
     {
         return;
     }
@@ -983,7 +991,7 @@ void StreamingManager::AddWorldGridLayer(const Handle<WorldGridLayer>& layer)
 {
     HYP_SCOPE;
 
-    if (!layer)
+    if (!layer || !m_thread)
     {
         return;
     }
@@ -1007,7 +1015,7 @@ void StreamingManager::RequestLayerRefresh(WorldGridLayer* layer)
 {
     HYP_SCOPE;
 
-    if (!layer)
+    if (!layer || !m_thread)
     {
         return;
     }
@@ -1047,6 +1055,8 @@ void StreamingManager::Stop()
 
         m_thread.Reset();
     }
+
+    m_pendingCellUpdates.Clear();
 }
 
 void StreamingManager::Update(float delta)

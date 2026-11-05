@@ -728,8 +728,8 @@ void EditorTerrainState::PushGroundCoverPaintAction(const Handle<TerrainWorldGri
         return;
     }
 
-    SharedPtr<const Array<TerrainGroundCoverPaintEdit, TerrainAllocator>> sharedEdits = MakeShared<Array<TerrainGroundCoverPaintEdit, TerrainAllocator>>(std::move(edits));
-    SharedPtr<bool> isApplied = MakeShared<bool>(true);
+    auto sharedEdits = MakeSharedWithAllocator<Array<TerrainGroundCoverPaintEdit, TerrainAllocator>, TerrainAllocator>(std::move(edits));
+    auto isApplied = MakeSharedWithAllocator<bool, TerrainAllocator>(true);
 
     const WeakHandle<TerrainWorldGridLayer> weakTerrainLayer = terrainLayer;
 

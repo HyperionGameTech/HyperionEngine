@@ -96,10 +96,7 @@ Array<TerrainGroundCoverPaintEdit, TerrainAllocator> TerrainBrush::TakeGroundCov
 {
     AssertOnThread(g_simThread);
 
-    Array<TerrainGroundCoverPaintEdit, TerrainAllocator> edits = std::move(m_groundCoverPaintEdits);
-    m_groundCoverPaintEdits = Array<TerrainGroundCoverPaintEdit, TerrainAllocator>();
-
-    return edits;
+    return std::move(m_groundCoverPaintEdits);
 }
 
 void TerrainBrush::Sculpt(const Vec3f& worldPos, float radius, float strength, bool raise)
@@ -129,9 +126,10 @@ void TerrainBrush::Sculpt(const Vec3f& worldPos, float radius, float strength, b
 
     auto coordAt = [&](const Vec2f& worldXZ) -> Vec2f
     {
-        return Vec2f(
+        return {
             (worldXZ.x - layerInfo.offset.x) / cellWorldSizeX + 0.5f,
-            (worldXZ.y - layerInfo.offset.z) / cellWorldSizeZ + 0.5f);
+            (worldXZ.y - layerInfo.offset.z) / cellWorldSizeZ + 0.5f
+        };
     };
 
     const Vec2f worldPosXZ(worldPos.x, worldPos.z);
@@ -281,7 +279,7 @@ void TerrainBrush::Sculpt(const Vec3f& worldPos, float radius, float strength, b
 
             m_modifiedCells[coord] = true;
 
-            if (Handle<TerrainStreamingCell> loadedCell = m_layer.m_loadedCells.Find(coord); loadedCell)
+            if (Handle<TerrainStreamingCell> loadedCell = m_layer.m_loadedCells.Find(coord); loadedCell.IsValid())
             {
                 loadedCell->RebuildMesh(cellData, Vec2i(minVertexX, minVertexZ), Vec2i(maxVertexX, maxVertexZ));
             }
@@ -331,11 +329,11 @@ void TerrainBrush::Paint(const Vec3f& worldPos, float radius, float strength, ui
     {
         for (int32 cx = minCoordX; cx <= maxCoordX; cx++)
         {
-            const Vec2i coord(cx, cz);
+            const Vec2i coord = { cx, cz };
 
             const Vec3f cellBoundsMin = TerrainWorldGridLayer::ComputeCellBoundsMin(layerInfo, coord);
-            const Vec2f cellWorldMinXZ(cellBoundsMin.x, cellBoundsMin.z);
-            const Vec2f cellWorldMaxXZ = cellWorldMinXZ + Vec2f(cellWorldSizeX, cellWorldSizeZ);
+            const Vec2f cellWorldMinXZ = { cellBoundsMin.x, cellBoundsMin.z };
+            const Vec2f cellWorldMaxXZ = cellWorldMinXZ + Vec2f { cellWorldSizeX, cellWorldSizeZ };
 
             const Vec2f closestPoint(
                 MathUtil::Clamp(worldPosXZ.x, cellWorldMinXZ.x, cellWorldMaxXZ.x),
