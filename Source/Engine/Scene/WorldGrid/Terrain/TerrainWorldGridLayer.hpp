@@ -139,6 +139,13 @@ public:
         const Vec2i& coord,
         Array<float, TerrainAllocator>& outPaddedHeights,
         Array<ubyte, TerrainAllocator>* outErosionMasks = nullptr);
+    
+    //////////
+    /// grass stands on full resolution heights, so it's gone before level 0 patches start to morph
+    float GetGrassRange() const;
+    /// past this, tiles are planted with fewer, wider patches
+    float GetGrassNearRange() const;
+    //////////
 
     HYP_METHOD()
     HYP_FORCE_INLINE const Handle<Scene>& GetScene() const

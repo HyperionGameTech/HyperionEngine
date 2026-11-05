@@ -33,8 +33,11 @@ class Mesh;
 class Material;
 class GroundCover;
 
-static constexpr uint32 TerrainGrassTileQuads = 16;
-static constexpr uint32 TerrainNumSplatLayers = 4;
+constexpr uint32 TerrainGrassTileQuads = 16;
+constexpr uint32 TerrainNumSplatLayers = 4;
+
+constexpr float TerrainGrassFarStretch = 1.8f;
+constexpr float TerrainGrassFarRankCutoff = 0.5f;
 
 struct TerrainCoverMember
 {
@@ -108,8 +111,8 @@ struct TerrainGrassTileInput
 
     uint32 seed = 0;
 
-    /// patches this much further apart and wider (and sqrt of it taller), so fewer of them still cover the ground
-    float stretch = 1.0f;
+    /// far tiles keep only the instances the vertex shader still draws past the near range
+    bool isFar = false;
 
     Span<const TerrainCoverLayerPlan> layers;
 };

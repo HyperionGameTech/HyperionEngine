@@ -52,7 +52,9 @@ static const float3 s_terrainLayerTints[4] = {
     TERRAIN_LAYER3_TINT
 };
 
-#define TERRAIN_LAYER0_FIELD_TINT float3(0.88, 1.38, 2.05)
+#define TERRAIN_LAYER0_UNDER_GRASS_TINT float3(1.6, 2.0, 4.3)
+#define TERRAIN_LAYER0_FIELD_TINT float3(2.0, 2.5, 5.3)
+
 #define TERRAIN_GRASS_FIELD_FADE_START 45.0
 #define TERRAIN_GRASS_FIELD_FADE_END 85.0
 
@@ -71,7 +73,7 @@ float3 GetTerrainLayerTintAtDistance(uint layerIndex, float viewDistance)
     const float3 tint = GetTerrainLayerTint(layerIndex);
     return (layerIndex != 0)
         ? tint
-        : lerp(tint, TERRAIN_LAYER0_FIELD_TINT, smoothstep(TERRAIN_GRASS_FIELD_FADE_START, TERRAIN_GRASS_FIELD_FADE_END, viewDistance));
+        : lerp(TERRAIN_LAYER0_UNDER_GRASS_TINT, TERRAIN_LAYER0_FIELD_TINT, smoothstep(TERRAIN_GRASS_FIELD_FADE_START, TERRAIN_GRASS_FIELD_FADE_END, viewDistance));
 }
 
 #endif

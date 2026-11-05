@@ -149,6 +149,13 @@ public:
     HYP_METHOD()
     const GameState& GetGameState() const;
 
+    /// seconds the world has been updating, whether or not the game is simulating or paused
+    HYP_METHOD()
+    HYP_FORCE_INLINE float GetRealTime() const
+    {
+        return m_realTime;
+    }
+
     ///Environment Settings
 
     HYP_METHOD(Property = "EnvironmentSettings", Serialize, Editor, OnlyLanguages = "strata")
@@ -531,6 +538,8 @@ private:
     Array<View*, SceneAllocator> m_processViews;
 
     DelegateHandlerSet m_delegateHandlers;
+    
+    float m_realTime;
 
     bool m_isInitialized;
     bool m_isServerWorld;

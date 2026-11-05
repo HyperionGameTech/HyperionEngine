@@ -33,6 +33,7 @@ struct VSOutput
     nointerpolation uint object_mask : TEXCOORD7;
     nointerpolation uint cutout_seed : TEXCOORD8;
     nointerpolation float3 ground_normal : TEXCOORD9;
+    nointerpolation float ground_normal_blend : TEXCOORD10;
 };
 
 #include "Include/Entity.hlsli"
@@ -51,10 +52,10 @@ DECLARE_SRV_DYNAMIC(Default, SkeletonsBuffer) StructuredBuffer<float4x4> Skeleto
 #include "Include/Skinning.hlsli"
 #endif // SKINNING
 
-#if defined(VT_Tree) || defined(VT_Foliage) || defined(TERRAIN_MORPH)
+#if defined(VT_Tree) || defined(VT_Foliage) || defined(TERRAIN_MORPH) || defined(INSTANCING)
 DECLARE_SRV(Default, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
 #define world_shader_data _worlds_buffer[0]
-#endif // VT_Tree || VT_Foliage || TERRAIN_MORPH
+#endif // VT_Tree || VT_Foliage || TERRAIN_MORPH || INSTANCING
 
 #if defined(VT_Tree) || defined(VT_Foliage)
 #include "Include/Wind.hlsli"
@@ -102,10 +103,25 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID, uint vertexId : 
 #endif // INSTANCING
 
 #if defined(TERRAIN_MORPH) && defined(VT_UV1)
-    const float3 local_position = ApplyTerrainMorph(currentEntity, world_shader_data, model_matrix, input.a_position, input.a_texcoord1);
+    float3 local_position = ApplyTerrainMorph(currentEntity, world_shader_data, model_matrix, input.a_position, input.a_texcoord1);
 #else // !TERRAIN_MORPH || !VT_UV1
-    const float3 local_position = input.a_position;
+    float3 local_position = input.a_position;
 #endif // TERRAIN_MORPH && VT_UV1
+
+    const float rest_local_height = local_position.y;
+    float groundCoverFlattening = 0.0;
+
+#ifdef INSTANCING
+    if (any(material.ground_cover != 0.0) && currentEntity.world_aabb_min.w >= 0.0)
+    {
+        const float3 instanceOrigin = float3(model_matrix[0][3], model_matrix[1][3], model_matrix[2][3]);
+        const float rank = GroundCoverRank(float3(transform[0][3], transform[1][3], transform[2][3]));
+        const float2 instanceScale = GroundCoverInstanceScale(world_shader_data, instanceOrigin, rank, currentEntity.world_aabb_min.w, false);
+
+        groundCoverFlattening = GroundCoverFlattening(world_shader_data, instanceOrigin);
+        local_position = ApplyGroundCoverScale(local_position, instanceScale);
+    }
+#endif // INSTANCING
 
 #if defined(SKINNING) && defined(VT_Skeletal)
     float4x4 skinning_matrix = CreateSkinningMatrix(input.a_bone_indices, input.a_bone_weights);
@@ -153,7 +169,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID, uint vertexId : 
     float3 previous_normal = world_normal;
 
     position.xyz += WindDisplacement(world_shader_data, model_matrix, material.tree_wind, wind, rest_position, world_normal, world_shader_data.game_time, true) * position.w;
-    previous_position.xyz += WindDisplacement(world_shader_data, model_matrix, material.tree_wind, wind, rest_position, previous_normal, world_shader_data.wind_time_params.x, true) * previous_position.w;
+    previous_position.xyz += WindDisplacement(world_shader_data, model_matrix, material.tree_wind, wind, rest_position, previous_normal, world_shader_data.time_params.x, true) * previous_position.w;
 #endif // VT_Tree || VT_Foliage
 
     output.position = position.xyz / position.w;
@@ -194,13 +210,15 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID, uint vertexId : 
 
     // up axis of the instance at rest, before any sway
     output.ground_normal = normalize(float3(model_matrix[0][1], model_matrix[1][1], model_matrix[2][1]));
+    output.ground_normal_blend = lerp(material.ground_cover.y, max(material.ground_cover.y, GROUND_COVER_FAR_NORMAL_BLEND), groundCoverFlattening);
 
     if (any(material.ground_cover != 0.0))
     {
         const float3 instanceOrigin = float3(model_matrix[0][3], model_matrix[1][3], model_matrix[2][3]);
+        const float baseOcclusion = GroundCoverBaseOcclusion(rest_local_height,material.ground_cover.z, material.ground_cover.w);
 
         output.color.rgb *= GroundCoverTint(instanceOrigin, material.ground_cover.x);
-        output.color.a *= GroundCoverBaseOcclusion(local_position.y, material.ground_cover.z, material.ground_cover.w);
+        output.color.a *= lerp(baseOcclusion, 1.0, groundCoverFlattening * GROUND_COVER_FAR_OCCLUSION_FADE);
     }
     
 #ifdef SHADING_TYPE_LIGHTMAPPED

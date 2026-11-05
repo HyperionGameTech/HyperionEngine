@@ -218,6 +218,11 @@ Handle<Node> ResolvePickedNode(
     EditorSubsystem& editorSubsystem,
     const RayHit& hit)
 {
+    if (!hit.node->GetParent() && !hit.node->IsRoot())
+    {
+        return Handle<Node>::Null();
+    }
+
     Entity* entity = TryCast<Entity>(hit.node);
 
     const InstanceClusterComponent* clusterComponent = entity != nullptr && entity->GetEntityManager() != nullptr
@@ -3964,7 +3969,9 @@ void EditorSubsystem::DebugDrawPhysicsShapes(DebugDrawCommandList& debugDrawComm
         auto drawHighlighted = [&debugDrawCommandList](Node* node)
         {
             Entity* entity = TryCast<Entity>(node);
-            RigidBodyComponent* rigidBodyComponent = entity != nullptr ? entity->TryGetComponent<RigidBodyComponent>() : nullptr;
+            RigidBodyComponent* rigidBodyComponent = entity != nullptr && entity->GetEntityManager() != nullptr
+                ? entity->TryGetComponent<RigidBodyComponent>()
+                : nullptr;
 
             if (rigidBodyComponent != nullptr && rigidBodyComponent->shape.IsValid())
             {

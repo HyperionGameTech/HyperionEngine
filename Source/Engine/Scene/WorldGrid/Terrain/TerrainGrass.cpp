@@ -25,6 +25,7 @@
 
 #include <Core/Threading/Threads.hpp>
 
+#include <bit>
 #include <cmath>
 
 namespace Hyperion {
@@ -36,19 +37,18 @@ namespace TerrainGrass {
 
 namespace {
 
-// how far a patch tilts from vertical toward the slope it stands on - grass still grows mostly upward
-constexpr float SlopeAlignment = 0.6f;
+constexpr float SlopeAlignment = 0.1f;
 
 struct GrassRandom
 {
     uint32 state;
 
-    explicit GrassRandom(uint32 seed)
+    HYP_FORCE_INLINE explicit GrassRandom(uint32 seed)
         : state(seed * 747796405u + 2891336453u)
     {
     }
 
-    float Next()
+    HYP_FORCE_INLINE float Next()
     {
         state = state * 747796405u + 2891336453u;
         uint32 word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
@@ -57,11 +57,22 @@ struct GrassRandom
         return float(word) * (1.0f / 4294967296.0f);
     }
 
-    float Range(float from, float to)
+    HYP_FORCE_INLINE float Range(float from, float to)
     {
         return from + (to - from) * Next();
     }
 };
+
+float GetInstanceRank(const Vec3f& position)
+{
+    uint32 state = (std::bit_cast<uint32>(position.x) * 0x8DA6B343u) ^ (std::bit_cast<uint32>(position.z) * 0xD8163841u);
+    state = state * 747796405u + 2891336453u;
+    state = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+    state = (state >> 22u) ^ state;
+
+    // 24 bits so the conversion to float is exact on the GPU too
+    return float(state >> 8u) * (1.0f / 16777216.0f);
+}
 
 float SampleSplatWeight(const TerrainGrassTileInput& input, uint32 splatLayer, float gridX, float gridZ)
 {
@@ -78,14 +89,14 @@ float SampleSplatWeight(const TerrainGrassTileInput& input, uint32 splatLayer, f
     const float fx = gridX - float(x0);
     const float fz = gridZ - float(z0);
 
-    const auto at = [&input, splatLayer](uint32 x, uint32 z)
+    const auto sampleWeightAt = [&input, splatLayer](uint32 x, uint32 z)
     {
         return float(input.splatWeights[(size_t(z) * input.cellSize + x) * TerrainNumSplatLayers + splatLayer]) * (1.0f / 255.0f);
     };
 
     return MathUtil::Lerp(
-        MathUtil::Lerp(at(x0, z0), at(x1, z0), fx),
-        MathUtil::Lerp(at(x0, z1), at(x1, z1), fx),
+        MathUtil::Lerp(sampleWeightAt(x0, z0), sampleWeightAt(x1, z0), fx),
+        MathUtil::Lerp(sampleWeightAt(x0, z1), sampleWeightAt(x1, z1), fx),
         fz);
 }
 
@@ -113,14 +124,14 @@ float SamplePaintWeight(const TerrainGrassTileInput& input, int32 plane, float g
 
     const ubyte* planeWeights = input.paintWeights.Data() + planeSize * size_t(plane);
 
-    const auto at = [&input, planeWeights](uint32 x, uint32 z)
+    const auto sampleWeightAt = [&input, planeWeights](uint32 x, uint32 z)
     {
         return float(planeWeights[size_t(z) * input.cellSize + x]) * (1.0f / 255.0f);
     };
 
     return MathUtil::Lerp(
-        MathUtil::Lerp(at(x0, z0), at(x1, z0), fx),
-        MathUtil::Lerp(at(x0, z1), at(x1, z1), fx),
+        MathUtil::Lerp(sampleWeightAt(x0, z0), sampleWeightAt(x1, z0), fx),
+        MathUtil::Lerp(sampleWeightAt(x0, z1), sampleWeightAt(x1, z1), fx),
         fz);
 }
 
@@ -149,6 +160,52 @@ float ValueNoise(float x, float z, uint32 seed)
         MathUtil::Lerp(HashToUnit(x0, z0, seed), HashToUnit(x0 + 1, z0, seed), sx),
         MathUtil::Lerp(HashToUnit(x0, z0 + 1, seed), HashToUnit(x0 + 1, z0 + 1, seed), sx),
         sz);
+}
+
+float SampleVisibleSplatWeight(const TerrainGrassTileInput& input, uint32 splatLayer, float gridX, float gridZ, float worldX, float worldZ)
+{
+    // TERRAIN_SPLAT_SHARPNESS, TERRAIN_SPLAT_NOISE_BREAKUP, TERRAIN_HEIGHT_BLEND_DEPTH
+    constexpr float SplatSharpness = 1.35f;
+    constexpr float SplatNoiseBreakup = 0.1f;
+    constexpr float HeightBlendDepth = 0.1f;
+
+    const float noise = ValueNoise(worldX * 0.035f, worldZ * 0.035f, 0x5A17u) - 0.5f;
+
+    float layerWeight = 0.0f;
+    float strongestOtherWeight = -1.0f;
+
+    for (uint32 otherLayer = 0; otherLayer < TerrainNumSplatLayers; otherLayer++)
+    {
+        const float weight = MathUtil::Clamp((SampleSplatWeight(input, otherLayer, gridX, gridZ) - 0.5f) * SplatSharpness + 0.5f + noise * SplatNoiseBreakup, 0.0f, 1.0f);
+
+        if (otherLayer == splatLayer)
+        {
+            layerWeight = weight;
+        }
+        else if (weight > 0.001f)
+        {
+            strongestOtherWeight = MathUtil::Max(strongestOtherWeight, weight);
+        }
+    }
+
+    if (layerWeight <= 0.001f)
+    {
+        return 0.0f;
+    }
+
+    if (strongestOtherWeight < 0.0f)
+    {
+        return 1.0f;
+    }
+
+    const float lead = MathUtil::Clamp(layerWeight - strongestOtherWeight + HeightBlendDepth, -1.0f, 1.0f);
+
+    if (lead < 0.0f)
+    {
+        return 0.5f * (1.0f + lead) * (1.0f + lead);
+    }
+
+    return 1.0f - 0.5f * (1.0f - lead) * (1.0f - lead);
 }
 
 // weighted pick (Gumbel-max) whose draws come mostly from smooth noise, so each type grows in drifts
@@ -234,7 +291,7 @@ void GenerateTile(const TerrainGrassTileInput& input, TerrainGrassTileOutput& ou
     };
 
     uint32 layerFirstSlot = 0;
-    
+
     // hoisted to preserve memory.
     Array<uint32, TerrainAllocator> typeFirstSlots;
 
@@ -265,7 +322,7 @@ void GenerateTile(const TerrainGrassTileInput& input, TerrainGrassTileOutput& ou
 
         GrassRandom random(input.seed * 2654435761u + layerIndex);
 
-        const float spacingWorld = MathUtil::Max(layer.spacing, 0.1f) * input.stretch;
+        const float spacingWorld = MathUtil::Max(layer.spacing, 0.1f);
         const Vec2f spacing(spacingWorld / input.cellScale.x, spacingWorld / input.cellScale.z);
 
         const uint32 numX = uint32(MathUtil::Ceil(float(input.tileMax.x - input.tileMin.x) / spacing.x));
@@ -287,10 +344,14 @@ void GenerateTile(const TerrainGrassTileInput& input, TerrainGrassTileOutput& ou
                     continue;
                 }
 
-                // weights are soft at the edges of an area; patches thin out and shrink across that band
+                const float worldX = input.cellMin.x + gridX * input.cellScale.x;
+                const float worldZ = input.cellMin.z + gridZ * input.cellScale.z;
+
+                const float edgeNoise = (ValueNoise(worldX / 1.7f, worldZ / 1.7f, 0x3C6Fu) - 0.5f) * 0.35f;
+
                 const float coverage = layer.isPainted
-                    ? MathUtil::SmoothStep(0.3f, 0.8f, SamplePaintWeight(input, paintPlane, gridX, gridZ))
-                    : MathUtil::SmoothStep(0.3f, 0.8f, SampleSplatWeight(input, layer.splatLayer, gridX, gridZ))
+                    ? MathUtil::SmoothStep(0.2f, 0.8f, SamplePaintWeight(input, paintPlane, gridX, gridZ) + edgeNoise)
+                    : MathUtil::SmoothStep(0.15f, 0.85f, SampleVisibleSplatWeight(input, layer.splatLayer, gridX, gridZ, worldX, worldZ) + edgeNoise)
                         * (1.0f - MathUtil::SmoothStep(0.3f, 0.8f, sampleTotalPaint(gridX, gridZ)));
 
                 if (acceptance >= coverage)
@@ -298,12 +359,7 @@ void GenerateTile(const TerrainGrassTileInput& input, TerrainGrassTileOutput& ou
                     continue;
                 }
 
-                const float height = sampleHeight(gridX, gridZ);
-
-                const Vec3f position(
-                    input.cellMin.x + gridX * input.cellScale.x,
-                    input.cellMin.y + height,
-                    input.cellMin.z + gridZ * input.cellScale.z);
+                const Vec3f position(worldX, input.cellMin.y + sampleHeight(gridX, gridZ), worldZ);
 
                 const uint32 typeIndex = PickCoverType(layer, layerIndex, position.x, position.z, random);
                 const TerrainCoverTypePlan& type = layer.types[typeIndex];
@@ -314,36 +370,44 @@ void GenerateTile(const TerrainGrassTileInput& input, TerrainGrassTileOutput& ou
                     (sampleHeight(gridX, gridZ - 1.0f) - sampleHeight(gridX, gridZ + 1.0f)) / (2.0f * input.cellScale.z))
                                                .Normalized();
 
-                // built as a basis rather than composed from quaternions: yaw about the tilted up axis
+                // a sheared basis: the footprint lies flush on the ground, while the blades rise nearly upright
                 const Vec3f up = MathUtil::Lerp(Vec3f::UnitY(), groundNormal, SlopeAlignment).Normalized();
-                const Vec3f right = up.Cross(Vec3f(MathUtil::Cos(yaw), 0.0f, MathUtil::Sin(yaw))).Normalized();
-                const Vec3f forward = right.Cross(up);
+                const Vec3f right = groundNormal.Cross(Vec3f(MathUtil::Cos(yaw), 0.0f, MathUtil::Sin(yaw))).Normalized();
+                const Vec3f forward = right.Cross(groundNormal);
 
-                const float scale = scaleJitter * MathUtil::Lerp(0.65f, 1.0f, coverage);
-
-                // stretched patches only widen - growing taller too left far grass standing above the near tiles at the switch
-                const Vec3f axes[3] = {
-                    right * (scale * input.stretch),
-                    up * scale,
-                    forward * (scale * input.stretch)
-                };
+                const float heightScale = scaleJitter * MathUtil::Lerp(0.3f, 1.0f, coverage);
+                const float widthScale = scaleJitter * MathUtil::Lerp(0.7f, 1.0f, coverage);
 
                 Mat4f patchMatrix;
+                Mat4f stretchedPatchMatrix;
 
                 for (uint32 row = 0; row < 3; row++)
                 {
-                    patchMatrix[row][0] = axes[0][row];
-                    patchMatrix[row][1] = axes[1][row];
-                    patchMatrix[row][2] = axes[2][row];
+                    patchMatrix[row][0] = right[row] * widthScale;
+                    patchMatrix[row][1] = up[row] * heightScale;
+                    patchMatrix[row][2] = forward[row] * widthScale;
                     patchMatrix[row][3] = position[row];
+
+                    // the vertex shader widens patches with distance, up to this
+                    stretchedPatchMatrix[row][0] = patchMatrix[row][0] * TerrainGrassFarStretch;
+                    stretchedPatchMatrix[row][1] = patchMatrix[row][1];
+                    stretchedPatchMatrix[row][2] = patchMatrix[row][2] * TerrainGrassFarStretch;
+                    stretchedPatchMatrix[row][3] = patchMatrix[row][3];
                 }
 
                 for (uint32 memberIndex = 0; memberIndex < uint32(type.memberMatrices.Size()); memberIndex++)
                 {
+                    const Mat4f instanceMatrix = patchMatrix * type.memberMatrices[memberIndex];
+
+                    if (input.isFar && GetInstanceRank(Vec3f(instanceMatrix[0][3], instanceMatrix[1][3], instanceMatrix[2][3])) >= TerrainGrassFarRankCutoff)
+                    {
+                        continue;
+                    }
+
                     TerrainGrassSlotInstances& slot = output.slots[typeFirstSlots[typeIndex] + memberIndex];
 
-                    slot.transforms.PushBack(patchMatrix * type.memberMatrices[memberIndex]);
-                    slot.bounds = slot.bounds.Union(patchMatrix * type.memberBounds[memberIndex]);
+                    slot.transforms.PushBack(instanceMatrix);
+                    slot.bounds = slot.bounds.Union(stretchedPatchMatrix * type.memberBounds[memberIndex]);
                 }
             }
         }

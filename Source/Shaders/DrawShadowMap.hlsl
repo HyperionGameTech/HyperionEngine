@@ -20,6 +20,7 @@ DECLARE_SAMPLER(Default, SamplerNearest) SamplerState sampler_nearest;
 #include "Include/Material.hlsli"
 #include "Include/AlphaCutout.hlsli"
 #include "Include/Packing.hlsli"
+#include "Include/GroundCover.hlsli"
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
@@ -84,10 +85,10 @@ DECLARE_SRV_DYNAMIC(Default, SkeletonsBuffer) StructuredBuffer<float4x4> Skeleto
 #include "Include/Skinning.hlsli"
 #endif // SKINNING
 
-#if defined(VT_Tree) || defined(VT_Foliage) || defined(TERRAIN_MORPH)
+#if defined(VT_Tree) || defined(VT_Foliage) || defined(TERRAIN_MORPH) || defined(INSTANCING)
 DECLARE_SRV(Default, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
 #define world_shader_data _worlds_buffer[0]
-#endif // VT_Tree || VT_Foliage || TERRAIN_MORPH
+#endif // VT_Tree || VT_Foliage || TERRAIN_MORPH || INSTANCING
 
 #if defined(VT_Tree) || defined(VT_Foliage)
 #include "Include/Wind.hlsli"
@@ -116,10 +117,20 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID, uint vertexId : 
 #endif
     
 #if defined(TERRAIN_MORPH) && defined(VT_UV1)
-    const float3 local_position = ApplyTerrainMorph(entity, world_shader_data, model_matrix, input.a_position, input.a_texcoord1);
+    float3 local_position = ApplyTerrainMorph(entity, world_shader_data, model_matrix, input.a_position, input.a_texcoord1);
 #else
-    const float3 local_position = input.a_position;
+    float3 local_position = input.a_position;
 #endif
+
+#ifdef INSTANCING
+    if (any(CURRENT_MATERIAL.ground_cover != 0.0) && entity.world_aabb_min.w >= 0.0)
+    {
+        const float3 instanceOrigin = float3(model_matrix[0][3], model_matrix[1][3], model_matrix[2][3]);
+        const float rank = GroundCoverRank(float3(transform[0][3], transform[1][3], transform[2][3]));
+
+        local_position = ApplyGroundCoverScale(local_position, GroundCoverInstanceScale(world_shader_data, instanceOrigin, rank, entity.world_aabb_min.w, true));
+    }
+#endif // INSTANCING
 
 #if defined(SKINNING) && defined(HYP_ATTRIBUTE_a_bone_indices) && defined(HYP_ATTRIBUTE_a_bone_weights)
     float4x4 skinning_matrix = CreateSkinningMatrix(input.a_bone_indices, input.a_bone_weights);

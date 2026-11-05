@@ -166,9 +166,10 @@ World::World(Name name, EnumFlags<WorldFlags> worldFlags)
       m_rootSynchronousExecutionGroup(nullptr),
       m_rayTracingView(nullptr),
       m_activeSwatchId(InvalidSwatchId),
+      m_activeLayers {},
+      m_realTime(0.0f),
       m_isInitialized(false),
-      m_isServerWorld(false),
-      m_activeLayers {}
+      m_isServerWorld(false)
 {
     if (m_worldFlags & WorldFlags::AllStreamingLayerFlags)
     {
@@ -1000,6 +1001,8 @@ void World::SyncViewForegroundScenes(View* view) const
 void World::BeginUpdate(TaskBatch& inBatch, float delta)
 {
     HYP_SCOPE;
+
+    m_realTime += MathUtil::Max(delta, 0.0f);
 
     // runtime component types registered or redefined since last frame (eg a script assembly loaded or reloaded): migrate and
     // restore their components before scripts run, so scripts see them. No-op otherwise
@@ -2475,7 +2478,7 @@ void World::FillWorldShaderData(WorldShaderData& outShaderData) const
 
     // game time only moves while simulating
     const float previousGameTime = gameState.IsSimulating() ? gameState.gameTime - gameState.deltaTime : gameState.gameTime;
-    outShaderData.windTimeParams = Vec4f(previousGameTime, 0.0f, 0.0f, 0.0f);
+    outShaderData.timeParams = Vec4f(previousGameTime, m_realTime, 0.0f, 0.0f);
 
     const float cutoutDitherAmount = g_cvTAA.Get() ? MathUtil::Clamp(g_cvCutoutDitherAmount.Get(), 0.0f, 1.0f) : 0.0f;
     outShaderData.cutoutParams = Vec4f(cutoutDitherAmount, 0.0f, 0.0f, 0.0f);
@@ -2506,6 +2509,9 @@ void World::FillWorldShaderData(WorldShaderData& outShaderData) const
                 {
                     outShaderData.terrainLodViewpoints[viewpointIndex] = Vec4f(viewpoints[viewpointIndex], 1.0f);
                 }
+
+                outShaderData.terrainLodParams.z = terrainLayer->GetGrassRange();
+                outShaderData.terrainLodParams.w = terrainLayer->GetGrassNearRange();
 
                 break;
             }

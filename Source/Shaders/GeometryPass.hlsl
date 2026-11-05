@@ -31,6 +31,7 @@ struct PSInput
     nointerpolation uint object_mask : TEXCOORD7;
     nointerpolation uint cutout_seed : TEXCOORD8;
     nointerpolation float3 ground_normal : TEXCOORD9;
+    nointerpolation float ground_normal_blend : TEXCOORD10;
     bool is_front_face : SV_IsFrontFace;
 };
 
@@ -374,7 +375,7 @@ PSOutput PSMain(PSInput input)
  #endif
 
     // after the back face flip, so both sides of a blade take the ground's shading
-    const float groundNormalBlend = CURRENT_MATERIAL.ground_cover.y;
+    const float groundNormalBlend = input.ground_normal_blend;
 
     if (groundNormalBlend > 0.0)
     {
