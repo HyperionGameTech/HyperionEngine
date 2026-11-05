@@ -1,0 +1,36 @@
+Texture Arbor_leaf_box_roughness {
+    TextureDesc = {
+        Type = Texture2D
+        Format = BC4
+        Extent = (512, 256, 1)
+        MinFilterMode = Linear
+        MagFilterMode = Linear
+        TextureWrapMode = Repeat
+        NumLayers = 1
+        ImageUsage = Sampled
+        MipOffsets = [
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+        ]
+    }
+    ImageData = {
+        Key = "Engine://Textures/Arbor_leaf_box_roughness.TEX"
+        Size = 65536
+    }
+    Compression = Mask
+    UUID = "e88e93bb-1883-839d-95bf-0833ea4a241c"
+}

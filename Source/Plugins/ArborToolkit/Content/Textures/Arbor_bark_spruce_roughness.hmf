@@ -1,0 +1,36 @@
+Texture Arbor_bark_spruce_roughness {
+    TextureDesc = {
+        Type = Texture2D
+        Format = BC4
+        Extent = (1024, 1024, 1)
+        MinFilterMode = Linear
+        MagFilterMode = Linear
+        TextureWrapMode = Repeat
+        NumLayers = 1
+        ImageUsage = Sampled
+        MipOffsets = [
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+        ]
+    }
+    ImageData = {
+        Key = "Engine://Textures/Arbor_bark_spruce_roughness.TEX"
+        Size = 524288
+    }
+    Compression = Mask
+    UUID = "3747a599-bd94-8b76-948c-868e1f5bda9c"
+}

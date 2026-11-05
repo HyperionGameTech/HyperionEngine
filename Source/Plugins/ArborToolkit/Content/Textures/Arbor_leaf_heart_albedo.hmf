@@ -1,0 +1,36 @@
+Texture Arbor_leaf_heart_albedo {
+    TextureDesc = {
+        Type = Texture2D
+        Format = BC7_SRGB
+        Extent = (1024, 512, 1)
+        MinFilterMode = Linear
+        MagFilterMode = Linear
+        TextureWrapMode = Repeat
+        NumLayers = 1
+        ImageUsage = Sampled
+        MipOffsets = [
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+        ]
+    }
+    ImageData = {
+        Key = "Engine://Textures/Arbor_leaf_heart_albedo.TEX"
+        Size = 524288
+    }
+    Compression = Auto
+    UUID = "4f6751d9-205c-8357-8a96-f922dbba7462"
+}

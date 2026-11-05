@@ -1,0 +1,36 @@
+Texture Arbor_leaf_ivy_albedo {
+    TextureDesc = {
+        Type = Texture2D
+        Format = BC7_SRGB
+        Extent = (1024, 512, 1)
+        MinFilterMode = Linear
+        MagFilterMode = Linear
+        TextureWrapMode = Repeat
+        NumLayers = 1
+        ImageUsage = Sampled
+        MipOffsets = [
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+        ]
+    }
+    ImageData = {
+        Key = "Engine://Textures/Arbor_leaf_ivy_albedo.TEX"
+        Size = 524288
+    }
+    Compression = Auto
+    UUID = "41dd49ac-7d01-8eb1-9ca1-d0a4371b7d2a"
+}

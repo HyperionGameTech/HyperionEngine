@@ -32,7 +32,20 @@ namespace Hyperion {
 
 HYP_DEFINE_LOG_CHANNEL(Plugins);
 
-static CommandLineArgumentRegistration g_argPlugins {
+namespace {
+
+#if defined(HYP_WINDOWS)
+constexpr ANSIStringView PluginModuleLibraryPrefix = "hyperion-plugin-";
+constexpr ANSIStringView PluginModuleLibraryExtension = ".dll";
+#elif defined(HYP_MACOS)
+constexpr ANSIStringView PluginModuleLibraryPrefix = "libhyperion-plugin-";
+constexpr ANSIStringView PluginModuleLibraryExtension = ".dylib";
+#else
+constexpr ANSIStringView PluginModuleLibraryPrefix = "libhyperion-plugin-";
+constexpr ANSIStringView PluginModuleLibraryExtension = ".so";
+#endif
+
+CommandLineArgumentRegistration g_argPlugins {
     "plugins",
     {},
     "The plugins a game loads, comma separated",
@@ -40,7 +53,7 @@ static CommandLineArgumentRegistration g_argPlugins {
     CommandLineArgumentType::STRING
 };
 
-static CommandLineArgumentRegistration g_argPluginDir {
+CommandLineArgumentRegistration g_argPluginDir {
     "plugindir",
     {},
     "Directory for a development game to discover plugins when running as a standalone exe",
@@ -48,61 +61,22 @@ static CommandLineArgumentRegistration g_argPluginDir {
     CommandLineArgumentType::STRING
 };
 
-static Array<PluginModuleRegistration>& GetPluginModuleRegistrations()
+Array<PluginModuleRegistration>& GetPluginModuleRegistrations()
 {
     static Array<PluginModuleRegistration> s_registrations;
-
     return s_registrations;
 }
 
-void RegisterPluginModule(const PluginModuleRegistration& registration)
-{
-    GetPluginModuleRegistrations().PushBack(registration);
-}
-
-const Array<PluginModuleRegistration>& GetRegisteredPluginModules()
-{
-    return GetPluginModuleRegistrations();
-}
-
-static Array<PluginModuleInitializer>& GetPluginModuleInitializers()
+Array<PluginModuleInitializer>& GetPluginModuleInitializers()
 {
     static Array<PluginModuleInitializer> s_initializers;
-
     return s_initializers;
 }
 
-void AddPluginModuleInitializer(PluginModuleInitializer initializer)
-{
-    GetPluginModuleInitializers().PushBack(initializer);
-}
 
-void InitializePluginModules()
-{
-    static size_t s_numInitialized = 0;
 
-    Array<PluginModuleInitializer>& initializers = GetPluginModuleInitializers();
 
-    for (; s_numInitialized < initializers.Size(); s_numInitialized++)
-    {
-        initializers[s_numInitialized]();
-    }
-}
-
-namespace {
-
-#if defined(HYP_WINDOWS)
-static constexpr ANSIStringView PluginModuleLibraryPrefix = "hyperion-plugin-";
-static constexpr ANSIStringView PluginModuleLibraryExtension = ".dll";
-#elif defined(HYP_MACOS)
-static constexpr ANSIStringView PluginModuleLibraryPrefix = "libhyperion-plugin-";
-static constexpr ANSIStringView PluginModuleLibraryExtension = ".dylib";
-#else
-static constexpr ANSIStringView PluginModuleLibraryPrefix = "libhyperion-plugin-";
-static constexpr ANSIStringView PluginModuleLibraryExtension = ".so";
-#endif
-
-static Array<FilePath> GetPluginLibraryDirectories()
+Array<FilePath> GetPluginLibraryDirectories()
 {
     Array<FilePath> directories;
 
@@ -128,7 +102,7 @@ static Array<FilePath> GetPluginLibraryDirectories()
     return directories;
 }
 
-static String GetPluginModuleNameOfLibrary(const FilePath& library)
+String GetPluginModuleNameOfLibrary(const FilePath& library)
 {
     const String fileName = library.Basename();
 
@@ -141,7 +115,7 @@ static String GetPluginModuleNameOfLibrary(const FilePath& library)
 }
 
 // runtime modules first, then editor modules (named *Editor), which use them
-static Array<FilePath> FindPluginModuleLibraries(const FilePath& directory)
+Array<FilePath> FindPluginModuleLibraries(const FilePath& directory)
 {
     Array<FilePath> runtimeLibraries;
     Array<FilePath> editorLibraries;
@@ -195,6 +169,33 @@ bool ParseVersionString(const String& versionString, uint32& outMajor, uint32& o
 }
 
 } // namespace
+
+void RegisterPluginModule(const PluginModuleRegistration& registration)
+{
+    GetPluginModuleRegistrations().PushBack(registration);
+}
+
+void AddPluginModuleInitializer(PluginModuleInitializer initializer)
+{
+    GetPluginModuleInitializers().PushBack(initializer);
+}
+
+void InitializePluginModules()
+{
+    static size_t s_numInitialized = 0;
+
+    Array<PluginModuleInitializer>& initializers = GetPluginModuleInitializers();
+
+    for (; s_numInitialized < initializers.Size(); s_numInitialized++)
+    {
+        initializers[s_numInitialized]();
+    }
+}
+
+const Array<PluginModuleRegistration>& GetRegisteredPluginModules()
+{
+    return GetPluginModuleRegistrations();
+}
 
 PluginManager& PluginManager::GetInstance()
 {
@@ -485,8 +486,13 @@ bool PluginManager::ArePluginLibrariesLoaded(Name pluginName) const
 #endif
 }
 
-void PluginManager::LoadAllPluginLibraries()
+void PluginManager::LoadAllPluginLibraries(PluginHostMode hostMode)
 {
+    if (!m_initialized)
+    {
+        m_hostMode = hostMode;
+    }
+
     if (m_plugins.Empty())
     {
         DiscoverPlugins();

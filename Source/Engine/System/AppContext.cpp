@@ -489,7 +489,11 @@ const Class* AppContextBase::FindCommandletClass(ANSIStringView commandletName)
     }
 
     // a commandlet can live in a plugin, whose code isn't loaded until a project enables it
+#ifdef HYP_EDITOR
+    PluginManager::GetInstance().LoadAllPluginLibraries(PluginHostMode::Editor);
+#else
     PluginManager::GetInstance().LoadAllPluginLibraries();
+#endif
 
     return FindLoadedCommandletClass(commandletName);
 }

@@ -657,40 +657,10 @@ void Texture::PageBlobData()
         && m_imageData.key
         && m_imageData.size != 0)
     {
-        if (PageBlobDataFromStorage(m_imageData))
+        if (PageBlobDataFromStorage(m_imageData)
+            || PageBlobDataFromLocalFile(m_imageData, "TEX", 1))
         {
             return;
-        }
-
-        Handle<AssetRegistry> registry = GetAssetRegistry();
-        AssertDebug(registry.IsValid());
-
-        if (registry.IsValid())
-        {
-            // check if failed; if so, try to import from raw data blob in project directory
-            const Name blobKey = m_imageData.key;
-            const uint64 expectedSize = m_imageData.size;
-
-            FileByteReader stream { registry->GetRootPath() / AssetBuckets::Textures.GetName() / (String(*GetName()) + ".TEX.raw.blob") };
-            if (!stream.Eof())
-            {
-                if (stream.Max() != expectedSize)
-                {
-                    HYP_LOG(Engine, Error, "Local blob data for texture '{}' is {} bytes but the manifest expects {}, ignoring it",
-                            GetName(), stream.Max(), expectedSize);
-
-                    return;
-                }
-
-                ByteBuffer buffer = stream.Read(stream.Max());
-                AssertDebug(buffer.Size() == stream.Max());
-
-                AllocateBlobData(m_imageData, buffer.Data(), buffer.Size(), 1);
-
-                m_imageData.key = blobKey;
-
-                return;
-            }
         }
 
         HYP_LOG(Engine, Error, "Data corruption detected for {} due to missing blob data", GetPath().ToString());

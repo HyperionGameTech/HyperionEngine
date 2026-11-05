@@ -1,0 +1,36 @@
+Texture Arbor_needle_spruce_dark_roughness {
+    TextureDesc = {
+        Type = Texture2D
+        Format = BC4
+        Extent = (512, 4608, 1)
+        MinFilterMode = Linear
+        MagFilterMode = Linear
+        TextureWrapMode = Repeat
+        NumLayers = 1
+        ImageUsage = Sampled
+        MipOffsets = [
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+        ]
+    }
+    ImageData = {
+        Key = "Engine://Textures/Arbor_needle_spruce_dark_roughness.TEX"
+        Size = 1179648
+    }
+    Compression = Mask
+    UUID = "9add2da0-217a-870c-a2a2-7a45ba58f308"
+}

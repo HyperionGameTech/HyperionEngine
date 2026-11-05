@@ -1,0 +1,36 @@
+Texture Arbor_leaf_birch_translucency {
+    TextureDesc = {
+        Type = Texture2D
+        Format = BC7_SRGB
+        Extent = (768, 3840, 1)
+        MinFilterMode = Linear
+        MagFilterMode = Linear
+        TextureWrapMode = Repeat
+        NumLayers = 1
+        ImageUsage = Sampled
+        MipOffsets = [
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+        ]
+    }
+    ImageData = {
+        Key = "Engine://Textures/Arbor_leaf_birch_translucency.TEX"
+        Size = 2949120
+    }
+    Compression = Auto
+    UUID = "09a3b348-d307-8439-a259-5916b11acd66"
+}

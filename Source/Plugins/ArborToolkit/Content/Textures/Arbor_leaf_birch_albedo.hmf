@@ -1,0 +1,36 @@
+Texture Arbor_leaf_birch_albedo {
+    TextureDesc = {
+        Type = Texture2D
+        Format = BC7_SRGB
+        Extent = (768, 3840, 1)
+        MinFilterMode = Linear
+        MagFilterMode = Linear
+        TextureWrapMode = Repeat
+        NumLayers = 1
+        ImageUsage = Sampled
+        MipOffsets = [
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+        ]
+    }
+    ImageData = {
+        Key = "Engine://Textures/Arbor_leaf_birch_albedo.TEX"
+        Size = 2949120
+    }
+    Compression = Auto
+    UUID = "cf46fd78-612d-8e4d-b1a3-f3bad1a869ba"
+}

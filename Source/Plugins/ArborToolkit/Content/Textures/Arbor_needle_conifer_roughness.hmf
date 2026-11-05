@@ -1,0 +1,36 @@
+Texture Arbor_needle_conifer_roughness {
+    TextureDesc = {
+        Type = Texture2D
+        Format = BC4
+        Extent = (512, 512, 1)
+        MinFilterMode = Linear
+        MagFilterMode = Linear
+        TextureWrapMode = Repeat
+        NumLayers = 1
+        ImageUsage = Sampled
+        MipOffsets = [
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+        ]
+    }
+    ImageData = {
+        Key = "Engine://Textures/Arbor_needle_conifer_roughness.TEX"
+        Size = 131072
+    }
+    Compression = Mask
+    UUID = "f2a818b3-e5a2-8eeb-a41a-4c7e7b8b8bf4"
+}

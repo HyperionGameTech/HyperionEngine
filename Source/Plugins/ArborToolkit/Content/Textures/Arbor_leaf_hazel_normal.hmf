@@ -1,0 +1,36 @@
+Texture Arbor_leaf_hazel_normal {
+    TextureDesc = {
+        Type = Texture2D
+        Format = BC5
+        Extent = (1024, 512, 1)
+        MinFilterMode = Linear
+        MagFilterMode = Linear
+        TextureWrapMode = Repeat
+        NumLayers = 1
+        ImageUsage = Sampled
+        MipOffsets = [
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+        ]
+    }
+    ImageData = {
+        Key = "Engine://Textures/Arbor_leaf_hazel_normal.TEX"
+        Size = 524288
+    }
+    Compression = Normal
+    UUID = "b5fe9229-c864-8e0f-91e8-2a0241db3012"
+}

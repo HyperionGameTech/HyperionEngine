@@ -1,0 +1,36 @@
+Texture Arbor_needle_spruce_dark_albedo {
+    TextureDesc = {
+        Type = Texture2D
+        Format = BC7_SRGB
+        Extent = (512, 4608, 1)
+        MinFilterMode = Linear
+        MagFilterMode = Linear
+        TextureWrapMode = Repeat
+        NumLayers = 1
+        ImageUsage = Sampled
+        MipOffsets = [
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+        ]
+    }
+    ImageData = {
+        Key = "Engine://Textures/Arbor_needle_spruce_dark_albedo.TEX"
+        Size = 2359296
+    }
+    Compression = Auto
+    UUID = "351be9b9-bdca-8357-ab7c-8795cb4e942a"
+}

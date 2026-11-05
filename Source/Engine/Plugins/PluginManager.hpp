@@ -81,7 +81,7 @@ public:
     void PreloadPlugins(Span<const Name> pluginNames);
 
     bool ArePluginLibrariesLoaded(Name pluginName) const;
-    void LoadAllPluginLibraries();
+    void LoadAllPluginLibraries(PluginHostMode hostMode = PluginHostMode::Game);
 
 private:
     PluginManager() = default;

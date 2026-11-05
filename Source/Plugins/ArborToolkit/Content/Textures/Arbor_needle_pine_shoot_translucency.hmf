@@ -1,0 +1,36 @@
+Texture Arbor_needle_pine_shoot_translucency {
+    TextureDesc = {
+        Type = Texture2D
+        Format = BC7_SRGB
+        Extent = (640, 2176, 1)
+        MinFilterMode = Linear
+        MagFilterMode = Linear
+        TextureWrapMode = Repeat
+        NumLayers = 1
+        ImageUsage = Sampled
+        MipOffsets = [
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+        ]
+    }
+    ImageData = {
+        Key = "Engine://Textures/Arbor_needle_pine_shoot_translucency.TEX"
+        Size = 1392640
+    }
+    Compression = Auto
+    UUID = "0d91d7be-0f9d-8d54-b353-a1f5ec229440"
+}

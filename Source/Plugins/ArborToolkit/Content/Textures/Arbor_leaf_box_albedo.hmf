@@ -1,0 +1,36 @@
+Texture Arbor_leaf_box_albedo {
+    TextureDesc = {
+        Type = Texture2D
+        Format = BC7_SRGB
+        Extent = (512, 256, 1)
+        MinFilterMode = Linear
+        MagFilterMode = Linear
+        TextureWrapMode = Repeat
+        NumLayers = 1
+        ImageUsage = Sampled
+        MipOffsets = [
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+        ]
+    }
+    ImageData = {
+        Key = "Engine://Textures/Arbor_leaf_box_albedo.TEX"
+        Size = 131072
+    }
+    Compression = Auto
+    UUID = "77f252d5-d42c-8d00-a15b-5d526b058e00"
+}

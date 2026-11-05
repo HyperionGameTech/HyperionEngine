@@ -1,0 +1,36 @@
+Texture Arbor_leaf_birch_normal {
+    TextureDesc = {
+        Type = Texture2D
+        Format = BC5
+        Extent = (768, 3840, 1)
+        MinFilterMode = Linear
+        MagFilterMode = Linear
+        TextureWrapMode = Repeat
+        NumLayers = 1
+        ImageUsage = Sampled
+        MipOffsets = [
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+        ]
+    }
+    ImageData = {
+        Key = "Engine://Textures/Arbor_leaf_birch_normal.TEX"
+        Size = 2949120
+    }
+    Compression = Normal
+    UUID = "d7c70b77-3d5f-8caf-9cc2-547ff49356fe"
+}
