@@ -199,6 +199,14 @@ HYP_EDITOR_TEST(ArborTools, NewPlantEditsUndoAndDiscard)
     HYP_TEST_CHECK(state->IsDirty());
     HYP_TEST_REQUIRE(state->GetEditScene().IsValid());
 
+    HYP_TEST_CHECK(state->GetRecipePreset() == "hazel");
+
+    state->ApplyPreset("oak_forest");
+    HYP_TEST_CHECK(state->GetRecipePreset() == "oak_forest");
+
+    state->ApplyPreset("hazel");
+    HYP_TEST_CHECK(state->GetRecipePreset() == "hazel");
+
     const Node* plant = state->GetEditScene()->GetRoot().Get();
     const String original = ReadRecipeOf(plant);
     HYP_TEST_REQUIRE(original.Any());

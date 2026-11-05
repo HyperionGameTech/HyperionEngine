@@ -33,7 +33,11 @@ namespace Hyperion.Editor.ViewModels
 
         public bool IsMesh => _bucket?.BucketIndex == AssetBucket.Meshes.Value;
 
-        public bool HasSceneActions => IsPrefab || IsWorld;
+        public bool IsPrefabSet => _typeName == "PrefabSet";
+
+        public bool CanPlaceAsInstance => IsPrefab || IsPrefabSet;
+
+        public bool HasSceneActions => IsPrefab || IsWorld || IsPrefabSet;
 
         public bool CanGenerateCollision => IsMesh;
 
@@ -105,6 +109,7 @@ namespace Hyperion.Editor.ViewModels
             OnPropertyChanged(nameof(TypeName));
             OnPropertyChanged(nameof(DateModified));
             OnPropertyChanged(nameof(IconKind));
+            OnTypeKnown();
         }
 
         /// <summary>
@@ -152,6 +157,14 @@ namespace Hyperion.Editor.ViewModels
 
             OnPropertyChanged(nameof(TypeName));
             OnPropertyChanged(nameof(IconKind));
+            OnTypeKnown();
+        }
+
+        private void OnTypeKnown()
+        {
+            OnPropertyChanged(nameof(IsPrefabSet));
+            OnPropertyChanged(nameof(CanPlaceAsInstance));
+            OnPropertyChanged(nameof(HasSceneActions));
         }
 
         private IImage? _thumbnail;

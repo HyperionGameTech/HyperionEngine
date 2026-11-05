@@ -414,7 +414,7 @@ namespace Hyperion.Editor.ViewModels
 
             PlaceAsInstanceCommand = new RelayCommand<AssetObjectViewModel>(asset =>
             {
-                if (asset?.Bucket == null || !asset.IsPrefab)
+                if (asset?.Bucket == null || !asset.CanPlaceAsInstance)
                 {
                     return;
                 }

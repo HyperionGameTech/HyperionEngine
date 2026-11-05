@@ -3438,6 +3438,8 @@ namespace Hyperion.Editor.ViewModels
 
             EditorPluginService.Instance.NotifyEditModeChanged(snapshot.Active ? _editorSubsystem.ActiveIsolatedEditState : null);
 
+            RefreshToolStates();
+
             Dispatcher.UIThread.Post(() =>
             {
                 _editModeState = snapshot;
@@ -3638,9 +3640,11 @@ namespace Hyperion.Editor.ViewModels
                         return;
                     }
 
-                    // Alt+drop adds a prefab to the scene's instance group for it instead of spawning a copy
+                    bool isPrefabSet = bucketIndex == AssetBucket.Misc.Value
+                        && AssetManager.Instance.AssetRegistry.GetAsset(bucketIndex, assetName) is PrefabSet;
+
                     _editorSubsystem.ExecuteCommandByName(
-                        new Name(placeAsInstance && bucketIndex == AssetBucket.Prefabs.Value ? "EditorCommandPlaceAsInstance" : "EditorCommandAddAsset"),
+                        new Name((placeAsInstance && bucketIndex == AssetBucket.Prefabs.Value) || isPrefabSet ? "EditorCommandPlaceAsInstance" : "EditorCommandAddAsset"),
                         $"{bucketIndex} {assetName} {nx} {ny}");
                 }
                 catch (Exception ex)

@@ -2,111 +2,227 @@
     x:Class="Hyperion.Editor.Views.Panels.SurfacePainterPanelView"
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="clr-namespace:Hyperion.Editor.Controls;assembly=Hyperion.Editor"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
     xmlns:inspector="clr-namespace:Hyperion.Editor.Views.Inspector;assembly=Hyperion.Editor"
     x:DataType="vm:SurfacePainterPanelViewModel"
     mc:Ignorable="d">
-    <ScrollViewer Padding="4,0" Offset="{Binding ScrollOffset, Mode=TwoWay}">
-        <StackPanel Margin="12,12,12,8" Spacing="12">
+    <UserControl.Styles>
+        <Style Selector="Grid.setting-row">
+            <Setter Property="MinHeight" Value="26" />
+        </Style>
+        <Style Selector="Grid.setting-row > TextBlock">
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Grid.setting-row > Slider">
+            <Setter Property="Margin" Value="0,0,8,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="NumericUpDown.setting-box">
+            <Setter Property="ShowButtonSpinner" Value="False" />
+            <Setter Property="FormatString" Value="0.##" />
+            <Setter Property="MinHeight" Value="24" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
 
-            <StackPanel Spacing="6">
-              <TextBlock Classes="section-label" Text="{Binding AssetLabel}" />
-              <inspector:InspectorPropertyItemsControl ItemsSource="{Binding Properties}" />
+        <Style Selector="Button.palette-tile">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0,0,6,6" />
+            <Setter Property="Width" Value="76" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Button.palette-tile:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="Button.palette-tile:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="Border.tile-frame">
+            <Setter Property="Height" Value="64" />
+            <Setter Property="ClipToBounds" Value="True" />
+            <Setter Property="Background" Value="{DynamicResource Brush.PanelAlt}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{DynamicResource Radius.Small}" />
+        </Style>
+        <Style Selector="Button.palette-tile:pointerover Border.tile-frame">
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.HoverBorder}" />
+        </Style>
+        <Style Selector="Border.tile-frame.active">
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Accent}" />
+            <Setter Property="BorderThickness" Value="2" />
+        </Style>
+    </UserControl.Styles>
+
+    <ScrollViewer Padding="4,0" Offset="{Binding ScrollOffset, Mode=TwoWay}">
+        <StackPanel Margin="12,12,12,8" Spacing="14">
+
+            <StackPanel IsVisible="{Binding !HasPalette}" Spacing="6">
+                <TextBlock Classes="section-label" Text="{Binding AssetLabel}" />
+                <inspector:InspectorPropertyItemsControl ItemsSource="{Binding Properties}" />
+            </StackPanel>
+
+            <StackPanel IsVisible="{Binding HasPalette}" Spacing="8">
+                <TextBlock Classes="section-label" Text="Paint With" />
+
+                <ComboBox
+                    HorizontalAlignment="Stretch"
+                    ItemsSource="{ReflectionBinding Sources}"
+                    PlaceholderText="Choose a prefab or a set"
+                    SelectedItem="{ReflectionBinding SelectedSource, Mode=TwoWay}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:PaintSourceItem">
+                            <Grid ColumnDefinitions="Auto,*,Auto">
+                                <controls:Codicon
+                                    Margin="0,0,8,0"
+                                    VerticalAlignment="Center"
+                                    Foreground="{DynamicResource Brush.AccentHover}"
+                                    Kind="{Binding IconKind}"
+                                    Size="14" />
+                                <TextBlock
+                                    Grid.Column="1"
+                                    VerticalAlignment="Center"
+                                    Text="{Binding Name}"
+                                    TextTrimming="CharacterEllipsis" />
+                                <TextBlock
+                                    Grid.Column="2"
+                                    Margin="8,0,0,0"
+                                    VerticalAlignment="Center"
+                                    Classes="hint-text"
+                                    Text="{Binding KindText}" />
+                            </Grid>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+
+                <ItemsControl IsVisible="{ReflectionBinding HasTiles}" ItemsSource="{ReflectionBinding Tiles}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:PaletteTileViewModel">
+                            <Button
+                                Classes="palette-tile"
+                                Command="{Binding ClickCommand}"
+                                Opacity="{Binding TileOpacity}"
+                                ToolTip.Tip="{Binding Name}">
+                                <StackPanel Spacing="3">
+                                    <Border Classes="tile-frame" Classes.active="{Binding IsActive}">
+                                        <Panel>
+                                            <controls:Codicon
+                                                HorizontalAlignment="Center"
+                                                VerticalAlignment="Center"
+                                                Foreground="{DynamicResource Brush.AccentHover}"
+                                                IsVisible="{Binding !HasThumbnail}"
+                                                Kind="Prefab"
+                                                Opacity="0.85"
+                                                Size="20" />
+                                            <Image
+                                                IsVisible="{Binding HasThumbnail}"
+                                                Source="{Binding Thumbnail}"
+                                                Stretch="UniformToFill" />
+                                            <Border
+                                                Margin="3"
+                                                Padding="4,0"
+                                                HorizontalAlignment="Right"
+                                                VerticalAlignment="Top"
+                                                Background="{DynamicResource Brush.Background}"
+                                                CornerRadius="{DynamicResource Radius.Small}"
+                                                IsVisible="{Binding HasWeight}">
+                                                <TextBlock FontSize="10" Text="{Binding WeightText}" />
+                                            </Border>
+                                            <controls:Codicon
+                                                Margin="3"
+                                                HorizontalAlignment="Left"
+                                                VerticalAlignment="Top"
+                                                Foreground="{DynamicResource Brush.Text}"
+                                                IsVisible="{Binding !IsIncluded}"
+                                                Kind="EyeClosed"
+                                                Size="12" />
+                                        </Panel>
+                                    </Border>
+                                    <TextBlock
+                                        HorizontalAlignment="Center"
+                                        FontSize="10"
+                                        Foreground="{DynamicResource Brush.TextMuted}"
+                                        Text="{Binding Name}"
+                                        TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
             </StackPanel>
 
             <Separator />
 
             <StackPanel Spacing="6">
-                <Grid ColumnDefinitions="*,Auto">
-                    <TextBlock Classes="section-label" Text="Scale" />
-                    <TextBlock Grid.Column="1" Classes="hint-text" Text="{Binding ScaleText}" />
+                <TextBlock Classes="section-label" Text="Placement" />
+
+                <Grid Classes="setting-row" ColumnDefinitions="96,*,64">
+                    <TextBlock Text="Scale" />
+                    <Slider Grid.Column="1" Maximum="10" Minimum="0.1" Value="{Binding Scale}" />
+                    <NumericUpDown Grid.Column="2" Classes="setting-box" Increment="0.1" Minimum="0.1" Value="{Binding Scale}" />
                 </Grid>
-                <Slider
-                    Maximum="10"
-                    Minimum="0.1"
-                    Value="{Binding Scale}" />
-            </StackPanel>
 
-            <StackPanel Spacing="6">
-                <CheckBox Content="Align to surface" IsChecked="{Binding AlignToSurface}" />
-            </StackPanel>
-
-            <!-- instance painter only; reflection bindings since those properties live on the derived view model -->
-            <StackPanel IsVisible="{Binding HasGroundFitting}" Spacing="12">
-                <StackPanel Spacing="6" IsEnabled="{Binding !AlignToSurface}">
-                    <Grid ColumnDefinitions="*,Auto">
-                        <TextBlock Classes="section-label" Text="Ground Footprint" />
-                        <TextBlock Grid.Column="1" Classes="hint-text" Text="{ReflectionBinding FootprintRadiusText}" />
+                <Grid Classes="setting-row" ColumnDefinitions="96,*,64" IsVisible="{Binding HasGroundFitting}" ToolTip.Tip="Each instance is drawn at a random scale in this range, times the brush scale">
+                    <TextBlock Text="Random scale" />
+                    <Grid Grid.Column="1" Grid.ColumnSpan="2" ColumnDefinitions="*,Auto,*">
+                        <NumericUpDown Classes="setting-box" Increment="0.05" Minimum="0.01" Value="{ReflectionBinding ScaleMin}" />
+                        <TextBlock Grid.Column="1" Margin="6,0" VerticalAlignment="Center" Classes="hint-text" Text="–" />
+                        <NumericUpDown Grid.Column="2" Classes="setting-box" Increment="0.05" Minimum="0.01" Value="{ReflectionBinding ScaleMax}" />
                     </Grid>
-                    <Slider
-                        Maximum="5"
-                        Minimum="0"
-                        Value="{ReflectionBinding FootprintRadius}" />
-                </StackPanel>
-
-                <StackPanel Spacing="6">
-                    <Grid ColumnDefinitions="*,Auto">
-                        <TextBlock Classes="section-label" Text="Sink Depth" />
-                        <TextBlock Grid.Column="1" Classes="hint-text" Text="{ReflectionBinding SinkDepthText}" />
-                    </Grid>
-                    <Slider
-                        Maximum="2"
-                        Minimum="0"
-                        Value="{ReflectionBinding SinkDepth}" />
-                </StackPanel>
-
-                <StackPanel Spacing="6">
-                    <Grid ColumnDefinitions="*,Auto">
-                        <TextBlock Classes="section-label" Text="Random Scale" />
-                        <TextBlock Grid.Column="1" Classes="hint-text" Text="{ReflectionBinding ScaleRangeText}" />
-                    </Grid>
-                    <Slider
-                        Maximum="3"
-                        Minimum="0.1"
-                        ToolTip.Tip="Smallest scale an instance is drawn at, times the brush scale"
-                        Value="{ReflectionBinding ScaleMin}" />
-                    <Slider
-                        Maximum="3"
-                        Minimum="0.1"
-                        ToolTip.Tip="Largest scale an instance is drawn at, times the brush scale"
-                        Value="{ReflectionBinding ScaleMax}" />
-                </StackPanel>
-            </StackPanel>
-            <StackPanel Spacing="6">
-                <CheckBox Content="Random rotation" IsChecked="{Binding RandomRotation}" />
-                <Grid ColumnDefinitions="*,Auto" IsEnabled="{Binding !RandomRotation}">
-                    <TextBlock Classes="section-label" Text="Rotation" />
-                    <TextBlock Grid.Column="1" Classes="hint-text" Text="{Binding RotationText}" />
                 </Grid>
-                <Slider
-                    IsEnabled="{Binding !RandomRotation}"
-                    Maximum="360"
-                    Minimum="0"
-                    Value="{Binding RotationDegrees}" />
+
+                <Grid Classes="setting-row" ColumnDefinitions="96,*,64" IsEnabled="{Binding !RandomRotation}">
+                    <TextBlock Text="Rotation" />
+                    <Slider Grid.Column="1" Maximum="360" Minimum="0" Value="{Binding RotationDegrees}" />
+                    <NumericUpDown Grid.Column="2" Classes="setting-box" FormatString="0" Increment="15" Maximum="360" Minimum="0" Value="{Binding RotationDegrees}" />
+                </Grid>
+
+                <WrapPanel Margin="0,2,0,0">
+                    <CheckBox Margin="0,0,16,0" Content="Random rotation" IsChecked="{Binding RandomRotation}" />
+                    <CheckBox Content="Align to surface" IsChecked="{Binding AlignToSurface}" />
+                </WrapPanel>
+            </StackPanel>
+
+            <StackPanel IsVisible="{Binding HasGroundFitting}" Spacing="6">
+                <TextBlock Classes="section-label" Text="Ground Fitting" />
+
+                <Grid Classes="setting-row" ColumnDefinitions="96,*,64" IsEnabled="{Binding !AlignToSurface}" ToolTip.Tip="Radius sampled under each instance to level it on uneven ground">
+                    <TextBlock Text="Footprint" />
+                    <Slider Grid.Column="1" Maximum="5" Minimum="0" Value="{ReflectionBinding FootprintRadius}" />
+                    <NumericUpDown Grid.Column="2" Classes="setting-box" Increment="0.1" Minimum="0" Value="{ReflectionBinding FootprintRadius}" />
+                </Grid>
+
+                <Grid Classes="setting-row" ColumnDefinitions="96,*,64" ToolTip.Tip="How far each instance is pushed into the ground">
+                    <TextBlock Text="Sink depth" />
+                    <Slider Grid.Column="1" Maximum="2" Minimum="0" Value="{ReflectionBinding SinkDepth}" />
+                    <NumericUpDown Grid.Column="2" Classes="setting-box" Increment="0.05" Minimum="0" Value="{ReflectionBinding SinkDepth}" />
+                </Grid>
             </StackPanel>
 
             <StackPanel Spacing="6">
-                <Grid ColumnDefinitions="*,Auto">
-                    <TextBlock Classes="section-label" Text="Stroke Spacing" />
-                    <TextBlock Grid.Column="1" Classes="hint-text" Text="{Binding SpacingText}" />
-                </Grid>
-                <Slider
-                    Maximum="10"
-                    Minimum="0"
-                    Value="{Binding Spacing}" />
-            </StackPanel>
+                <TextBlock Classes="section-label" Text="Brush" />
 
-            <StackPanel Spacing="6">
-                <Grid ColumnDefinitions="*,Auto">
-                    <TextBlock Classes="section-label" Text="Erase Radius" />
-                    <TextBlock Grid.Column="1" Classes="hint-text" Text="{Binding EraseRadiusText}" />
+                <Grid Classes="setting-row" ColumnDefinitions="96,*,64" ToolTip.Tip="Distance between stamps along a stroke">
+                    <TextBlock Text="Spacing" />
+                    <Slider Grid.Column="1" Maximum="10" Minimum="0" Value="{Binding Spacing}" />
+                    <NumericUpDown Grid.Column="2" Classes="setting-box" Increment="0.1" Minimum="0" Value="{Binding Spacing}" />
                 </Grid>
-                <Slider
-                    Maximum="10"
-                    Minimum="0.1"
-                    Value="{Binding EraseRadius}" />
+
+                <Grid Classes="setting-row" ColumnDefinitions="96,*,64">
+                    <TextBlock Text="Erase radius" />
+                    <Slider Grid.Column="1" Maximum="10" Minimum="0.1" Value="{Binding EraseRadius}" />
+                    <NumericUpDown Grid.Column="2" Classes="setting-box" Increment="0.1" Minimum="0.1" Value="{Binding EraseRadius}" />
+                </Grid>
             </StackPanel>
 
             <TextBlock

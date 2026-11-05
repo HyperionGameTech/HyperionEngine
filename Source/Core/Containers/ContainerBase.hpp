@@ -245,9 +245,8 @@ public:
         FunctionWrapper<NormalizedType<Predicate>> fn { std::forward<Predicate>(predicate) };
 
         auto _begin = static_cast<Container*>(this)->Begin();
-        const auto _end = static_cast<Container*>(this)->End();
 
-        while (_begin != _end)
+        while (_begin != static_cast<Container*>(this)->End())
         {
             if (fn(*_begin))
             {

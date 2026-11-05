@@ -91,6 +91,9 @@ public:
     String GetRecipeName() const;
 
     HYP_METHOD()
+    String GetRecipePreset() const;
+
+    HYP_METHOD()
     void ApplyPreset(const String& preset);
 
     HYP_METHOD()
@@ -270,6 +273,10 @@ private:
     bool m_bakeRequested = false;
 
     String m_statusText;
+
+    mutable ArborKind m_presetLookupKind = ArborKind::Max;
+    mutable String m_presetLookupName;
+    mutable String m_presetLookupResult;
 };
 
 } // namespace Hyperion

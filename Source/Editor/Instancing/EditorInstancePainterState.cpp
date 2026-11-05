@@ -15,13 +15,19 @@
 #include <Scene/Instancing/InstanceGroup.hpp>
 #include <Scene/Components/InstanceClusterComponent.hpp>
 
+#include <Asset/AssetRegistry.hpp>
+
 #include <Core/Math/BoundingSphere.hpp>
 #include <Core/Math/Ray.hpp>
 #include <Core/Math/MathUtil.hpp>
 
+#include <Core/Logging/Logger.hpp>
+
 #include <EditorInstancePainterState.generated.inl>
 
 namespace Hyperion {
+
+HYP_DECLARE_LOG_CHANNEL(Editor);
 
 #pragma region EditorInstancePainterState
 
@@ -68,11 +74,138 @@ void EditorInstancePainterState::SetActivePrefabSet(const Handle<PrefabSet>& pre
         {
             AssertOnThread(g_simThread);
 
+            if (prefabSet != m_activePrefabSet)
+            {
+                m_excludedPrefabs.Clear();
+            }
+
             m_activePrefabSet = prefabSet;
 
             if (prefabSet.IsValid())
             {
                 m_activePrefab.Reset();
+            }
+
+            DrawNextStamp();
+        });
+}
+
+void EditorInstancePainterState::SetActivePrefabByName(Name assetName)
+{
+    DispatchToSimThread([this, assetName]()
+        {
+            Handle<AssetRegistry> registry = GetCurrentAssetRegistry();
+            Handle<Prefab> prefab = registry ? TryCast<Prefab>(registry->GetAsset(AssetBuckets::Prefabs, assetName)) : Handle<Prefab>::Null();
+
+            if (!prefab.IsValid())
+            {
+                HYP_LOG(Editor, Warning, "'{}' is not a Prefab asset", assetName);
+
+                return;
+            }
+
+            SetActivePrefab(prefab);
+        });
+}
+
+void EditorInstancePainterState::SetActivePrefabSetByName(Name assetName)
+{
+    DispatchToSimThread([this, assetName]()
+        {
+            Handle<AssetRegistry> registry = GetCurrentAssetRegistry();
+            Handle<PrefabSet> prefabSet = registry ? TryCast<PrefabSet>(registry->GetAsset(AssetBuckets::Misc, assetName)) : Handle<PrefabSet>::Null();
+
+            if (!prefabSet.IsValid())
+            {
+                HYP_LOG(Editor, Warning, "'{}' is not a PrefabSet asset", assetName);
+
+                return;
+            }
+
+            SetActivePrefabSet(prefabSet);
+        });
+}
+
+Array<PrefabSetEntry> EditorInstancePainterState::GetPalette() const
+{
+    if (m_activePrefabSet.IsValid())
+    {
+        return m_activePrefabSet->GetValidEntries();
+    }
+
+    Array<PrefabSetEntry> palette;
+
+    if (m_activePrefab.IsValid())
+    {
+        PrefabSetEntry entry;
+        entry.prefab = m_activePrefab;
+
+        palette.PushBack(std::move(entry));
+    }
+
+    return palette;
+}
+
+bool EditorInstancePainterState::IsExcluded(const Handle<Prefab>& prefab) const
+{
+    for (const WeakHandle<Prefab>& excluded : m_excludedPrefabs)
+    {
+        if (excluded.GetUnsafe() == prefab.Get())
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+uint32 EditorInstancePainterState::GetPaletteCount() const
+{
+    return uint32(GetPalette().Size());
+}
+
+Name EditorInstancePainterState::GetPaletteName(uint32 index) const
+{
+    const Array<PrefabSetEntry> palette = GetPalette();
+
+    return index < palette.Size() ? palette[index].prefab->GetName() : Name::Invalid();
+}
+
+float EditorInstancePainterState::GetPaletteWeight(uint32 index) const
+{
+    const Array<PrefabSetEntry> palette = GetPalette();
+
+    return index < palette.Size() ? palette[index].weight : 0.0f;
+}
+
+bool EditorInstancePainterState::IsPaletteEntryIncluded(uint32 index) const
+{
+    const Array<PrefabSetEntry> palette = GetPalette();
+
+    return index < palette.Size() && !IsExcluded(palette[index].prefab);
+}
+
+void EditorInstancePainterState::SetPaletteEntryIncluded(uint32 index, bool included)
+{
+    DispatchToSimThread([this, index, included]()
+        {
+            const Array<PrefabSetEntry> palette = GetPalette();
+
+            if (index >= palette.Size() || included == !IsExcluded(palette[index].prefab))
+            {
+                return;
+            }
+
+            if (included)
+            {
+                m_excludedPrefabs.RemoveAll([&palette, index](const WeakHandle<Prefab>& excluded)
+                    {
+                        return excluded.GetUnsafe() == palette[index].prefab.Get();
+                    });
+            }
+            else
+            {
+                m_excludedPrefabs.PushBack(MakeWeakRef(palette[index].prefab));
             }
 
             DrawNextStamp();
@@ -113,9 +246,47 @@ void EditorInstancePainterState::DrawNextStamp()
 {
     AssertOnThread(g_simThread);
 
-    m_nextPrefab = m_activePrefabSet.IsValid()
-        ? m_activePrefabSet->ChooseOne(RandomInRange(0.0f, 1.0f))
-        : m_activePrefab;
+    m_nextPrefab.Reset();
+
+    if (m_activePrefabSet.IsValid())
+    {
+        const Array<PrefabSetEntry> palette = GetPalette();
+
+        float totalWeight = 0.0f;
+
+        for (const PrefabSetEntry& entry : palette)
+        {
+            if (IsExcluded(entry.prefab))
+            {
+                continue;
+            }
+
+            totalWeight += entry.weight;
+        }
+
+        float remaining = RandomInRange(0.0f, totalWeight);
+
+        for (const PrefabSetEntry& entry : palette)
+        {
+            if (IsExcluded(entry.prefab))
+            {
+                continue;
+            }
+
+            m_nextPrefab = entry.prefab;
+
+            if (remaining < entry.weight)
+            {
+                break;
+            }
+
+            remaining -= entry.weight;
+        }
+    }
+    else
+    {
+        m_nextPrefab = m_activePrefab;
+    }
 
     const float scaleLow = MathUtil::Min(m_scaleMin, m_scaleMax);
     const float scaleHigh = MathUtil::Max(m_scaleMin, m_scaleMax);
@@ -192,7 +363,15 @@ void EditorInstancePainterState::SetSinkDepth(float sinkDepth)
 
 bool EditorInstancePainterState::HasActiveAsset() const
 {
-    return m_activePrefab.IsValid() || (m_activePrefabSet.IsValid() && m_activePrefabSet->GetValidEntries().Any());
+    for (const PrefabSetEntry& entry : GetPalette())
+    {
+        if (!IsExcluded(entry.prefab))
+        {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 Vec3f EditorInstancePainterState::GetPlacementScale() const
@@ -231,12 +410,10 @@ bool EditorInstancePainterState::ShouldIgnoreHit(const RayHit& hit) const
 
 Vec3f EditorInstancePainterState::GetPlacementPosition(const SurfaceHit& hit) const
 {
-    static constexpr uint32 numProbes = 8;
+    static constexpr uint32 NumPlacementProbes = 8;
 
     float groundHeight = hit.position.y;
 
-    // an upright instance on a slope floats on its downhill side, so drop it to the lowest ground under its footprint.
-    // Aligned to the surface, its base already follows the slope
     if (!m_alignToSurface && m_footprintRadius > 0.0f)
     {
         const float radius = m_footprintRadius * GetPlacementScale().x;
@@ -244,9 +421,9 @@ Vec3f EditorInstancePainterState::GetPlacementPosition(const SurfaceHit& hit) co
         // probes that fall off a ledge or into a hole shouldn't drag it down with them
         const float lowestAllowed = hit.position.y - radius * 3.0f;
 
-        for (uint32 probeIndex = 0; probeIndex < numProbes; probeIndex++)
+        for (uint32 probeIndex = 0; probeIndex < NumPlacementProbes; probeIndex++)
         {
-            const float angle = float(probeIndex) * (2.0f * MathUtil::pi<float> / float(numProbes));
+            const float angle = float(probeIndex) * (2.0f * MathUtil::pi<float> / float(NumPlacementProbes));
             const Vec3f probePosition = hit.position + Vec3f(MathUtil::Cos(angle) * radius, 0.0f, MathUtil::Sin(angle) * radius);
 
             Ray ray;
