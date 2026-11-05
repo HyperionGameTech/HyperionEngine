@@ -13,6 +13,11 @@
 #include <Scene/Scene.hpp>
 #include <Scene/Node.hpp>
 
+#include <Rendering/Texture.hpp>
+#include <Rendering/Util/TextureCompression.hpp>
+
+#include <Core/Memory/ByteBuffer.hpp>
+
 #include <Core/Containers/Array.hpp>
 #include <Core/Containers/String.hpp>
 
@@ -194,6 +199,35 @@ HYP_ENGINE_TEST(Serialization, MalformedHMFReportsErrors)
 
         context.Check(source, result.HasError() || errors.HasFatalErrors(), "neither failed nor reported an error");
     }
+}
+
+HYP_ENGINE_TEST(Serialization, LoadingSetsTheFieldBehindATransientProperty)
+{
+    // Texture saves m_compression as "Compression", the name of the editor property whose setter re-encodes the pixels. Loading must
+    // set the field: through the setter, every load of a texture saved with a compression mode re-encodes it
+    HYP_TEST_REQUIRE(TextureCompression::CanEncode());
+
+    TextureDesc desc;
+    desc.extent = Vec3u(8, 8, 1);
+
+    ByteBuffer pixels(size_t(8 * 8 * 4));
+
+    for (size_t index = 0; index < pixels.Size(); index++)
+    {
+        pixels.Data()[index] = ubyte(index * 7);
+    }
+
+    Handle<Texture> texture = MakeHandle<Texture>(desc, pixels.ToByteView());
+    HYP_TEST_REQUIRE(texture->GetTextureDesc().format == TextureFormat::RGBA8);
+
+    BoxedValue target(texture);
+    HMF::ErrorList errors;
+    HMF::ParseResult result = HMF::Parse(String("Texture CompressionProbe { Compression = Normal }"), &errors, &target);
+
+    HYP_TEST_REQUIRE_MSG(result.HasValue() && !errors.HasFatalErrors(), "the texture manifest did not parse");
+
+    HYP_TEST_CHECK(texture->GetCompression() == TextureCompressionMode::Normal);
+    HYP_TEST_CHECK_MSG(texture->GetTextureDesc().format == TextureFormat::RGBA8, "loading ran the setter, which compressed the pixels to {}", EnumToString(texture->GetTextureDesc().format));
 }
 
 HYP_ENGINE_TEST(Serialization, TrailingTokensAfterValueAreRejected)

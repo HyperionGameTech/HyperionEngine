@@ -127,6 +127,14 @@ const IMember* FindMember(const Class* cls, const String& fieldName)
         }
     }
 
+    if (member->GetMemberType() == MemberType::Property && member->GetAttribute(Attributes::g_attrTransient).GetBool())
+    {
+        if (const IMember* field = cls->GetMember(memberName, MemberType::Field))
+        {
+            return field;
+        }
+    }
+
     return member;
 }
 

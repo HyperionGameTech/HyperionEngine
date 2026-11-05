@@ -1210,6 +1210,14 @@ ENGINE_API Result ObjectFromJSON(const JSON::Object& jsonObject, const Class* ta
                 continue;
             }
 
+            if (member->GetMemberType() == MemberType::Property && member->GetAttribute(Attributes::g_attrTransient).GetBool())
+            {
+                if (const IMember* field = instanceClass->GetMember(key.ToUtf8(), MemberType::Field))
+                {
+                    member = field;
+                }
+            }
+
             if (member->GetMemberType() != MemberType::Property && member->GetAttribute(Attributes::g_attrProperty).IsValid())
             {
                 //  skip fields that are marked as properties
