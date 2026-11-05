@@ -25,6 +25,7 @@
 #include <Scene/Components/MeshComponent.hpp>
 #include <Scene/Components/TerrainCellComponent.hpp>
 #include <Scene/Components/TerrainPatchComponent.hpp>
+#include <Scene/Components/TerrainGrassComponent.hpp>
 #include <Scene/Components/RigidBodyComponent.hpp>
 
 #include <Physics/PhysicsShape.hpp>
@@ -68,17 +69,10 @@ namespace {
 
 CVar<bool> g_cvTerrainGrass("Terrain.Grass", true);
 
-/// how far from a viewpoint grass is planted
-CVar<float> g_cvTerrainGrassRange("Terrain.Grass.Range", 80.0f);
 /// scales how many patches every ground cover layer plants
 CVar<float> g_cvTerrainGrassDensity("Terrain.Grass.Density", 1.0f);
-/// past this, tiles are planted with fewer, wider patches
-CVar<float> g_cvTerrainGrassNearRange("Terrain.Grass.NearRange", 30.0f);
 /// logs how long each batch of grass tiles took to generate and to reach the scene
 CVar<bool> g_cvTerrainGrassLogTimings("Terrain.Grass.LogTimings", false);
-
-/// how much further apart, and wider, the patches of far tiles are
-constexpr float GrassFarStretch = 1.8f;
 
 /// tiles are built a few at a time, nearest first, so the ground underfoot isn't waiting on the whole cell
 constexpr uint32 GrassTilesPerBuild = 8;
@@ -1795,7 +1789,7 @@ void TerrainStreamingCell::UpdateGrassSelection(Span<const Vec3f> viewpoints)
 
     const bool isEnabled = g_cvTerrainGrass.Get() && m_splatWeights.Any() && viewpoints.Size() != 0;
 
-    const float plantRange = MathUtil::Max(g_cvTerrainGrassRange.Get(), 0.0f);
+    const float plantRange = m_layer->GetGrassRange();
 
     // released a tile's width further out than planted, so a viewpoint on a tile boundary doesn't churn
     const float releaseRange = plantRange + float(TerrainGrassTileQuads) * MathUtil::Max(m_cellInfo.scale.x, m_cellInfo.scale.z);
@@ -1803,7 +1797,7 @@ void TerrainStreamingCell::UpdateGrassSelection(Span<const Vec3f> viewpoints)
     const BoundingBox& cellBounds = m_cellInfo.bounds;
     const uint32 cellQuads = GetCellSize() - 1;
 
-    const float nearRange = MathUtil::Max(g_cvTerrainGrassNearRange.Get(), 0.0f);
+    const float nearRange = m_layer->GetGrassNearRange();
     const float nearHysteresis = float(TerrainGrassTileQuads) * 0.5f * MathUtil::Max(m_cellInfo.scale.x, m_cellInfo.scale.z);
 
     struct GrassTileRequest
@@ -2025,7 +2019,7 @@ void TerrainStreamingCell::QueueGrassBuilds(Array<uint32, TerrainAllocator>&& ti
                     MathUtil::Min((tileX + 1) * TerrainGrassTileQuads, cellQuads),
                     MathUtil::Min((tileZ + 1) * TerrainGrassTileQuads, cellQuads));
                 input.seed = uint32(HashCode::GetHashCode(coord.x).Combine(HashCode::GetHashCode(coord.y)).Combine(HashCode::GetHashCode(tileIndex)).Value());
-                input.stretch = detailLevel == 0 ? 1.0f : GrassFarStretch;
+                input.isFar = detailLevel != 0;
                 input.layers = layerPlans.ToSpan();
 
                 GrassTileBuild tileBuild;
@@ -2187,6 +2181,15 @@ void TerrainStreamingCell::ApplyGrassBuilds(Array<GrassTileBuild, TerrainAllocat
                         meshComponent.numInstances = numInstances;
 
                         entityManager->AddComponent<MeshComponent>(slot.entity, std::move(meshComponent));
+
+                        TerrainGrassComponent grassComponent;
+
+                        if (const World* world = m_scene->GetWorld())
+                        {
+                            grassComponent.spawnTime = world->GetRealTime();
+                        }
+
+                        entityManager->AddComponent<TerrainGrassComponent>(slot.entity, std::move(grassComponent));
                     }
                     else if (MeshComponent* meshComponent = entityManager->TryGetComponent<MeshComponent>(slot.entity))
                     {

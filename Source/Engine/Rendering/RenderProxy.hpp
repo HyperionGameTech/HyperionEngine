@@ -123,7 +123,8 @@ struct WorldShaderData
     Vec4f windParams;
 
     /// x = game time last frame, so swaying geometry can write its own motion vectors
-    Vec4f windTimeParams;
+    /// y = World::GetRealTime()
+    Vec4f timeParams;
 
     /// x = how much of the alpha cutout test is per-pixel noise rather than a per-triangle threshold. controlled by Rendering.Cutout.DitherAmount
     Vec4f cutoutParams;
@@ -133,6 +134,8 @@ struct WorldShaderData
     Vec4f terrainLodViewpoints[MaxTerrainLodViewpoints];
 
     /// x = terrain LOD range multiplier
+    /// z = grass range
+    /// w = grass near range
     Vec4f terrainLodParams;
 
     /// x = eye adaptation strength (0 to 1)
@@ -174,7 +177,8 @@ struct EntityShaderData
     Mat3f normalMatrix;
 
     Vec3f worldAabbMax;
-    Vec3f worldAabbMin;
+    /// w = TerrainGrassComponent::spawnTime, or -1 for anything but terrain grass
+    Vec4f worldAabbMin { 0.0f, 0.0f, 0.0f, -1.0f };
 
     uint32 entityIndex = ~0u;
     uint32 lightmapRectOffset = 0;

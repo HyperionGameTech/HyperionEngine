@@ -69,6 +69,11 @@ CVar<float> g_cvTerrainLodRangeMultiplier("Terrain.Lod.RangeMultiplier", 2.0f);
 // fraction of each level's band at full detail before morphing toward the next - lower is a longer, smoother transition
 CVar<float> g_cvTerrainLodMorphStartRatio("Terrain.Lod.MorphStartRatio", 0.5f);
 
+// how far from a viewpoint grass is planted
+CVar<float> g_cvTerrainGrassRange("Terrain.Grass.Range", 80.0f);
+// past this, tiles are planted with fewer, wider patches
+CVar<float> g_cvTerrainGrassNearRange("Terrain.Grass.NearRange", 30.0f);
+
 namespace {
 
 const Name g_terrainWorldGridLayerName = NAME("TerrainWorldGridLayer");
@@ -511,6 +516,18 @@ float TerrainWorldGridLayer::CalculateLodMorphStart(uint8 level, const TerrainQu
     const float morphStartRatio = MathUtil::Clamp(g_cvTerrainLodMorphStartRatio.Get(), 0.0f, 0.95f);
 
     return rangeStart + (rangeEnd - rangeStart) * morphStartRatio;
+}
+
+float TerrainWorldGridLayer::GetGrassRange() const
+{
+    const float morphStart = CalculateLodMorphStart(0, MakeQuadtreeLayout(m_layerInfo.cellSize), m_layerInfo.scale);
+
+    return MathUtil::Clamp(g_cvTerrainGrassRange.Get(), 0.0f, morphStart);
+}
+
+float TerrainWorldGridLayer::GetGrassNearRange() const
+{
+    return MathUtil::Clamp(g_cvTerrainGrassNearRange.Get(), 0.0f, GetGrassRange());
 }
 
 void TerrainWorldGridLayer::UpdateLodSelection(Span<const Vec3f> viewpoints)

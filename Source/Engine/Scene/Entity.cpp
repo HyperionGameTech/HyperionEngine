@@ -27,6 +27,7 @@
 #include <Scene/Components/LightmapElementComponent.hpp>
 #include <Scene/Components/SwatchOverridesComponent.hpp>
 #include <Scene/Components/TerrainPatchComponent.hpp>
+#include <Scene/Components/TerrainGrassComponent.hpp>
 
 #include <Scripting/EntityScripting.hpp>
 
@@ -945,7 +946,12 @@ void Entity::UpdateRenderProxy(RenderProxyMesh* proxy)
 
     const BoundingBox meshWorldBounds = transformMatrix * proxy->meshAabb;
     proxy->bufferData.worldAabbMax = meshWorldBounds.max;
-    proxy->bufferData.worldAabbMin = meshWorldBounds.min;
+    proxy->bufferData.worldAabbMin = Vec4f(meshWorldBounds.min, -1.0f);
+
+    if (const TerrainGrassComponent* terrainGrassComponent = TryGetComponent<TerrainGrassComponent>())
+    {
+        proxy->bufferData.worldAabbMin.w = terrainGrassComponent->spawnTime;
+    }
 
     proxy->bufferData.modelMatrix = transformMatrix;
     proxy->bufferData.previousModelMatrix = meshComponent.previousModelMatrix;

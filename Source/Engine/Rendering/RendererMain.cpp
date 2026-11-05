@@ -412,7 +412,7 @@ static inline bool ShouldIncludeInPrepass(
     }
 
     BoundingBox worldBounds;
-    worldBounds.min = meshProxy.bufferData.worldAabbMin;
+    worldBounds.min = meshProxy.bufferData.worldAabbMin.GetXYZ();
     worldBounds.max = meshProxy.bufferData.worldAabbMax;
 
     BoundingBox ndcBounds = viewProjMat * worldBounds;
@@ -2275,7 +2275,7 @@ uint8 RenderCollector::SelectLod(const RenderProxyMesh& meshProxy, const LODView
     params.forcedLod = meshProxy.forcedLod;
     params.lodBias = meshProxy.lodBias;
 
-    const BoundingSphere boundingSphere { BoundingBox(meshProxy.bufferData.worldAabbMin, meshProxy.bufferData.worldAabbMax) };
+    const BoundingSphere boundingSphere { BoundingBox(meshProxy.bufferData.worldAabbMin.GetXYZ(), meshProxy.bufferData.worldAabbMax) };
 
     const float screenSize = lodViewData.ComputeScreenSize(boundingSphere);
 
