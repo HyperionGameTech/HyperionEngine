@@ -135,6 +135,15 @@ void Scene::Shutdown()
     // Move so destruction of components can check GetEntityManager() returns nullptr
     if (m_entityManager.IsValid())
     {
+        // Fix for a hang seen on shutdown.
+        const ThreadId& ownerThreadId = m_entityManager->GetOwnerThreadId();
+        ThreadBase* ownerThread = GetThreadById(ownerThreadId);
+
+        if (ownerThreadId != g_mainThread && (ownerThread == nullptr || !ownerThread->IsRunning()))
+        {
+            SetOwnerThreadId(CurrentThreadId());
+        }
+
         if (IsOnThread(m_entityManager->GetOwnerThreadId()))
         {
             // If we are on the same thread, we can safely shutdown the entity manager here:
