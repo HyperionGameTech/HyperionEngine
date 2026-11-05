@@ -664,7 +664,7 @@
         </Style>
     </Window.Styles>
 
-    <Grid>
+    <Grid x:Name="WindowRoot">
         <DockPanel Background="{DynamicResource Brush.Background}">
             <Grid
                 x:Name="TitleBar"
@@ -4151,5 +4151,12 @@
 
         <!--  Foreground task overlay  -->
         <views:ForegroundTaskOverlay DataContext="{Binding ForegroundTask}" />
+
+        <!--  Rounded frame outline (non-Windows only; DWM draws the frame on Windows)  -->
+        <Border
+            x:Name="WindowFrameOutline"
+            BorderThickness="1"
+            IsHitTestVisible="False"
+            IsVisible="False" />
     </Grid>
 </Window>

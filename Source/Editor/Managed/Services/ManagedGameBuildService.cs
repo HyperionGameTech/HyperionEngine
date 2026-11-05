@@ -123,7 +123,8 @@ namespace Hyperion.Editor.Services
 
             if (shippingSdk != null && newerEngineSource != null)
             {
-                string message = $"The shipping SDK at {shippingSdk.Directory} is older than {newerEngineSource}, so the game wouldn't match the content the editor cooks. Rebuild it with BuildHyperion sdk.";
+                string message = $"The shipping SDK at {shippingSdk.Directory} is older than {newerEngineSource}\n\n"
+                    + "Rebuild it with the following command in your OS's terminal, from the root of the engine checkout: ./build sdk.";
 
                 Logger.Log(BuildLogChannel, LogLevel.Error, "{0}", message);
 

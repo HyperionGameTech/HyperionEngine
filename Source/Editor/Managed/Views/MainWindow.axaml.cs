@@ -137,6 +137,10 @@ namespace Hyperion.Editor
         private const double ToolbarGroupGap = 8;
         private const double ToolbarDensityHysteresis = 12;
 
+        // so we can round corners on non-Windows OSes (Windows has its own rounded corners)
+        private static bool UseCustomWindowCorners => !OperatingSystem.IsWindows();
+        private const double WindowCornerRadius = 8;
+
         public MainWindow()
         {
             var viewModel = new MainWindowViewModel();
@@ -144,6 +148,13 @@ namespace Hyperion.Editor
             DataContext = viewModel;
 
             InitializeComponent();
+
+            if (UseCustomWindowCorners)
+            {
+                TransparencyLevelHint = [WindowTransparencyLevel.Transparent];
+                Background = Brushes.Transparent;
+                WindowRoot.SizeChanged += (_, _) => UpdateWindowCorners();
+            }
 
             viewModel.SceneHierarchy.PropertyChanged += OnSceneHierarchyPropertyChanged;
             viewModel.PropertyChanged += OnViewModelChromePropertyChanged;
@@ -339,6 +350,7 @@ namespace Hyperion.Editor
                 RestoreGlyph.IsVisible = isMaximized;
                 ToolTip.SetTip(MaximizeButton, isMaximized ? "Restore" : "Maximize");
                 ClearCaptionHover();
+                UpdateWindowCorners();
             }
             else if (change.Property == IsActiveProperty)
             {
@@ -400,6 +412,22 @@ namespace Hyperion.Editor
             }
 
             DarkTitleBar.ApplyFrame(this, GetThemeColor(borderColorKey));
+            WindowFrameOutline.BorderBrush = new SolidColorBrush(GetThemeColor(borderColorKey));
+        }
+
+        private void UpdateWindowCorners()
+        {
+            if (!UseCustomWindowCorners)
+            {
+                return;
+            }
+
+            // Square corners when maximized / fullscreen so the window sits flush with the screen edges
+            double radius = WindowState == WindowState.Normal ? WindowCornerRadius : 0;
+
+            WindowRoot.Clip = radius > 0 ? new RectangleGeometry(new Rect(WindowRoot.Bounds.Size), radius, radius) : null;
+            WindowFrameOutline.CornerRadius = new CornerRadius(radius);
+            WindowFrameOutline.IsVisible = radius > 0;
         }
 
         private Avalonia.Media.Color GetThemeColor(string key) =>
