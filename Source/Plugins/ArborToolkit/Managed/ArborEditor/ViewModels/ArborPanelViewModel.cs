@@ -38,6 +38,7 @@ namespace Hyperion.Editor.ViewModels
         public string TargetName = string.Empty;
         public ArborPlantKind Kind;
         public string RecipeName = string.Empty;
+        public string RecipePreset = string.Empty;
         public string[] Presets = Array.Empty<string>();
         public uint Seed;
         public uint LayoutVersion;
@@ -52,7 +53,7 @@ namespace Hyperion.Editor.ViewModels
 
         internal static ArborSnapshot Read(EditorArborState state, uint? knownLayoutVersion)
         {
-            ArborSnapshot snapshot = new ArborSnapshot();
+            ArborSnapshot snapshot = new();
 
             try
             {
@@ -67,6 +68,7 @@ namespace Hyperion.Editor.ViewModels
                 snapshot.TargetName = state.GetTargetName() ?? string.Empty;
                 snapshot.Kind = (ArborPlantKind)state.GetTargetKind();
                 snapshot.RecipeName = state.GetRecipeName() ?? string.Empty;
+                snapshot.RecipePreset = state.GetRecipePreset() ?? string.Empty;
                 snapshot.Seed = state.GetSeed();
                 snapshot.LayoutVersion = state.GetLayoutVersion();
                 snapshot.HasLayout = knownLayoutVersion != snapshot.LayoutVersion;
@@ -129,13 +131,11 @@ namespace Hyperion.Editor.ViewModels
         }
     }
 
-    // One row of the panel. Ranged rows carry a ± toggle that turns the value into a span each seed lands in.
     public sealed class ArborControlRowViewModel : ViewModelBase
     {
         private readonly ArborPanelViewModel _panel;
         private ArborControlSnapshot _control;
 
-        // the snapshot that answers an edit arrives a frame or two behind it; don't let it pull the slider back
         private DateTime _editedAt = DateTime.MinValue;
 
         public uint Index => _control.Index;
@@ -168,7 +168,6 @@ namespace Hyperion.Editor.ViewModels
                     return;
                 }
 
-                // folding a range keeps the value this seed landed on, so the plant on screen stays as it is
                 if (value)
                 {
                     _control.Hi = _control.Lo;
@@ -443,6 +442,7 @@ namespace Hyperion.Editor.ViewModels
             }
         }
         public string StatusText => _state.StatusText;
+        public bool HasStatus => !string.IsNullOrEmpty(_state.StatusText);
         public bool IsGenerating => _state.IsGenerating;
 
         private string? _selectedPreset;
@@ -515,8 +515,13 @@ namespace Hyperion.Editor.ViewModels
                 }
             }
 
-            _selectedPreset = Presets.Contains(snapshot.RecipeName) ? snapshot.RecipeName : null;
-            OnPropertyChanged(nameof(SelectedPreset));
+            string? selectedPreset = Presets.Contains(snapshot.RecipePreset) ? snapshot.RecipePreset : null;
+
+            if (selectedPreset != _selectedPreset)
+            {
+                _selectedPreset = selectedPreset;
+                OnPropertyChanged(nameof(SelectedPreset));
+            }
 
             if (snapshot.HasLayout)
             {
@@ -539,6 +544,7 @@ namespace Hyperion.Editor.ViewModels
             OnPropertyChanged(nameof(CanSetVariantCount));
             OnPropertyChanged(nameof(VariantCountText));
             OnPropertyChanged(nameof(StatusText));
+            OnPropertyChanged(nameof(HasStatus));
             OnPropertyChanged(nameof(IsGenerating));
             OnPropertyChanged(nameof(SeedText));
             (BakeCommand as RelayCommand)?.RaiseCanExecuteChanged();

@@ -28,43 +28,60 @@
 
     <DockPanel>
         <Border
-            Padding="12,10"
+            Padding="12,8,12,10"
             Background="{DynamicResource Brush.PanelAlt}"
             BorderBrush="{DynamicResource Brush.Border}"
             BorderThickness="0,1,0,0"
             DockPanel.Dock="Bottom">
-            <Grid ColumnDefinitions="*,Auto">
-                <StackPanel VerticalAlignment="Center" Orientation="Horizontal" Spacing="6">
-                    <ProgressBar
-                        Width="40"
-                        IsIndeterminate="True"
-                        IsVisible="{Binding IsGenerating}" />
-                    <TextBlock Classes="arbor-hint" Text="{Binding StatusText}" />
-                </StackPanel>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+            <StackPanel Spacing="8">
+                <TextBlock
+                    Classes="arbor-hint"
+                    IsVisible="{Binding HasStatus}"
+                    Text="{Binding StatusText}"
+                    TextTrimming="CharacterEllipsis"
+                    TextWrapping="NoWrap"
+                    ToolTip.Tip="{Binding StatusText}" />
+                <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
                     <StackPanel
                         VerticalAlignment="Center"
                         IsVisible="{Binding CanSetVariantCount}"
                         Orientation="Horizontal"
-                        Spacing="4"
+                        Spacing="6"
                         ToolTip.Tip="Bake this many variants, at seeds counting up from this one, into a set the instance painter paints with">
-                        <TextBlock Classes="arbor-hint" VerticalAlignment="Center" Text="Variants" />
-                        <TextBox MinWidth="44" Text="{Binding VariantCountText, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" />
+                        <TextBlock Classes="arbor-label" Text="Variants" />
+                        <TextBox
+                            Width="48"
+                            MinWidth="0"
+                            Text="{Binding VariantCountText, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" />
                     </StackPanel>
                     <Button
-                        Padding="20,6"
+                        Grid.Column="2"
+                        Padding="16,6"
                         Command="{Binding DiscardCommand}"
                         Content="Discard"
                         ToolTip.Tip="Leave without baking" />
                     <Button
-                        Padding="20,6"
+                        Grid.Column="3"
+                        Padding="16,6"
                         Classes="Primary"
                         Command="{Binding BakeCommand}"
                         Content="{Binding BakeText}"
                         ToolTip.Tip="Save the plant as a prefab and leave" />
-                </StackPanel>
-            </Grid>
+                </Grid>
+            </StackPanel>
         </Border>
+
+        <Panel Height="2" DockPanel.Dock="Bottom">
+            <ProgressBar
+                Height="2"
+                MinHeight="0"
+                MinWidth="0"
+                HorizontalAlignment="Stretch"
+                Background="Transparent"
+                CornerRadius="0"
+                IsIndeterminate="True"
+                IsVisible="{Binding IsGenerating}" />
+        </Panel>
 
         <ScrollViewer Padding="4,0" Offset="{Binding ScrollOffset, Mode=TwoWay}">
             <StackPanel Margin="12,12,12,8" Spacing="12">
@@ -115,7 +132,6 @@
                                                                     Text="{Binding Label}"
                                                                     TextTrimming="CharacterEllipsis" />
 
-                                                                <!--  one number: slider and value  -->
                                                                 <Slider
                                                                     Grid.Column="1"
                                                                     VerticalAlignment="Center"
@@ -128,7 +144,6 @@
                                                                     IsVisible="{Binding IsSingle}"
                                                                     Text="{Binding LoText, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" />
 
-                                                                <!--  a range each seed lands in: low, high, and where this seed landed  -->
                                                                 <Grid
                                                                     Grid.Column="1"
                                                                     Grid.ColumnSpan="2"
@@ -154,8 +169,7 @@
                                                                     Classes="panel-toggle"
                                                                     Content="±"
                                                                     IsChecked="{Binding IsRange, Mode=TwoWay}"
-                                                                    IsVisible="{Binding IsRanged}"
-                                                                    ToolTip.Tip="A range: every plant lands somewhere in it, decided by its seed" />
+                                                                    IsVisible="{Binding IsRanged}" />
 
                                                                 <Slider
                                                                     Grid.Column="1"

@@ -3900,8 +3900,8 @@
                                                                                         CommandParameter="{Binding}"
                                                                                         Header="Place as Instance"
                                                                                         IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}"
-                                                                                        IsVisible="{Binding IsPrefab}"
-                                                                                        ToolTip.Tip="Add an instance of this prefab to the scene" />
+                                                                                        IsVisible="{Binding CanPlaceAsInstance}"
+                                                                                        ToolTip.Tip="Add an instance of this prefab to the scene. A set adds one of its prefabs, picked by weight." />
                                                                                     <MenuItem
                                                                                         Command="{Binding ContentBrowser.OpenWorldCommand, Source={x:Static vm:MainWindowViewModel.Instance}}"
                                                                                         CommandParameter="{Binding}"

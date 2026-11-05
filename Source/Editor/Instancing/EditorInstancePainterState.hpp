@@ -69,6 +69,31 @@ public:
     void SetActivePrefabSet(const Handle<PrefabSet>& prefabSet);
 
     HYP_METHOD()
+    void SetActivePrefabByName(Name assetName);
+
+    HYP_METHOD()
+    void SetActivePrefabSetByName(Name assetName);
+
+    ///Palette
+
+    HYP_METHOD()
+    uint32 GetPaletteCount() const;
+
+    HYP_METHOD()
+    Name GetPaletteName(uint32 index) const;
+
+    HYP_METHOD()
+    float GetPaletteWeight(uint32 index) const;
+
+    HYP_METHOD()
+    bool IsPaletteEntryIncluded(uint32 index) const;
+
+    HYP_METHOD()
+    void SetPaletteEntryIncluded(uint32 index, bool included);
+
+    ///Scale
+
+    HYP_METHOD()
     float GetScaleMin() const;
 
     HYP_METHOD()
@@ -79,6 +104,8 @@ public:
 
     HYP_METHOD()
     void SetScaleMax(float scaleMax);
+
+    //////////
 
     /// Radius around the placement point probed for the lowest ground, so nothing overhangs a slope. 0 = off
     HYP_METHOD()
@@ -122,10 +149,14 @@ private:
 
     bool IsPaintedPrefab(const Handle<Prefab>& prefab) const;
 
+    Array<PrefabSetEntry> GetPalette() const;
+    bool IsExcluded(const Handle<Prefab>& prefab) const;
+
     void DrawNextStamp();
 
     Handle<Prefab> m_activePrefab;
     Handle<PrefabSet> m_activePrefabSet;
+    Array<WeakHandle<Prefab>> m_excludedPrefabs;
 
     Handle<Prefab> m_nextPrefab;
     float m_nextScale = 1.0f;

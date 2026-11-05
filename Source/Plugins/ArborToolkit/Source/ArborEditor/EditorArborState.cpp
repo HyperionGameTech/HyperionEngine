@@ -396,6 +396,35 @@ String EditorArborState::GetRecipeName() const
     return m_recipe.GetName();
 }
 
+String EditorArborState::GetRecipePreset() const
+{
+    const String name = m_recipe.GetName();
+
+    if (m_presetLookupKind == m_kind && m_presetLookupName == name)
+    {
+        return m_presetLookupResult;
+    }
+
+    m_presetLookupKind = m_kind;
+    m_presetLookupName = name;
+    m_presetLookupResult = String::empty;
+
+    const uint32 count = ArborRecipeHandle::GetPresetCount(uint32(m_kind));
+
+    for (uint32 index = 0; index < count && !name.Empty(); index++)
+    {
+        const String preset = ArborRecipeHandle::GetPresetName(uint32(m_kind), index);
+
+        if (ArborRecipeHandle::FromPreset(uint32(m_kind), preset).GetName() == name)
+        {
+            m_presetLookupResult = preset;
+            break;
+        }
+    }
+
+    return m_presetLookupResult;
+}
+
 void EditorArborState::ApplyPreset(const String& preset)
 {
     ArborRecipeHandle recipe = ArborRecipeHandle::FromPreset(uint32(m_kind), preset);
@@ -956,7 +985,7 @@ bool EditorArborState::BakeVariantSet(const Array<Handle<Node>>& grownNodes)
 void EditorArborState::StartBakingVariants()
 {
     m_bakingVariants = true;
-    m_statusText = HYP_FORMAT("Growing {} variants...", m_variantCount);
+    m_statusText = HYP_FORMAT("Generating... ({} variants)", m_variantCount);
     OnStateChanged();
 
     Array<UniquePtr<ArborRecipeHandle>> jobs;
@@ -1216,7 +1245,7 @@ void EditorArborState::Update()
 void EditorArborState::StartGrowing(ArborRecipeHandle&& recipe)
 {
     m_generating = true;
-    m_statusText = "Growing...";
+    m_statusText = "Generating...";
     OnStateChanged();
 
     const WeakHandle<EditorArborState> weakThis = WeakHandleFromThis();

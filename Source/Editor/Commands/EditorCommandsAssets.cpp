@@ -13,6 +13,7 @@
 #include <Scene/Components/ScriptComponent.hpp>
 
 #include <Scene/Instancing/InstanceGroup.hpp>
+#include <Scene/Instancing/PrefabSet.hpp>
 
 #include <Core/IO/ByteReader.hpp>
 
@@ -834,10 +835,20 @@ public:
             return;
         }
 
-        Handle<Prefab> prefab = TryCast<Prefab>(GetCurrentAssetRegistry()->GetAsset(*AssetBuckets::AllBuckets[bucketIndex], Name(assetName)));
+        const auto asset = GetCurrentAssetRegistry()->GetAsset(*AssetBuckets::AllBuckets[bucketIndex], Name(assetName));
+
+        Handle<Prefab> prefab = TryCast<Prefab>(asset);
+
+        if (Handle<PrefabSet> prefabSet = TryCast<PrefabSet>(asset))
+        {
+            static uint32 s_pickSeed = 0x9E3779B9u;
+
+            prefab = prefabSet->ChooseOne(MathUtil::RandomFloat(s_pickSeed));
+        }
+
         if (!prefab.IsValid())
         {
-            HYP_LOG(Editor, Warning, "EditorCommandPlaceAsInstance: '{}' is not a prefab", assetName);
+            HYP_LOG(Editor, Warning, "EditorCommandPlaceAsInstance: '{}' is not a prefab, or a set with any prefabs in it", assetName);
             return;
         }
 
