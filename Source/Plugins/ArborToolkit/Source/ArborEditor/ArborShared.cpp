@@ -8,6 +8,13 @@
 
 #include <ArborEditor/ArborShared.hpp>
 
+#include <Asset/AssetRegistry.hpp>
+
+#include <Rendering/Texture.hpp>
+#include <Rendering/Util/TextureCompression.hpp>
+
+#include <Core/Math/MathUtil.hpp>
+
 #ifdef HYP_ARBOR
 #include <arbor.h>
 #endif
@@ -16,7 +23,100 @@
 
 namespace Hyperion {
 
+Name GetArborTextureAssetName(const UTF8StringView& mapName)
+{
+    return NAME_FMT("Arbor_{}", mapName);
+}
+
+bool ReadArborMap(const UTF8StringView& file, Vec2u& outExtent, ByteBuffer& outRgba)
+{
+    const UTF8StringView mapName = file.EndsWith(".png")
+        ? file.Substr(0, file.Length() - 4)
+        : file;
+
+    const Handle<AssetRegistry> registry = GetEngineAssetRegistry();
+
+    if (!registry.IsValid())
+    {
+        return false;
+    }
+
+    const Handle<Texture> texture = TryCast<Texture>(registry->GetAsset(AssetBuckets::Textures, GetArborTextureAssetName(mapName)));
+
+    if (!texture.IsValid())
+    {
+        return false;
+    }
+
+    auto readScope = texture->GetReadScope();
+
+    const TextureDesc& desc = texture->GetTextureDesc();
+    const ConstByteView imageData = texture->GetImageData();
+
+    outExtent = Vec2u { desc.extent.x, desc.extent.y };
+
+    const size_t numTexels = size_t(outExtent.x) * size_t(outExtent.y);
+
+    switch (desc.format)
+    {
+    case TextureFormat::RGBA8:
+    case TextureFormat::RGBA8_SRGB:
+        if (imageData.Size() < numTexels * 4)
+        {
+            return false;
+        }
+
+        outRgba = ByteBuffer(numTexels * 4, imageData.Data());
+
+        return true;
+    default:
+        break;
+    }
+
+    if (!TextureCompression::DecodeMip(desc, imageData, 0, outRgba) || outRgba.Size() < numTexels * 4)
+    {
+        return false;
+    }
+
+    ubyte* texels = outRgba.Data();
+
+    if (desc.format == TextureFormat::BC4)
+    {
+        for (size_t index = 0; index < numTexels; index++)
+        {
+            texels[index * 4 + 1] = texels[index * 4];
+            texels[index * 4 + 2] = texels[index * 4];
+        }
+    }
+    else if (desc.format == TextureFormat::BC5)
+    {
+        for (size_t index = 0; index < numTexels; index++)
+        {
+            const float x = float(texels[index * 4]) / 127.5f - 1.0f;
+            const float y = float(texels[index * 4 + 1]) / 127.5f - 1.0f;
+            const float z = MathUtil::Sqrt(MathUtil::Max(0.0f, 1.0f - x * x - y * y));
+
+            texels[index * 4 + 2] = ubyte(MathUtil::Round(z * 127.5f + 127.5f));
+        }
+    }
+
+    return true;
+}
+
 #ifdef HYP_ARBOR
+
+static bool ArborMapReaderCallback(void* user, const char* file, ArborMapSink* sink)
+{
+    Vec2u extent;
+    ByteBuffer rgba;
+
+    if (!ReadArborMap(UTF8StringView(file), extent, rgba))
+    {
+        return false;
+    }
+
+    return arbor_map_sink_put(sink, extent.x, extent.y, rgba.Data());
+}
 
 static void EnsureTextureDirectory()
 {
@@ -24,7 +124,7 @@ static void EnsureTextureDirectory()
 
     std::call_once(s_onceFlag, []()
         {
-            arbor_set_texture_dir(ARBOR_TEXTURE_DIR);
+            arbor_set_map_reader(&ArborMapReaderCallback, nullptr);
         });
 }
 

@@ -74,6 +74,42 @@ HYP_EDITOR_TEST(ArborTools, ExtensionIsAttached)
     HYP_TEST_CHECK_MSG(ArborRecipeHandle::IsAvailable(), "{}", ArborRecipeHandle::GetLastError());
 }
 
+HYP_EDITOR_TEST(ArborTools, ContentTexturesDecodeForArbor)
+{
+    Vec2u extent;
+    ByteBuffer albedo;
+    HYP_TEST_REQUIRE_MSG(ReadArborMap("bark_oak_albedo.png", extent, albedo), "no Arbor_bark_oak_albedo; run the buildarbortextures commandlet");
+    HYP_TEST_CHECK(extent.x > 0 && extent.y > 0 && extent.x <= 1024);
+    HYP_TEST_CHECK(albedo.Size() == size_t(extent.x) * extent.y * 4);
+
+    ByteBuffer roughness;
+    HYP_TEST_REQUIRE(ReadArborMap("bark_oak_roughness.png", extent, roughness));
+
+    bool grey = true;
+
+    for (size_t index = 0; index + 3 < roughness.Size(); index += 4)
+    {
+        grey &= roughness.Data()[index] == roughness.Data()[index + 1] && roughness.Data()[index] == roughness.Data()[index + 2];
+    }
+
+    HYP_TEST_CHECK_MSG(grey, "roughness should come back grey, as Arbor reads it");
+
+    ByteBuffer normal;
+    HYP_TEST_REQUIRE(ReadArborMap("bark_oak_normal.png", extent, normal));
+
+    uint64 sumZ = 0;
+
+    for (size_t index = 2; index < normal.Size(); index += 4)
+    {
+        sumZ += normal.Data()[index];
+    }
+
+    // a tangent-space normal map points mostly out of the surface, so z is rebuilt well above the midpoint
+    HYP_TEST_CHECK(sumZ / (normal.Size() / 4) > 200);
+
+    HYP_TEST_CHECK(!ReadArborMap("no_such_map_albedo.png", extent, albedo));
+}
+
 HYP_EDITOR_TEST(ArborTools, EveryKindGrowsIntoAPrefab)
 {
     HYP_TEST_REQUIRE(ArborRecipeHandle::IsAvailable());
