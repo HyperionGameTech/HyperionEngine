@@ -370,7 +370,7 @@ struct Handle final : HandleBase
             {
                 HYP_FAIL("Cannot create Handle because it is not a base class of T! "
                     "Expected = {}, Received = {}",
-                    TypeName<T>().Data(), TypeInfo_GetName(TypeInfo_ForClass(ptr->m_header->cls)));
+                    LookupTypeName(TypeId::ForType<T>()), TypeInfo_GetName(TypeInfo_ForClass(ptr->m_header->cls)));
             }
 
             if (!ptr->m_header->TryIncRefStrong())
