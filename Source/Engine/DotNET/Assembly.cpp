@@ -58,9 +58,9 @@ bool Assembly::Unload()
             continue;
         }
 
-        // its class can be gone already: a dynamic class whose managed type released it, or a class of an unloaded game module
-        if (const Class* cls = classObject->GetClass();
-                cls && ClassRegistry::GetInstance().GetClass(classObject->GetTypeId()) == cls)
+        const Class* cls = classObject->GetClass();
+
+        if (cls && ClassRegistry::GetInstance().GetClass(classObject->GetTypeId()) == cls)
         {
             cls->SetManagedClass(nullptr);
         }
@@ -72,7 +72,14 @@ bool Assembly::Unload()
 #endif
 }
 
-SharedPtr<ManagedClass> Assembly::NewClass(const Class* cls, int64 typeHash, const char* typeName, uint32 typeSize, TypeId typeId, ManagedClass* parentClass, uint32 flags)
+SharedPtr<ManagedClass> Assembly::NewClass(
+    const Class* cls,
+    int64 typeHash,
+    const char* typeName,
+    uint32 typeSize,
+    TypeId typeId,
+    ManagedClass* parentClass,
+    uint32 flags)
 {
 #ifdef HYP_DOTNET
     auto it = m_classObjects.Find(typeHash);
@@ -84,7 +91,16 @@ SharedPtr<ManagedClass> Assembly::NewClass(const Class* cls, int64 typeHash, con
         return it->second;
     }
 
-    it = m_classObjects.Insert(typeHash, MakeShared<ManagedClass>(WeakThis(), typeName, typeSize, typeId, cls, parentClass, EnumFlags<ManagedClassFlags>(flags))).first;
+    it = m_classObjects.Insert(
+        typeHash,
+        MakeShared<ManagedClass>(
+            WeakThis(),
+            typeName,
+            typeSize,
+            typeId,
+            cls,
+            parentClass,
+            EnumFlags<ManagedClassFlags>(flags))).first;
 
     if (cls != nullptr)
     {
@@ -108,10 +124,9 @@ SharedPtr<ManagedClass> Assembly::FindClassByName(const char* typeName)
         }
     }
 
-    return nullptr;
-#else
-    return nullptr;
 #endif
+
+    return nullptr;
 }
 
 SharedPtr<ManagedClass> Assembly::FindClassByTypeHash(int64 typeHash)
@@ -124,10 +139,9 @@ SharedPtr<ManagedClass> Assembly::FindClassByTypeHash(int64 typeHash)
         return it->second;
     }
 
-    return nullptr;
-#else
-    return nullptr;
 #endif
+
+    return nullptr;
 }
 
 } // namespace dotnet

@@ -419,6 +419,21 @@ void Node::OnNodeDetached(Node* node)
     MarkDirty();
 }
 
+Node::NodeList Node::GetChildren_Serialized() const
+{
+    NodeList children;
+
+    for (const Handle<Node>& child : m_childNodes)
+    {
+        if (child.IsValid() && !(child->GetNodeFlags() & NodeFlags::Generated))
+        {
+            children.PushBack(child);
+        }
+    }
+
+    return children;
+}
+
 void Node::SetChildren(const NodeList& children)
 {
     RemoveAllChildren(/* moveToDetached */ false);

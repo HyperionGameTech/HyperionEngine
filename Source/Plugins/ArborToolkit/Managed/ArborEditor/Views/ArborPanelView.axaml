@@ -1,0 +1,193 @@
+<UserControl
+    x:Class="Hyperion.Editor.Views.Panels.ArborPanelView"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="using:Hyperion.Editor.ViewModels"
+    x:DataType="vm:ArborPanelViewModel"
+    mc:Ignorable="d">
+
+    <UserControl.Styles>
+        <Style Selector="TextBlock.arbor-hint">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextMuted}" />
+        </Style>
+        <Style Selector="TextBlock.arbor-label">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        </Style>
+        <Style Selector="TextBlock.arbor-value">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="HorizontalAlignment" Value="Right" />
+        </Style>
+    </UserControl.Styles>
+
+    <DockPanel>
+        <Border
+            Padding="12,10"
+            Background="{DynamicResource Brush.PanelAlt}"
+            BorderBrush="{DynamicResource Brush.Border}"
+            BorderThickness="0,1,0,0"
+            DockPanel.Dock="Bottom">
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel VerticalAlignment="Center" Orientation="Horizontal" Spacing="6">
+                    <ProgressBar
+                        Width="40"
+                        IsIndeterminate="True"
+                        IsVisible="{Binding IsGenerating}" />
+                    <TextBlock Classes="arbor-hint" Text="{Binding StatusText}" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                    <Button
+                        Padding="20,6"
+                        Command="{Binding DiscardCommand}"
+                        Content="Discard"
+                        ToolTip.Tip="Leave without baking" />
+                    <Button
+                        Padding="20,6"
+                        Classes="Primary"
+                        Command="{Binding BakeCommand}"
+                        Content="{Binding BakeText}"
+                        ToolTip.Tip="Save the plant as a prefab and leave" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <ScrollViewer Padding="4,0" Offset="{Binding ScrollOffset, Mode=TwoWay}">
+            <StackPanel Margin="12,12,12,8" Spacing="12">
+
+                <TextBlock Classes="section-label" Text="{Binding Heading}" />
+
+                <Grid ColumnDefinitions="60,*" RowDefinitions="Auto,Auto" RowSpacing="6">
+                    <TextBlock Classes="arbor-label" Text="Preset" />
+                    <ComboBox
+                        Grid.Column="1"
+                        HorizontalAlignment="Stretch"
+                        ItemsSource="{Binding Presets}"
+                        SelectedItem="{Binding SelectedPreset, Mode=TwoWay}" />
+
+                    <TextBlock Grid.Row="1" Classes="arbor-label" Text="Seed" />
+                    <Grid Grid.Row="1" Grid.Column="1" ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                        <TextBox Text="{Binding SeedText, Mode=TwoWay}" />
+                        <Button
+                            Grid.Column="1"
+                            Command="{Binding RandomizeSeedCommand}"
+                            Content="Reseed" />
+                    </Grid>
+                </Grid>
+
+                <ItemsControl ItemsSource="{Binding Sections}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ArborSectionViewModel">
+                            <Expander
+                                Margin="0,0,0,6"
+                                HorizontalAlignment="Stretch"
+                                Header="{Binding Title}">
+                                <ItemsControl ItemsSource="{Binding Groups}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:ArborGroupViewModel">
+                                            <StackPanel Margin="0,0,0,8" Spacing="2">
+                                                <TextBlock
+                                                    Classes="arbor-hint"
+                                                    IsVisible="{Binding HasTitle}"
+                                                    Text="{Binding Title}" />
+                                                <ItemsControl ItemsSource="{Binding Rows}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate x:DataType="vm:ArborControlRowViewModel">
+                                                            <Grid Margin="0,1" ColumnDefinitions="120,*,64,24" ColumnSpacing="6" ToolTip.Tip="{Binding Help}">
+                                                                <TextBlock
+                                                                    VerticalAlignment="Center"
+                                                                    Classes="inspector-name"
+                                                                    IsVisible="{Binding !IsToggle}"
+                                                                    Text="{Binding Label}"
+                                                                    TextTrimming="CharacterEllipsis" />
+
+                                                                <!--  one number: slider and value  -->
+                                                                <Slider
+                                                                    Grid.Column="1"
+                                                                    VerticalAlignment="Center"
+                                                                    IsVisible="{Binding IsSingle}"
+                                                                    Maximum="1"
+                                                                    Minimum="0"
+                                                                    Value="{Binding LoPosition, Mode=TwoWay}" />
+                                                                <TextBox
+                                                                    Grid.Column="2"
+                                                                    IsVisible="{Binding IsSingle}"
+                                                                    Text="{Binding LoText, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" />
+
+                                                                <!--  a range each seed lands in: low, high, and where this seed landed  -->
+                                                                <Grid
+                                                                    Grid.Column="1"
+                                                                    Grid.ColumnSpan="2"
+                                                                    ColumnDefinitions="*,Auto,*,Auto"
+                                                                    ColumnSpacing="4"
+                                                                    IsVisible="{Binding IsRange}">
+                                                                    <TextBox Text="{Binding LoText, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" />
+                                                                    <TextBlock Grid.Column="1" VerticalAlignment="Center" Classes="arbor-hint" Text="–" />
+                                                                    <TextBox Grid.Column="2" Text="{Binding HiText, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" />
+                                                                    <TextBlock
+                                                                        Grid.Column="3"
+                                                                        MinWidth="40"
+                                                                        VerticalAlignment="Center"
+                                                                        Classes="arbor-hint"
+                                                                        Text="{Binding LandedText}"
+                                                                        ToolTip.Tip="{Binding LandedTip}" />
+                                                                </Grid>
+
+                                                                <ToggleButton
+                                                                    Grid.Column="3"
+                                                                    Padding="0"
+                                                                    HorizontalContentAlignment="Center"
+                                                                    Classes="panel-toggle"
+                                                                    Content="±"
+                                                                    IsChecked="{Binding IsRange, Mode=TwoWay}"
+                                                                    IsVisible="{Binding IsRanged}"
+                                                                    ToolTip.Tip="A range: every plant lands somewhere in it, decided by its seed" />
+
+                                                                <Slider
+                                                                    Grid.Column="1"
+                                                                    VerticalAlignment="Center"
+                                                                    IsSnapToTickEnabled="True"
+                                                                    IsVisible="{Binding IsCount}"
+                                                                    Maximum="{Binding CountMax}"
+                                                                    Minimum="{Binding CountMin}"
+                                                                    TickFrequency="1"
+                                                                    Value="{Binding CountValue, Mode=TwoWay}" />
+                                                                <TextBox
+                                                                    Grid.Column="2"
+                                                                    IsVisible="{Binding IsCount}"
+                                                                    Text="{Binding CountText, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" />
+
+                                                                <ComboBox
+                                                                    Grid.Column="1"
+                                                                    Grid.ColumnSpan="2"
+                                                                    HorizontalAlignment="Stretch"
+                                                                    IsVisible="{Binding IsChoice}"
+                                                                    ItemsSource="{Binding Options}"
+                                                                    SelectedIndex="{Binding SelectedOption, Mode=TwoWay}" />
+
+                                                                <CheckBox
+                                                                    Grid.ColumnSpan="3"
+                                                                    Content="{Binding Label}"
+                                                                    IsChecked="{Binding IsOn, Mode=TwoWay}"
+                                                                    IsVisible="{Binding IsToggle}" />
+                                                            </Grid>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Expander>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

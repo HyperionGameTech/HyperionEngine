@@ -1,0 +1,5 @@
+PluginDescriptor "ArborToolkit" {
+    Version = "1.0.0"
+    Description = "Integration with Arbor procedural asset generation in Hyperion Editor"
+    EnabledByDefault = true
+}

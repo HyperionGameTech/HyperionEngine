@@ -62,6 +62,7 @@
 #include <Core/Reflection/Handle.hpp>
 
 #include <Framework/EngineDriver.hpp>
+#include <Framework/EngineGlobals.hpp>
 
 #include <Util/Img/Bitmap.hpp>
 #include <Util/Img/ImageUtil.hpp>
@@ -2812,9 +2813,69 @@ LoadedAsset BuildModel(LoaderState& state, cgltf_data& data)
     return LoadedAsset { std::move(prefab) };
 }
 
+AssetLoadResult BuildParsedModel(LoaderState& state, const cgltf_options& options, cgltf_data& data)
+{
+    const FilePath& absPath = state.filepath;
+
+    const cgltf_result bufferResult = cgltf_load_buffers(&options, &data, absPath.Data());
+
+    if (bufferResult != cgltf_result_success)
+    {
+        return HYP_MAKE_ERROR(AssetLoadError, "Failed to load glTF buffers '{}': {}", absPath, ToString(bufferResult));
+    }
+
+    const cgltf_result validationResult = cgltf_validate(&data);
+
+    if (validationResult != cgltf_result_success)
+    {
+        HYP_LOG(Assets, Warning, "GLTF validation warning for '{}': {}", absPath, ToString(validationResult));
+
+        return HYP_MAKE_ERROR(AssetLoadError, "GLTF validation failed for '{}': {}", absPath, ToString(validationResult));
+    }
+
+    return BuildModel(state, data);
+}
+
 } // namespace
 
 GLTFModelLoader::GLTFModelLoader() = default;
+
+AssetLoadResult GLTFModelLoader::LoadFromMemory(
+    ConstByteView glb,
+    const FilePath& virtualPath,
+    EnumFlags<AssetLoadHint> hint)
+{
+    Assert(g_assetManager.IsValid());
+
+    cgltf_options options {};
+    cgltf_data* data = nullptr;
+
+    HYP_DEFER({
+        if (data)
+        {
+            cgltf_free(data);
+            data = nullptr;
+        }
+    });
+
+    // Nothing is read through the stream: the bytes are parsed directly
+    LoaderState state {
+        LoaderState::Stream { FilePath() },
+        g_assetManager.Get(),
+        virtualPath,
+        String::empty,
+        hint
+    };
+
+    const cgltf_result parseResult = cgltf_parse(&options, glb.Data(), glb.Size(), &data);
+
+    if (parseResult != cgltf_result_success || data == nullptr)
+    {
+        return HYP_MAKE_ERROR(AssetLoadError, "Failed to parse in-memory glTF '{}': {}", virtualPath, ToString(parseResult));
+    }
+
+    return BuildParsedModel(state, options, *data);
+}
 
 AssetLoadResult GLTFModelLoader::LoadAsset(LoaderState& state) const
 {
@@ -2840,23 +2901,7 @@ AssetLoadResult GLTFModelLoader::LoadAsset(LoaderState& state) const
         return HYP_MAKE_ERROR(AssetLoadError, "Failed to parse glTF file '{}': {}", absPath, ToString(parseResult));
     }
 
-    const cgltf_result bufferResult = cgltf_load_buffers(&options, data, absPath.Data());
-
-    if (bufferResult != cgltf_result_success)
-    {
-        return HYP_MAKE_ERROR(AssetLoadError, "Failed to load glTF buffers '{}': {}", absPath, ToString(bufferResult));
-    }
-
-    const cgltf_result validationResult = cgltf_validate(data);
-
-    if (validationResult != cgltf_result_success)
-    {
-        HYP_LOG(Assets, Warning, "GLTF validation warning for '{}': {}", absPath, ToString(validationResult));
-
-        return HYP_MAKE_ERROR(AssetLoadError, "GLTF validation failed for '{}': {}", absPath, ToString(validationResult));
-    }
-
-    return BuildModel(state, *data);
+    return BuildParsedModel(state, options, *data);
 }
 
 } // namespace Hyperion
