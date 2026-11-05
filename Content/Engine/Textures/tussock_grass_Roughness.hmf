@@ -1,0 +1,36 @@
+Texture tussock_grass_Roughness {
+    TextureDesc = {
+        Type = Texture2D
+        Format = RG8
+        Extent = (768, 512, 1)
+        MinFilterMode = LinearMipmap
+        MagFilterMode = Linear
+        TextureWrapMode = ClampToEdge
+        NumLayers = 1
+        ImageUsage = Sampled
+        MipOffsets = [
+            786432
+            983040
+            1032192
+            1044480
+            1047552
+            1048320
+            1048512
+            1048560
+            1048572
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+        ]
+    }
+    ImageData = {
+        Key = "Engine://Textures/tussock_grass_Roughness.TEX"
+        Size = 1048574
+    }
+    Compression = Auto
+    UUID = "d3f628df-21cf-4392-b85b-2c41d7e92899"
+}

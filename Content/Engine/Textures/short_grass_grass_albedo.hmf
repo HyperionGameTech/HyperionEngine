@@ -1,7 +1,7 @@
 Texture short_grass_grass_albedo {
     TextureDesc = {
         Type = Texture2D
-        Format = BC7_SRGB
+        Format = RGBA8_SRGB
         Extent = (1536, 512, 1)
         MinFilterMode = LinearMipmap
         MagFilterMode = Linear
@@ -9,16 +9,16 @@ Texture short_grass_grass_albedo {
         NumLayers = 1
         ImageUsage = Sampled
         MipOffsets = [
-            786432
-            983040
-            1032192
-            1044480
-            1047552
-            1048320
-            1048512
-            1048560
-            1048592
-            1048608
+            3145728
+            3932160
+            4128768
+            4177920
+            4190208
+            4193280
+            4194048
+            4194240
+            4194288
+            4194300
             0
             0
             0
@@ -29,8 +29,8 @@ Texture short_grass_grass_albedo {
     }
     ImageData = {
         Key = "Engine://Textures/short_grass_grass_albedo.TEX"
-        Size = 1048624
+        Size = 4194304
     }
     Compression = Auto
-    UUID = "daa2e0c2-0155-4a7b-8b1d-f70faa2580a8"
+    UUID = "eef8ab44-4e32-44bd-80b2-5c8a1fb3adc5"
 }

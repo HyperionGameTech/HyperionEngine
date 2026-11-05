@@ -41,10 +41,14 @@ struct GroundCoverPrefabSource
     const char* layerName;
     GroundCoverSource source;
     uint32 splatLayer;
+    float weight = 1.0f;
+    float clumpSize = 12.0f;
 };
 
 static constexpr GroundCoverPrefabSource s_groundCoverSources[] = {
-    { "meadow_grass", "Meadow", GroundCoverSource::SplatLayer, 0 },
+    { "lush_meadow", "Meadow", GroundCoverSource::SplatLayer, 0, 1.0f, 5.0f },
+    { "seedhead_grass", "Meadow", GroundCoverSource::SplatLayer, 0, 0.35f, 5.0f },
+    { "tussock", "Meadow", GroundCoverSource::SplatLayer, 0, 0.1f, 5.0f },
     { "short_grass", "Short Grass", GroundCoverSource::Painted, 0 },
     { "wildflower_meadow", "Wildflowers", GroundCoverSource::Painted, 0 },
     { "dry_grass", "Dry Grass", GroundCoverSource::Painted, 0 }
@@ -208,11 +212,25 @@ static void BuildGroundCover(Handle<AssetRegistry>& outputRegistry)
 
         outputRegistry->PutAssetsDeep(prefab, /* overwriteExisting */ true);
 
-        GroundCoverLayer& layer = groundCover->layers.EmplaceBack();
-        layer.name = CreateNameFromDynamicString(source.layerName);
-        layer.source = source.source;
-        layer.splatLayer = source.splatLayer;
-        layer.types.PushBack(GroundCoverType { prefab, 1.0f });
+        const Name layerName = CreateNameFromDynamicString(source.layerName);
+
+        auto layerIt = groundCover->layers.FindIf([layerName](const GroundCoverLayer& layer)
+            {
+                return layer.name == layerName;
+            });
+
+        if (layerIt == groundCover->layers.End())
+        {
+            GroundCoverLayer& layer = groundCover->layers.EmplaceBack();
+            layer.name = layerName;
+            layer.source = source.source;
+            layer.splatLayer = source.splatLayer;
+            layer.clumpSize = source.clumpSize;
+
+            layerIt = &layer;
+        }
+
+        layerIt->types.PushBack(GroundCoverType { prefab, source.weight });
 
         HYP_LOG(Engine, Info, "Ground cover {} built and registered", source.name);
     }

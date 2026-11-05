@@ -1,0 +1,109 @@
+Mesh lush_meadow_LOD0 {
+    AABB = {
+        Min = (-1.2431444, 0, -1.3887281)
+        Max = (1.3000021, 0.99765074, 1.2722733)
+    }
+    LodGeneration = {
+        NumLods = 4
+        TriangleRatios = [
+            1
+            0.5
+            0.25
+            0.125
+        ]
+        MaxRelativeError = 1
+        NormalWeight = 0.5
+        UV0Weight = 1
+        UV1Weight = 0.5
+        WindWeight = 1
+        LockBorder = false
+        Prune = false
+        MaxScreenErrorPixels = 1
+        SourceDataHash = 0
+    }
+    LightmapUVDataHash = 0
+    Lod0DataRevision = 1
+    MeshDesc = {
+        MeshAttributes = {
+            InputLayout = {
+                Mask = 103
+            }
+            Topology = Triangles
+            IndexBufferElemType = UnsignedInt
+        }
+        Lods = [
+            MeshLodDesc {
+                NumVertices = 9440
+                NumIndices = 22656
+                GeometricError = 0
+                ScreenSize = 0
+            }
+            MeshLodDesc {
+                NumVertices = 2832
+                NumIndices = 5664
+                GeometricError = 0.044139326
+                ScreenSize = 0.08
+            }
+            MeshLodDesc {
+                NumVertices = 756
+                NumIndices = 1134
+                GeometricError = 0.100889884
+                ScreenSize = 0.035
+            }
+            MeshLodDesc {
+                NumVertices = 0
+                NumIndices = 0
+                GeometricError = 0
+                ScreenSize = 0
+            }
+        ]
+    }
+    LodData = [
+        MeshLodData {
+            VertexData = {
+                Key = "Engine://Meshes/lush_meadow_LOD0.VB"
+                Size = 641920
+            }
+            IndexData = {
+                Key = "Engine://Meshes/lush_meadow_LOD0.IB"
+                Size = 90624
+            }
+        }
+        MeshLodData {
+            VertexData = {
+                Key = "Engine://Meshes/lush_meadow_LOD0.VB1"
+                Size = 192576
+            }
+            IndexData = {
+                Key = "Engine://Meshes/lush_meadow_LOD0.IB1"
+                Size = 22656
+            }
+        }
+        MeshLodData {
+            VertexData = {
+                Key = "Engine://Meshes/lush_meadow_LOD0.VB2"
+                Size = 51408
+            }
+            IndexData = {
+                Key = "Engine://Meshes/lush_meadow_LOD0.IB2"
+                Size = 4536
+            }
+        }
+        MeshLodData {
+            VertexData = {
+                Key = ""
+                Size = 0
+            }
+            IndexData = {
+                Key = ""
+                Size = 0
+            }
+        }
+    ]
+    BvhData = {
+        Key = "Engine://Meshes/lush_meadow_LOD0.BVH"
+        Size = 116591
+    }
+    Flags = None
+    UUID = "f6cc2a0c-50e7-4662-80ec-5bd4b8d6d011"
+}

@@ -1,0 +1,36 @@
+Texture lush_meadow_grass_albedo {
+    TextureDesc = {
+        Type = Texture2D
+        Format = RGBA8_SRGB
+        Extent = (1024, 512, 1)
+        MinFilterMode = LinearMipmap
+        MagFilterMode = Linear
+        TextureWrapMode = ClampToEdge
+        NumLayers = 1
+        ImageUsage = Sampled
+        MipOffsets = [
+            2097152
+            2621440
+            2752512
+            2785280
+            2793472
+            2795520
+            2796032
+            2796160
+            2796192
+            2796200
+            0
+            0
+            0
+            0
+            0
+            0
+        ]
+    }
+    ImageData = {
+        Key = "Engine://Textures/lush_meadow_grass_albedo.TEX"
+        Size = 2796204
+    }
+    Compression = Auto
+    UUID = "0f8923d0-e4e2-4137-98dc-0c6bcfa510cf"
+}

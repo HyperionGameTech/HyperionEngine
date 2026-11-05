@@ -1,7 +1,7 @@
 Texture wildflower_meadow_grass_Roughness {
     TextureDesc = {
         Type = Texture2D
-        Format = BC4
+        Format = RG8
         Extent = (2304, 512, 1)
         MinFilterMode = LinearMipmap
         MagFilterMode = Linear
@@ -9,17 +9,17 @@ Texture wildflower_meadow_grass_Roughness {
         NumLayers = 1
         ImageUsage = Sampled
         MipOffsets = [
-            589824
-            737280
-            774144
-            783360
-            785664
-            786240
-            786384
-            786424
-            786448
-            786456
-            786464
+            2359296
+            2949120
+            3096576
+            3133440
+            3142656
+            3144960
+            3145536
+            3145680
+            3145716
+            3145724
+            3145728
             0
             0
             0
@@ -29,8 +29,8 @@ Texture wildflower_meadow_grass_Roughness {
     }
     ImageData = {
         Key = "Engine://Textures/wildflower_meadow_grass_Roughness.TEX"
-        Size = 786472
+        Size = 3145730
     }
     Compression = Auto
-    UUID = "4672eeb3-7283-4d50-b512-f7c4e7e9ab9c"
+    UUID = "206c9bd5-07ca-4ec3-b387-5ff3661e811c"
 }

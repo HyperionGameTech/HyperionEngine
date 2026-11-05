@@ -1,0 +1,94 @@
+Prefab tussock {
+    Root = Entity tussock {
+        UUID = "1c49ca4c-15a2-4135-9639-0df4cfa4bbf1"
+        NodeFlags = MobilityStatic
+        LocalBounds = {
+            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+        }
+        LocalTransform = {
+            Translation = (0, 0, 0)
+            Scale = (1, 1, 1)
+            Rotation = {
+                X = 0
+                Y = 0
+                Z = 0
+                W = 1
+            }
+        }
+        Children = [
+            Entity tussock {
+                UUID = "cbce6164-b92c-4655-bab0-2e704da6761d"
+                NodeFlags = MobilityStatic
+                LocalBounds = {
+                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                }
+                LocalTransform = {
+                    Translation = (0, 0, 0)
+                    Scale = (1, 1, 1)
+                    Rotation = {
+                        X = 0
+                        Y = 0
+                        Z = 0
+                        W = 1
+                    }
+                }
+                Children = [
+                    Entity tussock_Primitive0 {
+                        Components = [
+                            MeshComponent {
+                                Mesh = @"Engine://Meshes/tussock_LOD0"
+                                Material = @"Engine://Materials/tussock_grass"
+                                Skeleton = null
+                                EnableAutoInstancing = false
+                                InstanceData = null
+                                ForcedLod = 0
+                                LodBias = 0
+                            }
+                        ]
+                        UUID = "b08310d9-dd59-4ba8-916c-8a6f07974bd1"
+                        NodeFlags = MobilityStatic
+                        LocalBounds = {
+                            Min = (-1.0343755, 0, -0.8507391)
+                            Max = (1.2801545, 1.1756282, 1.0348794)
+                        }
+                        LocalTransform = {
+                            Translation = (0, 0, 0)
+                            Scale = (1, 1, 1)
+                            Rotation = {
+                                X = 0
+                                Y = 0
+                                Z = 0
+                                W = 1
+                            }
+                        }
+                        RotationConvention = 1
+                        DataEntries = {}
+
+                    }
+                ]
+                RotationConvention = 1
+                DataEntries = {}
+
+            }
+        ]
+        RotationConvention = 1
+        DataEntries = {}
+
+    }
+    Revision = 0
+    ImportInfo = {
+        SourcePath = ""
+        Settings = {
+            RigMode = Create
+            TargetSkeleton = ""
+            Scale = 1
+            FrameRate = 30
+            GenerateMeshLods = true
+            AutoMapHumanoid = true
+        }
+        SourceClip = ""
+    }
+    UUID = "294e1beb-e17a-4b8d-9ecf-2c3d566bfb03"
+}
