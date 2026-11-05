@@ -151,7 +151,6 @@ public:
 
     ///Environment Settings
 
-    /// Get EnvironmentSettings - only script bindings for Strata, C# does not have this struct
     HYP_METHOD(Property = "EnvironmentSettings", Serialize, Editor, OnlyLanguages = "strata")
     HYP_FORCE_INLINE const EnvironmentSettings& GetEnvironmentSettings() const
     {

@@ -27,6 +27,8 @@ namespace Hyperion.Editor.ViewModels
 
         public ObservableCollection<InspectorPropertyViewModelBase> SubProperties { get; } = new();
 
+        private readonly List<(InspectorPropertyViewModelBase ViewModel, Property? Gate)> _fields = new();
+
         private bool _hasSubProperties;
         public bool HasSubProperties
         {
@@ -191,7 +193,7 @@ namespace Hyperion.Editor.ViewModels
 
             _peerStructValues = new BoxedValue?[peers.Count];
 
-            foreach (InspectorPropertyViewModelBase vm in SubProperties.ToList())
+            foreach ((InspectorPropertyViewModelBase vm, _) in _fields.ToList())
             {
                 Property fieldProperty = vm.Property;
                 List<PropertyTarget> fieldPeers = new List<PropertyTarget>(peers.Count);
@@ -210,6 +212,7 @@ namespace Hyperion.Editor.ViewModels
 
                 if (!vm.AttachPeers(fieldPeers))
                 {
+                    _fields.RemoveAll(field => field.ViewModel == vm);
                     SubProperties.Remove(vm);
                 }
             }
@@ -272,14 +275,123 @@ namespace Hyperion.Editor.ViewModels
                         initialize: false,
                         preWriteCallback: ReloadStructFromParent,
                         postWriteCallback: WriteStructToParent,
-                        valueChangedCallback: () => ValueChangedCallback?.Invoke(),
+                        valueChangedCallback: () =>
+                        {
+                            RefreshSubPropertyVisibility();
+                            ValueChangedCallback?.Invoke();
+                        },
                         ownerEntity: OwnerEntity);
 
+                    _fields.Add((vm, ResolveShowIfGate(property)));
                     SubProperties.Add(vm);
                 }
                 catch (Exception ex)
                 {
                     Logger.Log(LogLevel.Warning, $"StructPropertyViewModel: Skipping property '{property.Name}' for struct '{_structClass.Name}': {ex.Message}");
+                }
+            }
+
+            HasSubProperties = SubProperties.Count > 0;
+        }
+
+        private Property? ResolveShowIfGate(Property property)
+        {
+            ClassAttribute? attrShowIf = property.GetAttribute("showif");
+
+            if (attrShowIf == null)
+            {
+                return null;
+            }
+
+            string gateName = attrShowIf.Value.GetString();
+            Property? gate = _structClass.GetProperty(new Name(gateName));
+
+            if (gate == null)
+            {
+                Logger.Log(LogLevel.Warning, $"StructPropertyViewModel: '{property.Name}' is shown by '{gateName}', which is not a property of struct '{_structClass.Name}'");
+            }
+
+            return gate;
+        }
+
+        // Sim thread. A field with no gate is always shown; otherwise its gate's bool is read from the struct copy.
+        private bool[] ReadSubPropertyVisibility(Property?[] gates)
+        {
+            bool[] visible = new bool[gates.Length];
+            IntPtr structPtr = GetCurrentStructPointer();
+
+            for (int i = 0; i < gates.Length; i++)
+            {
+                visible[i] = gates[i] == null || ReadGate(gates[i]!.Value, structPtr);
+            }
+
+            return visible;
+        }
+
+        private bool ReadGate(Property gate, IntPtr structPtr)
+        {
+            try
+            {
+                using BoxedValue value = gate.Get(_structClass.Address, structPtr);
+
+                return value.GetValue() is true;
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogLevel.Warning, $"StructPropertyViewModel: failed to read gate '{gate.Name}' for '{Label}': {ex.Message}");
+
+                return true;
+            }
+        }
+
+        // UI thread. Re-reads the gates after a write inside this struct, since one of them may have changed.
+        private void RefreshSubPropertyVisibility()
+        {
+            Property?[] gates = _fields.Select(field => field.Gate).ToArray();
+
+            if (gates.All(gate => gate == null))
+            {
+                return;
+            }
+
+            _ = EngineManager.PostToSimThread(() =>
+            {
+                bool[] visible = ReadSubPropertyVisibility(gates);
+
+                Dispatcher.UIThread.Post(() => ApplySubPropertyVisibility(visible));
+            });
+        }
+
+        // UI thread. Keeps SubProperties in declaration order, holding only the fields whose gate is on.
+        private void ApplySubPropertyVisibility(bool[] visible)
+        {
+            if (visible.Length != _fields.Count)
+            {
+                return;
+            }
+
+            for (int i = 0; i < _fields.Count; i++)
+            {
+                InspectorPropertyViewModelBase vm = _fields[i].ViewModel;
+                bool isShown = SubProperties.Contains(vm);
+
+                if (visible[i] && !isShown)
+                {
+                    int index = 0;
+
+                    for (int j = 0; j < i; j++)
+                    {
+                        if (SubProperties.Contains(_fields[j].ViewModel))
+                        {
+                            index++;
+                        }
+                    }
+
+                    SubProperties.Insert(index, vm);
+                }
+                else if (!visible[i] && isShown)
+                {
+                    SubProperties.Remove(vm);
                 }
             }
 
@@ -293,8 +405,12 @@ namespace Hyperion.Editor.ViewModels
                 return;
             }
 
+            Property?[] gates = _fields.Select(field => field.Gate).ToArray();
+
             _ = EngineManager.PostToSimThread(() =>
             {
+                bool[] visible;
+
                 try
                 {
                     ReplaceStructValue(GetPropertyValue());
@@ -305,6 +421,8 @@ namespace Hyperion.Editor.ViewModels
                     {
                         ReplacePeerStructValue(i, peers[i].Get());
                     }
+
+                    visible = ReadSubPropertyVisibility(gates);
                 }
                 catch (Exception ex)
                 {
@@ -319,7 +437,9 @@ namespace Hyperion.Editor.ViewModels
                 {
                     try
                     {
-                        foreach (InspectorPropertyViewModelBase vm in SubProperties)
+                        ApplySubPropertyVisibility(visible);
+
+                        foreach ((InspectorPropertyViewModelBase vm, _) in _fields)
                         {
                             vm.RefreshValue();
                         }

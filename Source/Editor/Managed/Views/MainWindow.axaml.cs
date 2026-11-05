@@ -109,6 +109,7 @@ namespace Hyperion.Editor
         private int _mainThreadUpdateDepth;
         private bool _closeDeferred;
         private bool _suppressPanelSync;
+        private HashSet<string> _newWorldExistingNames = new(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, object?> _dockContents = new Dictionary<string, object?>();
         private readonly Dictionary<EditorViewportType, Control> _orthoViewportContents = new();
 
@@ -171,6 +172,8 @@ namespace Hyperion.Editor
             {
                 AddSceneContextMenu.Items.Add(entry);
             }
+
+            WorldNameEditor.AddHandler(KeyDownEvent, OnWorldNameEditorKeyDown, RoutingStrategies.Tunnel);
 
             PanelService.Instance.ActivePanelChanged += OnPanelServiceActivePanelChanged;
             ContentBrowserViewModel.BringToFrontRequested += OnContentBrowserBringToFrontRequested;
@@ -535,6 +538,185 @@ namespace Hyperion.Editor
         private void OnProjectSettingsClick(object? sender, RoutedEventArgs e)
         {
             ShowProjectSettingsWindow();
+        }
+
+        private void OnWorldCrumbClick(object? sender, RoutedEventArgs e)
+        {
+            if (DataContext is not MainWindowViewModel viewModel)
+            {
+                return;
+            }
+
+            var flyout = new MenuFlyout { Placement = PlacementMode.BottomEdgeAlignedLeft };
+
+            string currentWorld = viewModel.WorldDisplayName;
+            bool canSwitch = !viewModel.IsSimulating;
+
+            IEnumerable<string> worldNames = AssetManager.Instance.AssetRegistry
+                .GetBucketAssetDescs(AssetBucket.Worlds.Value)
+                .Select(assetDesc => assetDesc.Name.ToString())
+                .Append(currentWorld)
+                .Where(name => !string.IsNullOrEmpty(name))
+                .Distinct(StringComparer.Ordinal)
+                .OrderBy(name => name, StringComparer.OrdinalIgnoreCase);
+
+            foreach (string worldName in worldNames)
+            {
+                bool isCurrent = worldName == currentWorld;
+
+                var item = new MenuItem
+                {
+                    Header = worldName,
+                    ToggleType = MenuItemToggleType.Radio,
+                    IsChecked = isCurrent,
+                    IsEnabled = canSwitch || isCurrent
+                };
+
+                if (!isCurrent)
+                {
+                    item.Click += (_, _) => EngineManager.EditorGame?.EditorSubsystem?.ExecuteCommandByName(new Name("EditorCommandOpenWorld"), worldName);
+                }
+
+                flyout.Items.Add(item);
+            }
+
+            var newWorldItem = new MenuItem { Header = "New World...", IsEnabled = canSwitch };
+            newWorldItem.Click += (_, _) => Dispatcher.UIThread.Post(BeginNewWorldEdit);
+
+            var settingsItem = new MenuItem { Header = "World Settings..." };
+            settingsItem.Click += OnWorldSettingsClick;
+
+            flyout.Items.Add(new Separator());
+            flyout.Items.Add(newWorldItem);
+            flyout.Items.Add(settingsItem);
+
+            flyout.Opened += (_, _) => WorldCrumbButton.Classes.Set("open", true);
+            flyout.Closed += (_, _) => WorldCrumbButton.Classes.Set("open", false);
+
+            flyout.ShowAt(WorldCrumbButton);
+        }
+
+        private void BeginNewWorldEdit()
+        {
+            _newWorldExistingNames = new HashSet<string>(
+                AssetManager.Instance.AssetRegistry.GetBucketAssetDescs(AssetBucket.Worlds.Value).Select(assetDesc => assetDesc.Name.ToString()),
+                StringComparer.OrdinalIgnoreCase);
+
+            string defaultName = "NewWorld";
+
+            for (int suffix = 1; _newWorldExistingNames.Contains(defaultName); suffix++)
+            {
+                defaultName = $"NewWorld_{suffix}";
+            }
+
+            WorldNameEditor.Text = defaultName;
+            WorldCrumbButton.IsVisible = false;
+            WorldNameEditor.IsVisible = true;
+
+            Dispatcher.UIThread.Post(() =>
+            {
+                WorldNameEditor.Focus();
+                WorldNameEditor.SelectAll();
+            }, DispatcherPriority.Input);
+        }
+
+        private void EndNewWorldEdit()
+        {
+            if (!WorldNameEditor.IsVisible)
+            {
+                return;
+            }
+
+            ToolTip.SetIsOpen(WorldNameEditor, false);
+            WorldNameEditor.Classes.Set("invalid", false);
+            WorldNameEditor.IsVisible = false;
+            WorldCrumbButton.IsVisible = true;
+        }
+
+        private string? GetNewWorldNameError(string name)
+        {
+            if (name.Length == 0)
+            {
+                return "Enter a name";
+            }
+
+            if (name.Any(char.IsWhiteSpace))
+            {
+                return "World names can't contain spaces";
+            }
+
+            if (_newWorldExistingNames.Contains(name))
+            {
+                return $"A world named {name} already exists";
+            }
+
+            return null;
+        }
+
+        private void OnWorldNameEditorTextChanged(object? sender, TextChangedEventArgs e)
+        {
+            if (!WorldNameEditor.IsVisible)
+            {
+                return;
+            }
+
+            string? error = GetNewWorldNameError((WorldNameEditor.Text ?? string.Empty).Trim());
+
+            WorldNameEditor.Classes.Set("invalid", error != null);
+            ToolTip.SetTip(WorldNameEditor, error);
+            ToolTip.SetIsOpen(WorldNameEditor, error != null);
+        }
+
+        private void OnWorldNameEditorKeyDown(object? sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Escape)
+            {
+                e.Handled = true;
+                EndNewWorldEdit();
+                return;
+            }
+
+            if (e.Key != Key.Enter)
+            {
+                return;
+            }
+
+            e.Handled = true;
+
+            string worldName = (WorldNameEditor.Text ?? string.Empty).Trim();
+
+            if (GetNewWorldNameError(worldName) != null)
+            {
+                return;
+            }
+
+            EndNewWorldEdit();
+
+            _ = EngineManager.PostToSimThread(() =>
+            {
+                EditorSubsystem? subsystem = EngineManager.EditorGame?.EditorSubsystem;
+
+                if (subsystem == null || subsystem.IsSimulating())
+                {
+                    return;
+                }
+
+                subsystem.ExecuteCommandByName(new Name("EditorCommandNewWorld"), worldName);
+
+                bool created = AssetManager.Instance.AssetRegistry
+                    .GetBucketAssetDescs(AssetBucket.Worlds.Value)
+                    .Any(assetDesc => assetDesc.Name.ToString() == worldName);
+
+                if (created)
+                {
+                    subsystem.ExecuteCommandByName(new Name("EditorCommandOpenWorld"), worldName);
+                }
+            });
+        }
+
+        private void OnWorldNameEditorLostFocus(object? sender, FocusChangedEventArgs e)
+        {
+            EndNewWorldEdit();
         }
 
         private void OnPluginsClick(object? sender, RoutedEventArgs e)
@@ -1916,7 +2098,7 @@ namespace Hyperion.Editor
                     },
                     new TextBlock
                     {
-                        Text = "Hyperion was created by Andrew MacDonald (ajmd.dev) circa 2016.\n\n"
+                        Text = "Hyperion was created by Andrew MacDonald (ajmd.dev)\ncirca 2016.\n\n"
                             + "© 2026 The Hyperion Contributors. Licensed under MIT.",
                         FontSize = 11,
                         HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,

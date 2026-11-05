@@ -22,6 +22,22 @@ namespace Hyperion {
     
 namespace /* Helpers*/ {
 
+bool IsEditWorldAsset(const EditorProject& project, const AssetPath& assetPath)
+{
+    return assetPath.GetBucket().GetIndex() == AssetBuckets::Worlds.GetIndex() && assetPath.assetName == project.GetEditWorldName();
+}
+
+void ShowCannotDeleteEditWorldMessage(const EditorProject& project, const String& what)
+{
+    SystemMessageBox(MessageBoxType::WARNING)
+        .Title("Cannot Delete")
+        .Text(HYP_FORMAT("{} the World {}, which is open for editing. Switch to another World first.", what, project.GetEditWorldName()))
+        .Button("OK", []()
+                {
+                })
+        .Show();
+}
+
 /// Where a dropped or added asset lands.
 Vec3f CalculateAssetInsertionPoint(
     EditorSubsystem& subsystem,
@@ -3027,6 +3043,12 @@ public:
                 continue;
             }
 
+            if (IsEditWorldAsset(*currentProject, asset->GetPath()))
+            {
+                ShowCannotDeleteEditWorldMessage(*currentProject, NumArguments() < 4 ? "This is" : "The selection includes");
+                return;
+            }
+
             assets.PushBack(std::move(asset));
         }
 
@@ -3334,6 +3356,12 @@ public:
 
         for (const AssetPath& assetPath : assetFolders.GetAssetsInFolder(folderPath, /* recursive */ true))
         {
+            if (IsEditWorldAsset(*currentProject, assetPath))
+            {
+                ShowCannotDeleteEditWorldMessage(*currentProject, "This folder contains");
+                return;
+            }
+
             if (Handle<AssetObject> asset = GetCurrentAssetRegistry()->GetAsset(assetPath.GetBucket(), assetPath.assetName); asset.IsValid())
             {
                 assets.PushBack(std::move(asset));
