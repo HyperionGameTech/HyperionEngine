@@ -25,14 +25,14 @@ float GroundCoverValueNoise(float2 p)
         s.y);
 }
 
-// albedo multiplier for an instance standing at origin: drifts of lush and dry growth, each clump a little brighter or darker than the next
+// @TODO don't hardcode; make data driven?
 float3 GroundCoverTint(float3 origin, float variation)
 {
     const float drift = lerp(GroundCoverValueNoise(origin.xz * (1.0 / 9.0)), GroundCoverValueNoise(origin.xz * (1.0 / 2.5) + 31.7), 0.3);
-    const float dryness = smoothstep(0.4, 0.85, drift);
-    const float brightness = lerp(0.8, 1.12, GroundCoverHash(int2(floor(origin.xz * 16.0))));
+    const float dryness = smoothstep(0.55, 0.95, drift);
+    const float brightness = lerp(0.85, 1.1, GroundCoverHash(int2(floor(origin.xz * 16.0))));
 
-    const float3 tint = lerp(float3(0.9, 1.0, 0.92), float3(1.3, 1.1, 0.55), dryness) * brightness;
+    const float3 tint = lerp(float3(0.85, 1.0, 0.85), float3(1.15, 1.05, 0.7), dryness) * brightness;
 
     return lerp((float3)1.0, tint, variation);
 }
@@ -44,7 +44,7 @@ float GroundCoverBaseOcclusion(float heightAboveOrigin, float occlusion, float o
         return 1.0;
     }
 
-    return lerp(1.0 - occlusion, 1.0, smoothstep(0.0, 1.0, saturate(heightAboveOrigin / occlusionHeight)));
+    return lerp(1.0 - occlusion, 1.0, smoothstep(0.0, 1.0, saturate(heightAboveOrigin / (2.0 * occlusionHeight))));
 }
 
 #define GROUND_COVER_FAR_RANK_CUTOFF 0.5

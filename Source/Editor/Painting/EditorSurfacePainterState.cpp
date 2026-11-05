@@ -14,6 +14,8 @@
 
 #include <Scene/Scene.hpp>
 #include <Scene/World.hpp>
+#include <Scene/WorldGrid/WorldGrid.hpp>
+#include <Scene/WorldGrid/Terrain/TerrainWorldGridLayer.hpp>
 
 #include <Scene/Camera/Camera.hpp>
 
@@ -338,6 +340,52 @@ bool EditorSurfacePainterState::RaycastSurface(const Ray& ray, SurfaceHit& outHi
             }
 
             break;
+        }
+    }
+
+    // terrain does not use bvh, so we test the heights
+    if (const Handle<WorldGrid>& worldGrid = world->GetWorldGrid(); worldGrid.IsValid())
+    {
+        for (const Handle<WorldGridLayer>& layer : worldGrid->GetLayers())
+        {
+            const Handle<TerrainWorldGridLayer>& terrainLayer = TryCast<TerrainWorldGridLayer>(layer);
+
+            if (!terrainLayer.IsValid() || !terrainLayer->GetScene().IsValid())
+            {
+                continue;
+            }
+
+            Vec3f hitPoint;
+
+            if (!terrainLayer->RaycastSurface(ray, hitPoint))
+            {
+                continue;
+            }
+
+            const float distance = hitPoint.Distance(ray.position);
+
+            if (distance >= closestDistance)
+            {
+                continue;
+            }
+
+            closestDistance = distance;
+
+            // the drawn surface's slope, a sample either side
+            const Vec3f& scale = terrainLayer->GetLayerInfo().scale;
+            const float step = MathUtil::Max(scale.x, scale.z, 0.01f);
+            const Vec2f at(hitPoint.x, hitPoint.z);
+
+            const float left = terrainLayer->SampleDrawnHeightAt(at - Vec2f(step, 0.0f));
+            const float right = terrainLayer->SampleDrawnHeightAt(at + Vec2f(step, 0.0f));
+            const float back = terrainLayer->SampleDrawnHeightAt(at - Vec2f(0.0f, step));
+            const float front = terrainLayer->SampleDrawnHeightAt(at + Vec2f(0.0f, step));
+
+            outHit.scene = terrainLayer->GetScene();
+            outHit.position = hitPoint;
+            outHit.normal = Vec3f(left - right, 2.0f * step, back - front).Normalized();
+
+            hasHit = true;
         }
     }
 

@@ -2118,7 +2118,7 @@ bool TerrainWorldGridLayer::RaycastSurface(const Ray& ray, Vec3f& outHitPoint) c
     const float slabMaxY = layerInfo.offset.y + maxHeight * 2.0f + 256.0f;
 
     float tEnter = 0.0f;
-    float tExit = 8192.0f;
+    float tExit = MathUtil::MaxSafeValue<float>();
 
     if (MathUtil::Abs(ray.direction.y) > MathUtil::epsilonF)
     {
@@ -2132,6 +2132,9 @@ bool TerrainWorldGridLayer::RaycastSurface(const Ray& ray, Vec3f& outHitPoint) c
     {
         return false;
     }
+
+    // shoot the ray from high enough up that we'll hit
+    tExit = MathUtil::Min(tExit, tEnter + 8192.0f);
 
     if (tEnter >= tExit)
     {
@@ -2232,6 +2235,57 @@ void TerrainWorldGridLayer::ApplyBrush(const Vec3f& worldPos, float radius, floa
     const float margin = radius + MathUtil::Max(m_layerInfo.scale.x, m_layerInfo.scale.z);
 
     MarkHeightsDirty(Vec4f(worldPos.x - margin, worldPos.z - margin, worldPos.x + margin, worldPos.z + margin));
+}
+
+float TerrainWorldGridLayer::GetHeightAt(const Vec2f& worldXZ) const
+{
+    return SampleHeightAtBlocking(worldXZ);
+}
+
+void TerrainWorldGridLayer::FinishShapeEdit(const Vec4f& worldRect)
+{
+    const float margin = MathUtil::Max(m_layerInfo.scale.x, m_layerInfo.scale.z);
+
+    MarkHeightsDirty(Vec4f(worldRect.x - margin, worldRect.y - margin, worldRect.z + margin, worldRect.w + margin));
+    EndBrushStroke();
+}
+
+void TerrainWorldGridLayer::FlattenCircle(const Vec3f& center, float radius, float falloff)
+{
+    m_brush.FlattenCircle(Vec2f(center.x, center.z), radius, falloff, center.y);
+
+    const float reach = MathUtil::Max(radius, 0.0f) + MathUtil::Max(falloff, 0.0f);
+
+    FinishShapeEdit(Vec4f(center.x - reach, center.z - reach, center.x + reach, center.z + reach));
+}
+
+void TerrainWorldGridLayer::FlattenRect(const Vec2f& minXZ, const Vec2f& maxXZ, float height, float falloff)
+{
+    m_brush.FlattenRect(minXZ, maxXZ, MathUtil::Max(falloff, 0.0f), height);
+
+    falloff = MathUtil::Max(falloff, 0.0f);
+
+    FinishShapeEdit(Vec4f(
+        MathUtil::Min(minXZ.x, maxXZ.x) - falloff, MathUtil::Min(minXZ.y, maxXZ.y) - falloff,
+        MathUtil::Max(minXZ.x, maxXZ.x) + falloff, MathUtil::Max(minXZ.y, maxXZ.y) + falloff));
+}
+
+void TerrainWorldGridLayer::Ramp(const Vec3f& from, const Vec3f& to, float width, float falloff)
+{
+    m_brush.Ramp(from, to, width, falloff);
+
+    const float reach = MathUtil::Max(width, 0.0f) * 0.5f + MathUtil::Max(falloff, 0.0f);
+
+    FinishShapeEdit(Vec4f(
+        MathUtil::Min(from.x, to.x) - reach, MathUtil::Min(from.z, to.z) - reach,
+        MathUtil::Max(from.x, to.x) + reach, MathUtil::Max(from.z, to.z) + reach));
+}
+
+void TerrainWorldGridLayer::SmoothArea(const Vec3f& center, float radius, float strength)
+{
+    m_brush.Smooth(Vec2f(center.x, center.z), radius, strength);
+
+    FinishShapeEdit(Vec4f(center.x - radius, center.z - radius, center.x + radius, center.z + radius));
 }
 
 void TerrainWorldGridLayer::PaintSplat(const Vec3f& worldPos, float radius, float strength, uint32 layerIndex, bool erase)

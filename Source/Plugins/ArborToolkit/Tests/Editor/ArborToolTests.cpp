@@ -36,6 +36,9 @@
 #include <Scene/Instancing/PrefabSet.hpp>
 #include <Scene/Instancing/InstanceGroup.hpp>
 
+#include <Scene/WorldGrid/WorldGrid.hpp>
+#include <Scene/WorldGrid/Terrain/TerrainWorldGridLayer.hpp>
+
 #include <Scene/Components/MeshComponent.hpp>
 
 #include <Rendering/Mesh.hpp>
@@ -504,6 +507,100 @@ HYP_EDITOR_TEST(InstancePainter, PaintAreaStampsWithoutAMouse)
     painter->SetEraseRadius(eraseRadius);
 
     project->GetWorld()->RemoveScene(scene.Get(), /* removeFromStreamingLayer */ false);
+}
+
+HYP_EDITOR_TEST(TerrainShaping, ShapesAndTakesPaint)
+{
+    EditorSubsystem* editorSubsystem = GetEditorSubsystem();
+
+    const Handle<EditorProject>& project = editorSubsystem->GetCurrentProject();
+    HYP_TEST_REQUIRE(project.IsValid() && project->GetWorld().IsValid());
+
+    const Handle<WorldGrid>& worldGrid = project->GetWorld()->GetWorldGrid();
+    HYP_TEST_REQUIRE(worldGrid.IsValid());
+
+    Handle<TerrainWorldGridLayer> terrain = MakeHandle<TerrainWorldGridLayer>();
+    terrain->SetName(NAME("ShapingTerrain"));
+
+    TerrainLayerSettings settings = terrain->GetSettings();
+    settings.heightSource = TerrainHeightSource::Flat;
+    terrain->SetSettings(settings);
+
+    worldGrid->AddLayer(terrain);
+
+    const Vec2f at = { 1000.0f, 1000.0f };
+    const float ground = terrain->GetHeightAt(at);
+
+    auto isNear = [](float a, float b, float tolerance)
+    {
+        return MathUtil::Abs(a - b) <= tolerance;
+    };
+
+    terrain->FlattenRect(at - Vec2f(20.0f, 20.0f), at + Vec2f(20.0f, 20.0f), ground + 12.0f, 4.0f);
+
+    HYP_TEST_CHECK(isNear(terrain->GetHeightAt(at), ground + 12.0f, 0.01f));
+    HYP_TEST_CHECK(isNear(terrain->GetHeightAt(at + Vec2f(30.0f, 0.0f)), ground, 0.01f));
+
+    const float inFalloff = terrain->GetHeightAt(at + Vec2f(22.0f, 0.0f));
+    HYP_TEST_CHECK(inFalloff > ground + 0.1f && inFalloff < ground + 11.9f);
+
+    terrain->FlattenCircle(Vec3f(at.x + 100.0f, ground + 5.0f, at.y), 5.0f, 3.0f);
+
+    HYP_TEST_CHECK(isNear(terrain->GetHeightAt(at + Vec2f(100.0f, 0.0f)), ground + 5.0f, 0.01f));
+    HYP_TEST_CHECK(isNear(terrain->GetHeightAt(at + Vec2f(110.0f, 0.0f)), ground, 0.01f));
+
+    terrain->Ramp(Vec3f(at.x + 200.0f, ground, at.y), Vec3f(at.x + 240.0f, ground + 20.0f, at.y), 6.0f, 2.0f);
+
+    HYP_TEST_CHECK(isNear(terrain->GetHeightAt(at + Vec2f(220.0f, 0.0f)), ground + 10.0f, 0.6f));
+    HYP_TEST_CHECK(isNear(terrain->GetHeightAt(at + Vec2f(220.0f, 10.0f)), ground, 0.01f));
+
+    // a hard step, smoothed: its top edge comes down toward the ground beside it
+    const Vec2f step = at + Vec2f(0.0f, 300.0f);
+    terrain->FlattenRect(step - Vec2f(10.0f, 10.0f), step + Vec2f(10.0f, 10.0f), ground + 8.0f, 0.0f);
+
+    const Vec2f stepEdge = step + Vec2f(10.0f, 0.0f);
+    HYP_TEST_CHECK(isNear(terrain->GetHeightAt(stepEdge), ground + 8.0f, 0.01f));
+
+    terrain->SmoothArea(Vec3f(stepEdge.x, 0.0f, stepEdge.y), 4.0f, 1.0f);
+
+    const float smoothed = terrain->GetHeightAt(stepEdge);
+    HYP_TEST_CHECK(smoothed > ground && smoothed < ground + 7.9f);
+
+    // the instance painter casts onto the terrain, and stamps land in the active scene rather than the terrain's own
+    Handle<EditorInstancePainterState> painter = editorSubsystem->GetInstancePainterState();
+    HYP_TEST_REQUIRE(painter.IsValid());
+
+    Handle<Prefab> prefab = MakeHandle<Prefab>(NAME("TerrainPaintPrefab"), MakeHandle<Entity>(NAME("TerrainPaintPrefab")));
+
+    const float spacing = painter->GetSpacing();
+    painter->SetActivePrefab(prefab);
+    painter->SetSpacing(1.0f);
+
+    const uint32 placed = painter->PaintArea(Vec3f(at.x, 0.0f, at.y), 8.0f, 12, /* erase */ false);
+    HYP_TEST_CHECK(placed > 0);
+
+    Handle<InstanceGroup> group = InstanceGroup::Find(editorSubsystem->GetActiveScene().Get(), prefab);
+    HYP_TEST_REQUIRE(group.IsValid());
+    HYP_TEST_CHECK(group->NumInstances() == placed);
+
+    Array<Transform> transforms;
+    group->GetInstanceTransforms(transforms);
+
+    bool allOnPlateau = !transforms.Empty();
+
+    for (const Transform& transform : transforms)
+    {
+        allOnPlateau &= isNear(transform.GetTranslation().y, ground + 12.0f, 0.5f);
+    }
+
+    HYP_TEST_CHECK_MSG(allOnPlateau, "painted instances should stand on the flattened terrain at {}", ground + 12.0f);
+
+    project->GetActionStack()->Undo();
+
+    painter->SetActivePrefab(Handle<Prefab>::Null());
+    painter->SetSpacing(spacing);
+
+    worldGrid->RemoveLayer(terrain.Get());
 }
 
 } // namespace arbor

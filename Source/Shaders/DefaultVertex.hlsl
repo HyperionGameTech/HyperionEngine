@@ -215,7 +215,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID, uint vertexId : 
     if (any(material.ground_cover != 0.0))
     {
         const float3 instanceOrigin = float3(model_matrix[0][3], model_matrix[1][3], model_matrix[2][3]);
-        const float baseOcclusion = GroundCoverBaseOcclusion(rest_local_height,material.ground_cover.z, material.ground_cover.w);
+        const float baseOcclusion = GroundCoverBaseOcclusion(rest_local_height, material.ground_cover.z, material.ground_cover.w);
 
         output.color.rgb *= GroundCoverTint(instanceOrigin, material.ground_cover.x);
         output.color.a *= lerp(baseOcclusion, 1.0, groundCoverFlattening * GROUND_COVER_FAR_OCCLUSION_FADE);

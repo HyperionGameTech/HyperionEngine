@@ -350,15 +350,29 @@ public:
     void ApplyBrush(const Vec3f& worldPos, float radius, float strength, bool raise);
 
     HYP_METHOD()
+    float GetHeightAt(const Vec2f& worldXZ) const;
+
+    HYP_METHOD()
+    void FlattenCircle(const Vec3f& center, float radius, float falloff);
+
+    HYP_METHOD()
+    void FlattenRect(const Vec2f& minXZ, const Vec2f& maxXZ, float height, float falloff);
+
+    HYP_METHOD()
+    void Ramp(const Vec3f& from, const Vec3f& to, float width, float falloff);
+
+    HYP_METHOD()
+    void SmoothArea(const Vec3f& center, float radius, float strength);
+
+    HYP_METHOD()
     void PaintSplat(const Vec3f& worldPos, float radius, float strength, uint32 layerIndex, bool erase);
 
-    /// paints the painted GroundCover layer named \p groundCoverLayer - see GetPaintedGroundCoverLayers()
     HYP_METHOD()
     void PaintGroundCover(const Vec3f& worldPos, float radius, float strength, Name groundCoverLayer, bool erase);
 
+    HYP_METHOD()
     void EndBrushStroke();
 
-    /// sim thread only - the layers of the terrain's GroundCover that grow where painted
     HYP_METHOD()
     Array<Name> GetPaintedGroundCoverLayers();
 
@@ -412,6 +426,8 @@ protected:
     };
 
     static uint64 ComputeCellFingerprint(const TerrainGenerator& generator, const WorldGridLayerInfo& layerInfo);
+
+    void FinishShapeEdit(const Vec4f& worldRect);
 
     virtual void OnAdded(WorldGrid* worldGrid) override;
     virtual void OnRemoved(WorldGrid* worldGrid) override;

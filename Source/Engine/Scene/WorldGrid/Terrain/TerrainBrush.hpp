@@ -11,6 +11,7 @@
 
 #include <Core/Math/Vector2.hpp>
 #include <Core/Math/Vector3.hpp>
+#include <Core/Math/Vector4.hpp>
 
 #include <Core/Name/Name.hpp>
 
@@ -45,19 +46,26 @@ public:
     TerrainBrush& operator=(const TerrainBrush& other) = delete;
 
     void Sculpt(const Vec3f& worldPos, float radius, float strength, bool raise);
-    void Paint(const Vec3f& worldPos, float radius, float strength, uint32 layerIndex, bool erase);
 
-    /// paints the painted GroundCover layer \p groundCoverLayer. Painting one takes the ground from the others
+    void FlattenCircle(const Vec2f& centerXZ, float radius, float falloff, float height);
+    void FlattenRect(const Vec2f& minXZ, const Vec2f& maxXZ, float falloff, float height);
+
+    void Ramp(const Vec3f& from, const Vec3f& to, float width, float falloff);
+
+    void Smooth(const Vec2f& centerXZ, float radius, float strength);
+
+    void Paint(const Vec3f& worldPos, float radius, float strength, uint32 layerIndex, bool erase);
     void PaintGroundCover(const Vec3f& worldPos, float radius, float strength, Name groundCoverLayer, bool erase);
 
     void EndStroke();
-
-    /// forgets the cells touched by the current stroke without finishing it
     void ResetStroke();
 
     Array<TerrainGroundCoverPaintEdit, TerrainAllocator> TakeGroundCoverPaintEdits();
 
 private:
+    template <bool NeedsSource, class EditFn>
+    void EditHeights(const Vec4f& bounds, EditFn&& edit);
+
     TerrainWorldGridLayer& m_layer;
 
     FlatMap<Vec2i, bool, TerrainAllocator> m_modifiedCells;

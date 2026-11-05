@@ -99,12 +99,35 @@ Array<TerrainGroundCoverPaintEdit, TerrainAllocator> TerrainBrush::TakeGroundCov
     return std::move(m_groundCoverPaintEdits);
 }
 
-void TerrainBrush::Sculpt(const Vec3f& worldPos, float radius, float strength, bool raise)
+namespace {
+
+// 1 up to \p inner, easing to 0 at \p outer
+float FalloffWeight(float distance, float inner, float outer)
+{
+    if (distance <= inner)
+    {
+        return 1.0f;
+    }
+
+    if (distance >= outer)
+    {
+        return 0.0f;
+    }
+
+    const float t = 1.0f - (distance - inner) / (outer - inner);
+
+    return t * t * (3.0f - 2.0f * t);
+}
+
+} // namespace
+
+template <bool NeedsSource, class EditFn>
+void TerrainBrush::EditHeights(const Vec4f& bounds, EditFn&& edit)
 {
     HYP_SCOPE;
     AssertOnThread(g_simThread);
 
-    if (radius <= 0.0f || strength == 0.0f)
+    if (bounds.z < bounds.x || bounds.w < bounds.y)
     {
         return;
     }
@@ -132,17 +155,20 @@ void TerrainBrush::Sculpt(const Vec3f& worldPos, float radius, float strength, b
         };
     };
 
-    const Vec2f worldPosXZ(worldPos.x, worldPos.z);
-    const Vec2f minCoordF = coordAt(worldPosXZ - Vec2f(radius, radius));
-    const Vec2f maxCoordF = coordAt(worldPosXZ + Vec2f(radius, radius));
+    const Vec2f boundsMin(bounds.x, bounds.y);
+    const Vec2f boundsMax(bounds.z, bounds.w);
+
+    const Vec2f minCoordF = coordAt(boundsMin);
+    const Vec2f maxCoordF = coordAt(boundsMax);
 
     const int32 minCoordX = int32(MathUtil::Floor(minCoordF.x)) - 1;
     const int32 minCoordZ = int32(MathUtil::Floor(minCoordF.y)) - 1;
     const int32 maxCoordX = int32(MathUtil::Ceil(maxCoordF.x)) + 1;
     const int32 maxCoordZ = int32(MathUtil::Ceil(maxCoordF.y)) + 1;
 
-    const float heightChange = (raise ? 1.0f : -1.0f) * strength;
     const Vec2f paddingWorldSize = scaleXZ * float(padding);
+
+    Array<float, TerrainAllocator> source;
 
     for (int32 cz = minCoordZ; cz <= maxCoordZ; cz++)
     {
@@ -155,11 +181,8 @@ void TerrainBrush::Sculpt(const Vec3f& worldPos, float radius, float strength, b
             const Vec2f cellWorldMaxXZ = cellWorldMinXZ + Vec2f(cellWorldSizeX, cellWorldSizeZ);
 
             // the padding ring duplicates the neighbor's heights next to the border, so it's edited along with them
-            const Vec2f closestPoint(
-                MathUtil::Clamp(worldPosXZ.x, cellWorldMinXZ.x - paddingWorldSize.x, cellWorldMaxXZ.x + paddingWorldSize.x),
-                MathUtil::Clamp(worldPosXZ.y, cellWorldMinXZ.y - paddingWorldSize.y, cellWorldMaxXZ.y + paddingWorldSize.y));
-
-            if ((closestPoint - worldPosXZ).Length() > radius)
+            if (cellWorldMaxXZ.x + paddingWorldSize.x < boundsMin.x || cellWorldMinXZ.x - paddingWorldSize.x > boundsMax.x
+                || cellWorldMaxXZ.y + paddingWorldSize.y < boundsMin.y || cellWorldMinXZ.y - paddingWorldSize.y > boundsMax.y)
             {
                 continue;
             }
@@ -189,11 +212,17 @@ void TerrainBrush::Sculpt(const Vec3f& worldPos, float radius, float strength, b
             int32 maxVertexX = -1;
             int32 maxVertexZ = -1;
 
-            const auto applyBrush = [&](Span<float> paddedHeights)
+            const auto applyEdit = [&](Span<float> paddedHeights)
             {
                 if (paddedHeights.Size() != size_t(paddedSize) * size_t(paddedSize))
                 {
                     return;
+                }
+
+                if constexpr (NeedsSource)
+                {
+                    source.Resize(paddedHeights.Size());
+                    Memory::Copy(source.Data(), paddedHeights.Data(), paddedHeights.Size() * sizeof(float));
                 }
 
                 for (uint32 pz = 0; pz < paddedSize; pz++)
@@ -205,17 +234,21 @@ void TerrainBrush::Sculpt(const Vec3f& worldPos, float radius, float strength, b
 
                         const Vec2f sampleWorldXZ = cellWorldMinXZ + Vec2f(float(localX), float(localZ)) * scaleXZ;
 
-                        const float dist = (sampleWorldXZ - worldPosXZ).Length();
-
-                        if (dist > radius)
+                        if (sampleWorldXZ.x < boundsMin.x || sampleWorldXZ.x > boundsMax.x
+                            || sampleWorldXZ.y < boundsMin.y || sampleWorldXZ.y > boundsMax.y)
                         {
                             continue;
                         }
 
-                        const float falloff = 1.0f - (dist / radius);
-                        const float weight = falloff * falloff * (3.0f - 2.0f * falloff); // smoothstep
+                        float& height = paddedHeights[size_t(pz) * paddedSize + px];
+                        const float edited = edit(sampleWorldXZ, height, source.Data(), px, pz, paddedSize);
 
-                        paddedHeights[size_t(pz) * paddedSize + px] += heightChange * weight;
+                        if (MathUtil::Abs(edited - height) < 1e-5f)
+                        {
+                            continue;
+                        }
+
+                        height = edited;
                         anyModified = true;
 
                         // a moved padding sample changes the normal of the border vertex next to it
@@ -234,7 +267,7 @@ void TerrainBrush::Sculpt(const Vec3f& worldPos, float radius, float strength, b
             {
                 auto cellDataWriteScope = cellData->GetWriteScope();
 
-                applyBrush(cellData->GetMutableHeights());
+                applyEdit(cellData->GetMutableHeights());
 
                 if (anyModified)
                 {
@@ -244,7 +277,7 @@ void TerrainBrush::Sculpt(const Vec3f& worldPos, float radius, float strength, b
             }
             else
             {
-                applyBrush(generatedHeights.ToSpan());
+                applyEdit(generatedHeights.ToSpan());
             }
 
             if (!anyModified)
@@ -285,6 +318,123 @@ void TerrainBrush::Sculpt(const Vec3f& worldPos, float radius, float strength, b
             }
         }
     }
+}
+
+void TerrainBrush::Sculpt(const Vec3f& worldPos, float radius, float strength, bool raise)
+{
+    if (radius <= 0.0f || strength == 0.0f)
+    {
+        return;
+    }
+
+    const Vec2f centerXZ(worldPos.x, worldPos.z);
+    const float heightChange = (raise ? 1.0f : -1.0f) * strength;
+
+    EditHeights<false>(
+        Vec4f(centerXZ.x - radius, centerXZ.y - radius, centerXZ.x + radius, centerXZ.y + radius),
+        [&](const Vec2f& sampleXZ, float height, const float*, uint32, uint32, uint32)
+        {
+            return height + heightChange * FalloffWeight((sampleXZ - centerXZ).Length(), 0.0f, radius);
+        });
+}
+
+void TerrainBrush::FlattenCircle(const Vec2f& centerXZ, float radius, float falloff, float height)
+{
+    radius = MathUtil::Max(radius, 0.0f);
+    falloff = MathUtil::Max(falloff, 0.0f);
+
+    const float reach = radius + falloff;
+    const float target = height - m_layer.GetLayerInfo().offset.y;
+
+    EditHeights<false>(
+        Vec4f(centerXZ.x - reach, centerXZ.y - reach, centerXZ.x + reach, centerXZ.y + reach),
+        [&](const Vec2f& sampleXZ, float current, const float*, uint32, uint32, uint32)
+        {
+            return MathUtil::Lerp(current, target, FalloffWeight((sampleXZ - centerXZ).Length(), radius, reach));
+        });
+}
+
+void TerrainBrush::FlattenRect(const Vec2f& minXZ, const Vec2f& maxXZ, float falloff, float height)
+{
+    falloff = MathUtil::Max(falloff, 0.0f);
+
+    const Vec2f lo(MathUtil::Min(minXZ.x, maxXZ.x), MathUtil::Min(minXZ.y, maxXZ.y));
+    const Vec2f hi(MathUtil::Max(minXZ.x, maxXZ.x), MathUtil::Max(minXZ.y, maxXZ.y));
+    const float target = height - m_layer.GetLayerInfo().offset.y;
+
+    EditHeights<false>(
+        Vec4f(lo.x - falloff, lo.y - falloff, hi.x + falloff, hi.y + falloff),
+        [&](const Vec2f& sampleXZ, float current, const float*, uint32, uint32, uint32)
+        {
+            const float dx = MathUtil::Max(MathUtil::Max(lo.x - sampleXZ.x, sampleXZ.x - hi.x), 0.0f);
+            const float dz = MathUtil::Max(MathUtil::Max(lo.y - sampleXZ.y, sampleXZ.y - hi.y), 0.0f);
+
+            return MathUtil::Lerp(current, target, FalloffWeight(Vec2f(dx, dz).Length(), 0.0f, falloff));
+        });
+}
+
+void TerrainBrush::Ramp(const Vec3f& from, const Vec3f& to, float width, float falloff)
+{
+    const float halfWidth = MathUtil::Max(width, 0.0f) * 0.5f;
+    falloff = MathUtil::Max(falloff, 0.0f);
+
+    const float reach = halfWidth + falloff;
+    const float offsetY = m_layer.GetLayerInfo().offset.y;
+
+    const Vec2f a(from.x, from.z);
+    const Vec2f b(to.x, to.z);
+    const Vec2f ab = b - a;
+    const float lengthSquared = ab.Dot(ab);
+
+    EditHeights<false>(
+        Vec4f(MathUtil::Min(a.x, b.x) - reach, MathUtil::Min(a.y, b.y) - reach, MathUtil::Max(a.x, b.x) + reach, MathUtil::Max(a.y, b.y) + reach),
+        [&](const Vec2f& sampleXZ, float current, const float*, uint32, uint32, uint32)
+        {
+            const float t = lengthSquared > 1e-8f ? MathUtil::Clamp((sampleXZ - a).Dot(ab) / lengthSquared, 0.0f, 1.0f) : 0.0f;
+            const float distance = (sampleXZ - (a + ab * t)).Length();
+            const float target = MathUtil::Lerp(from.y, to.y, t) - offsetY;
+
+            return MathUtil::Lerp(current, target, FalloffWeight(distance, halfWidth, reach));
+        });
+}
+
+void TerrainBrush::Smooth(const Vec2f& centerXZ, float radius, float strength)
+{
+    if (radius <= 0.0f || strength <= 0.0f)
+    {
+        return;
+    }
+
+    strength = MathUtil::Min(strength, 1.0f);
+
+    EditHeights<true>(
+        Vec4f(centerXZ.x - radius, centerXZ.y - radius, centerXZ.x + radius, centerXZ.y + radius),
+        [&](const Vec2f& sampleXZ, float current, const float* source, uint32 px, uint32 pz, uint32 paddedSize)
+        {
+            float sum = 0.0f;
+            uint32 count = 0;
+
+            for (int32 dz = -1; dz <= 1; dz++)
+            {
+                for (int32 dx = -1; dx <= 1; dx++)
+                {
+                    const int32 nx = int32(px) + dx;
+                    const int32 nz = int32(pz) + dz;
+
+                    if (nx < 0 || nz < 0 || nx >= int32(paddedSize) || nz >= int32(paddedSize))
+                    {
+                        continue;
+                    }
+
+                    sum += source[size_t(nz) * paddedSize + size_t(nx)];
+                    count++;
+                }
+            }
+
+            const float weight = strength * FalloffWeight((sampleXZ - centerXZ).Length(), 0.0f, radius);
+
+            return MathUtil::Lerp(current, sum / float(count), weight);
+        });
 }
 
 void TerrainBrush::Paint(const Vec3f& worldPos, float radius, float strength, uint32 layerIndex, bool erase)
