@@ -1,57 +1,75 @@
 GroundCover DefaultGroundCover {
     Layers = [
-        GroundCoverLayer {
-            Name = Meadow
+        GroundCoverLayer Meadow {
             Source = SplatLayer
-            SplatLayer = 0
             Density = 1
-            ClumpSize = 12
+            ClumpSize = 5
             Types = [
                 GroundCoverType {
-                    Prefab = @"Engine://Prefabs/meadow_grass"
+                    Prefab = @"Engine://Prefabs/lush_meadow"
                     Weight = 1
+                    ColorVariation = 0.6
+                    GroundNormalBlend = 0.7
+                    BaseOcclusion = 0.6
+                }
+                GroundCoverType {
+                    Prefab = @"Engine://Prefabs/seedhead_grass"
+                    Weight = 0.35
+                    ColorVariation = 0.6
+                    GroundNormalBlend = 0.7
+                    BaseOcclusion = 0.6
+                }
+                GroundCoverType {
+                    Prefab = @"Engine://Prefabs/tussock"
+                    Weight = 0.1
+                    ColorVariation = 0.6
+                    GroundNormalBlend = 0.7
+                    BaseOcclusion = 0.6
                 }
             ]
         }
-        GroundCoverLayer {
-            Name = "Short Grass"
+        GroundCoverLayer "Short Grass" {
             Source = Painted
-            SplatLayer = 0
             Density = 1
             ClumpSize = 12
             Types = [
                 GroundCoverType {
                     Prefab = @"Engine://Prefabs/short_grass"
                     Weight = 1
+                    ColorVariation = 0.6
+                    GroundNormalBlend = 0.7
+                    BaseOcclusion = 0.6
                 }
             ]
         }
-        GroundCoverLayer {
-            Name = Wildflowers
+        GroundCoverLayer Wildflowers {
             Source = Painted
-            SplatLayer = 0
             Density = 1
             ClumpSize = 12
             Types = [
                 GroundCoverType {
                     Prefab = @"Engine://Prefabs/wildflower_meadow"
                     Weight = 1
+                    ColorVariation = 0.6
+                    GroundNormalBlend = 0.7
+                    BaseOcclusion = 0.6
                 }
             ]
         }
-        GroundCoverLayer {
-            Name = "Dry Grass"
+        GroundCoverLayer "Dry Grass" {
             Source = Painted
-            SplatLayer = 0
             Density = 1
             ClumpSize = 12
             Types = [
                 GroundCoverType {
                     Prefab = @"Engine://Prefabs/dry_grass"
                     Weight = 1
+                    ColorVariation = 0.6
+                    GroundNormalBlend = 0.7
+                    BaseOcclusion = 0.6
                 }
             ]
         }
     ]
-    UUID = "77a3c642-f37b-4327-9a28-840e29bb2b6e"
+    UUID = "4f965056-bfe0-4321-b970-e0fa3f6da420"
 }

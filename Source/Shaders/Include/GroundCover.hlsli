@@ -32,7 +32,7 @@ float3 GroundCoverTint(float3 origin, float variation)
     const float dryness = smoothstep(0.55, 0.95, drift);
     const float brightness = lerp(0.85, 1.1, GroundCoverHash(int2(floor(origin.xz * 16.0))));
 
-    const float3 tint = lerp(float3(0.85, 1.0, 0.85), float3(1.15, 1.05, 0.7), dryness) * brightness;
+    const float3 tint = lerp(float3(0.92, 1.0, 0.88), float3(1.15, 1.05, 0.7), dryness) * brightness;
 
     return lerp((float3)1.0, tint, variation);
 }

@@ -41,13 +41,13 @@ Mesh dry_grass_LOD0 {
             MeshLodDesc {
                 NumVertices = 1188
                 NumIndices = 2376
-                GeometricError = 0
+                GeometricError = 0.039113306
                 ScreenSize = 0.08
             }
             MeshLodDesc {
                 NumVertices = 316
                 NumIndices = 474
-                GeometricError = 0
+                GeometricError = 0.08940184
                 ScreenSize = 0.035
             }
             MeshLodDesc {
@@ -62,7 +62,7 @@ Mesh dry_grass_LOD0 {
         MeshLodData {
             VertexData = {
                 Key = "Engine://Meshes/dry_grass_LOD0.VB"
-                Size = 253440
+                Size = 269280
             }
             IndexData = {
                 Key = "Engine://Meshes/dry_grass_LOD0.IB"
@@ -72,7 +72,7 @@ Mesh dry_grass_LOD0 {
         MeshLodData {
             VertexData = {
                 Key = "Engine://Meshes/dry_grass_LOD0.VB1"
-                Size = 76032
+                Size = 80784
             }
             IndexData = {
                 Key = "Engine://Meshes/dry_grass_LOD0.IB1"
@@ -82,7 +82,7 @@ Mesh dry_grass_LOD0 {
         MeshLodData {
             VertexData = {
                 Key = "Engine://Meshes/dry_grass_LOD0.VB2"
-                Size = 20224
+                Size = 21488
             }
             IndexData = {
                 Key = "Engine://Meshes/dry_grass_LOD0.IB2"
@@ -105,5 +105,5 @@ Mesh dry_grass_LOD0 {
         Size = 61642
     }
     Flags = None
-    UUID = "228ed41b-97d0-4477-bfea-ba523cb57a36"
+    UUID = "20535c7a-b96f-4142-9180-c88be1931822"
 }

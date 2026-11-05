@@ -1,0 +1,94 @@
+Prefab seedhead_grass {
+    Root = Entity seedhead_grass {
+        UUID = "b92e231f-5493-46b8-87b8-309295fa870e"
+        NodeFlags = MobilityStatic
+        LocalBounds = {
+            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+        }
+        LocalTransform = {
+            Translation = (0, 0, 0)
+            Scale = (1, 1, 1)
+            Rotation = {
+                X = 0
+                Y = 0
+                Z = 0
+                W = 1
+            }
+        }
+        Children = [
+            Entity seedhead_grass {
+                UUID = "810ff05f-5bab-4960-a958-c322bd9ceaaf"
+                NodeFlags = MobilityStatic
+                LocalBounds = {
+                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                }
+                LocalTransform = {
+                    Translation = (0, 0, 0)
+                    Scale = (1, 1, 1)
+                    Rotation = {
+                        X = 0
+                        Y = 0
+                        Z = 0
+                        W = 1
+                    }
+                }
+                Children = [
+                    Entity seedhead_grass_Primitive0 {
+                        Components = [
+                            MeshComponent {
+                                Mesh = @"Engine://Meshes/seedhead_grass_LOD0"
+                                Material = @"Engine://Materials/seedhead_grass_grass"
+                                Skeleton = null
+                                EnableAutoInstancing = false
+                                InstanceData = null
+                                ForcedLod = 0
+                                LodBias = 0
+                            }
+                        ]
+                        UUID = "431875af-8804-4af3-8c3e-6b95cf1daed3"
+                        NodeFlags = MobilityStatic
+                        LocalBounds = {
+                            Min = (-1.2015638, 0, -1.2547911)
+                            Max = (1.1142122, 0.8325855, 1.3754492)
+                        }
+                        LocalTransform = {
+                            Translation = (0, 0, 0)
+                            Scale = (1, 1, 1)
+                            Rotation = {
+                                X = 0
+                                Y = 0
+                                Z = 0
+                                W = 1
+                            }
+                        }
+                        RotationConvention = 1
+                        DataEntries = {}
+
+                    }
+                ]
+                RotationConvention = 1
+                DataEntries = {}
+
+            }
+        ]
+        RotationConvention = 1
+        DataEntries = {}
+
+    }
+    Revision = 0
+    ImportInfo = {
+        SourcePath = ""
+        Settings = {
+            RigMode = Create
+            TargetSkeleton = ""
+            Scale = 1
+            FrameRate = 30
+            GenerateMeshLods = true
+            AutoMapHumanoid = true
+        }
+        SourceClip = ""
+    }
+    UUID = "48e57e76-0b72-4c3c-a312-37e0b2b3479e"
+}

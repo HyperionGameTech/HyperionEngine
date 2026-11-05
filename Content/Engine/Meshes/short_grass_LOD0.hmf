@@ -41,13 +41,13 @@ Mesh short_grass_LOD0 {
             MeshLodDesc {
                 NumVertices = 1568
                 NumIndices = 2352
-                GeometricError = 0
+                GeometricError = 0.047271788
                 ScreenSize = 0.06
             }
             MeshLodDesc {
                 NumVertices = 628
                 NumIndices = 942
-                GeometricError = 0
+                GeometricError = 0.11345229
                 ScreenSize = 0.025
             }
             MeshLodDesc {
@@ -62,7 +62,7 @@ Mesh short_grass_LOD0 {
         MeshLodData {
             VertexData = {
                 Key = "Engine://Meshes/short_grass_LOD0.VB"
-                Size = 301440
+                Size = 320280
             }
             IndexData = {
                 Key = "Engine://Meshes/short_grass_LOD0.IB"
@@ -72,7 +72,7 @@ Mesh short_grass_LOD0 {
         MeshLodData {
             VertexData = {
                 Key = "Engine://Meshes/short_grass_LOD0.VB1"
-                Size = 100352
+                Size = 106624
             }
             IndexData = {
                 Key = "Engine://Meshes/short_grass_LOD0.IB1"
@@ -82,7 +82,7 @@ Mesh short_grass_LOD0 {
         MeshLodData {
             VertexData = {
                 Key = "Engine://Meshes/short_grass_LOD0.VB2"
-                Size = 40192
+                Size = 42704
             }
             IndexData = {
                 Key = "Engine://Meshes/short_grass_LOD0.IB2"
@@ -105,5 +105,5 @@ Mesh short_grass_LOD0 {
         Size = 74766
     }
     Flags = None
-    UUID = "236a6cae-3597-4245-af44-14a68262bcf4"
+    UUID = "d16f39b8-3b89-4ffb-9ef9-910f1851d097"
 }

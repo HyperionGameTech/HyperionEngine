@@ -46,7 +46,7 @@ Material dry_grass_grass {
         Roughness = 1
         AlphaThreshold = 0.35
         ParallaxHeightScale = 0.02
-        Transmission = 0
+        Transmission = 0.4
         IOR = 1.5
         EmissiveColor = (0, 0, 0, 0)
         EmissiveIntensity = 0
@@ -62,6 +62,11 @@ Material dry_grass_grass {
         Foliage = true
         TerrainColorMatch = true
         Flags = 0
+        TransmissionMask = RoughnessMapG
+        ColorVariation = 0
+        GroundNormalBlend = 0
+        BaseOcclusion = 0
+        BaseOcclusionHeight = 0
     }
     Textures = {
         Values = [
@@ -84,5 +89,5 @@ Material dry_grass_grass {
         ]
     }
     IsDynamic = false
-    UUID = "205e420d-228b-4462-94b6-699e4fa527cf"
+    UUID = "56a6d044-4513-443e-be19-e3b144b9c2d8"
 }

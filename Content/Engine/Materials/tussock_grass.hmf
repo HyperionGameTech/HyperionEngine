@@ -1,0 +1,93 @@
+Material tussock_grass {
+    BaseMaterial = null
+    Attributes = {
+        ShaderName = GeometryPass
+        ShaderProperties = {
+            Chunks = [
+                0
+                0
+                0
+                0
+                0
+                0
+                0
+                0
+            ]
+        }
+        Bucket = Opaque
+        FillMode = Fill
+        BlendFunction = {
+            SrcColor = None
+            DstColor = None
+            SrcAlpha = None
+            DstAlpha = None
+        }
+        FaceCullMode = None
+        Flags = DepthWrite|DepthTest|AlphaDiscard
+        StencilFunction = {
+            PassOp = Replace
+            FailOp = Keep
+            DepthFailOp = Keep
+            CompareOp = Always
+        }
+        DepthCompareOp = Less
+        StencilReference = 0
+        DepthBias = 0
+        DepthBiasSlope = 0
+    }
+    Parameters = {
+        NormalMapFlipY = false
+        RoughnessChannel = R
+        MetalnessChannel = R
+        AmbientOcclusionChannel = R
+        InverseHeight = false
+        Albedo = (1, 1, 1, 1)
+        Metalness = 0
+        Roughness = 1
+        AlphaThreshold = 0.35
+        ParallaxHeightScale = 0.02
+        Transmission = 0.4
+        IOR = 1.5
+        EmissiveColor = (0, 0, 0, 0)
+        EmissiveIntensity = 0
+        UserParams = (0, 0, 0, 0)
+        WindFrequency = 0.9
+        WindTrunkFlexibility = 0
+        WindTreeHeight = 1.1756282
+        WindFlutter = 0.1
+        FoliageNormalBlend = 0.6
+        FoliageBackfaceVolume = 1
+        UVScale = (1, 1)
+        Unlit = false
+        Foliage = true
+        TerrainColorMatch = true
+        Flags = 0
+        TransmissionMask = RoughnessMapG
+        ColorVariation = 0
+        GroundNormalBlend = 0
+        BaseOcclusion = 0
+        BaseOcclusionHeight = 0
+    }
+    Textures = {
+        Values = [
+            @"Engine://Textures/tussock_grass_albedo"
+            @"Engine://Textures/tussock_grass_normal"
+            null
+            null
+            @"Engine://Textures/tussock_grass_Roughness"
+            null
+            null
+            null
+            null
+            null
+            null
+            null
+            null
+            null
+            null
+            null
+        ]
+    }
+    IsDynamic = false
+    UUID = "52b673b9-1eb6-4ce8-8700-bedb1deebcc1"
+}

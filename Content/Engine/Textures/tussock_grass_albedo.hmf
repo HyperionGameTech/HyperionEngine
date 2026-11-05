@@ -1,0 +1,36 @@
+Texture tussock_grass_albedo {
+    TextureDesc = {
+        Type = Texture2D
+        Format = RGBA8_SRGB
+        Extent = (768, 512, 1)
+        MinFilterMode = LinearMipmap
+        MagFilterMode = Linear
+        TextureWrapMode = ClampToEdge
+        NumLayers = 1
+        ImageUsage = Sampled
+        MipOffsets = [
+            1572864
+            1966080
+            2064384
+            2088960
+            2095104
+            2096640
+            2097024
+            2097120
+            2097144
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+        ]
+    }
+    ImageData = {
+        Key = "Engine://Textures/tussock_grass_albedo.TEX"
+        Size = 2097148
+    }
+    Compression = Auto
+    UUID = "a8018cf2-837a-4e47-9e3b-76339300ebe7"
+}

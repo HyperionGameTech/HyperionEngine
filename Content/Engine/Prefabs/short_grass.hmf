@@ -1,7 +1,6 @@
 Prefab short_grass {
-    Root = {
-        UUID = "0edbef52-a3c1-40b3-8147-6e20ad928f21"
-        Name = short_grass
+    Root = Entity short_grass {
+        UUID = "ec04b946-60e4-48bf-a699-21f7697a4a7e"
         NodeFlags = MobilityStatic
         LocalBounds = {
             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -18,8 +17,8 @@ Prefab short_grass {
             }
         }
         Children = [
-            Node short_grass {
-                UUID = "612ac019-0996-455f-8940-edc87e178765"
+            Entity short_grass {
+                UUID = "91371275-7785-4509-a822-ae9554cd202b"
                 NodeFlags = MobilityStatic
                 LocalBounds = {
                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -37,7 +36,6 @@ Prefab short_grass {
                 }
                 Children = [
                     Entity short_grass_Primitive0 {
-                        Tags = []
                         Components = [
                             MeshComponent {
                                 Mesh = @"Engine://Meshes/short_grass_LOD0"
@@ -49,8 +47,7 @@ Prefab short_grass {
                                 LodBias = 0
                             }
                         ]
-                        Layers = []
-                        UUID = "432138d7-50aa-47c7-82dd-e705f2c4626f"
+                        UUID = "baaa0e02-52d2-4c7d-b0c6-2cf8d2b69c39"
                         NodeFlags = MobilityStatic
                         LocalBounds = {
                             Min = (-1.013913, 0, -1.0761156)
@@ -66,20 +63,32 @@ Prefab short_grass {
                                 W = 1
                             }
                         }
-                        Children = []
-                        DataEntries = {
-                            Values = []
-                        }
+                        RotationConvention = 1
+                        DataEntries = {}
+
                     }
                 ]
-                DataEntries = {
-                    Values = []
-                }
+                RotationConvention = 1
+                DataEntries = {}
+
             }
         ]
-        DataEntries = {
-            Values = []
-        }
+        RotationConvention = 1
+        DataEntries = {}
+
     }
-    UUID = "2ec20bcf-099e-4cae-940d-45b241c4ed80"
+    Revision = 0
+    ImportInfo = {
+        SourcePath = ""
+        Settings = {
+            RigMode = Create
+            TargetSkeleton = ""
+            Scale = 1
+            FrameRate = 30
+            GenerateMeshLods = true
+            AutoMapHumanoid = true
+        }
+        SourceClip = ""
+    }
+    UUID = "10351003-9bd1-422b-8a8c-3d9d2c98663c"
 }

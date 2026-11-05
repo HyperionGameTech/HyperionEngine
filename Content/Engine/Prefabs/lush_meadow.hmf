@@ -1,0 +1,94 @@
+Prefab lush_meadow {
+    Root = Entity lush_meadow {
+        UUID = "87414815-f2ba-401f-9868-6156b737ddba"
+        NodeFlags = MobilityStatic
+        LocalBounds = {
+            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+        }
+        LocalTransform = {
+            Translation = (0, 0, 0)
+            Scale = (1, 1, 1)
+            Rotation = {
+                X = 0
+                Y = 0
+                Z = 0
+                W = 1
+            }
+        }
+        Children = [
+            Entity lush_meadow {
+                UUID = "472e16fc-6995-4672-a7ed-e2d56bbea1a9"
+                NodeFlags = MobilityStatic
+                LocalBounds = {
+                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                }
+                LocalTransform = {
+                    Translation = (0, 0, 0)
+                    Scale = (1, 1, 1)
+                    Rotation = {
+                        X = 0
+                        Y = 0
+                        Z = 0
+                        W = 1
+                    }
+                }
+                Children = [
+                    Entity lush_meadow_Primitive0 {
+                        Components = [
+                            MeshComponent {
+                                Mesh = @"Engine://Meshes/lush_meadow_LOD0"
+                                Material = @"Engine://Materials/lush_meadow_grass"
+                                Skeleton = null
+                                EnableAutoInstancing = false
+                                InstanceData = null
+                                ForcedLod = 0
+                                LodBias = 0
+                            }
+                        ]
+                        UUID = "3c626d5e-dba7-4f1d-b976-fb2e8af10775"
+                        NodeFlags = MobilityStatic
+                        LocalBounds = {
+                            Min = (-1.2431444, 0, -1.3887281)
+                            Max = (1.3000021, 0.99765074, 1.2722733)
+                        }
+                        LocalTransform = {
+                            Translation = (0, 0, 0)
+                            Scale = (1, 1, 1)
+                            Rotation = {
+                                X = 0
+                                Y = 0
+                                Z = 0
+                                W = 1
+                            }
+                        }
+                        RotationConvention = 1
+                        DataEntries = {}
+
+                    }
+                ]
+                RotationConvention = 1
+                DataEntries = {}
+
+            }
+        ]
+        RotationConvention = 1
+        DataEntries = {}
+
+    }
+    Revision = 0
+    ImportInfo = {
+        SourcePath = ""
+        Settings = {
+            RigMode = Create
+            TargetSkeleton = ""
+            Scale = 1
+            FrameRate = 30
+            GenerateMeshLods = true
+            AutoMapHumanoid = true
+        }
+        SourceClip = ""
+    }
+    UUID = "8f656341-c7a6-4859-b9d1-bd7a5190d70e"
+}

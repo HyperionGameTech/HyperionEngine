@@ -1,7 +1,6 @@
 Prefab wildflower_meadow {
-    Root = {
-        UUID = "b40cda8a-e186-4051-b274-8a30d1071e4c"
-        Name = wildflower_meadow
+    Root = Entity wildflower_meadow {
+        UUID = "a61afa3b-f636-4cb0-8342-c259ec99ca48"
         NodeFlags = MobilityStatic
         LocalBounds = {
             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -18,8 +17,8 @@ Prefab wildflower_meadow {
             }
         }
         Children = [
-            Node wildflower_meadow {
-                UUID = "139d8d9c-e252-42f3-99ac-e3e75c4475ed"
+            Entity wildflower_meadow {
+                UUID = "fd68dc33-955b-401b-a857-7acd0a9fbdb7"
                 NodeFlags = MobilityStatic
                 LocalBounds = {
                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -37,7 +36,6 @@ Prefab wildflower_meadow {
                 }
                 Children = [
                     Entity wildflower_meadow_Primitive0 {
-                        Tags = []
                         Components = [
                             MeshComponent {
                                 Mesh = @"Engine://Meshes/wildflower_meadow_LOD0"
@@ -49,8 +47,7 @@ Prefab wildflower_meadow {
                                 LodBias = 0
                             }
                         ]
-                        Layers = []
-                        UUID = "040deb99-3400-4436-90d8-966325abf0ee"
+                        UUID = "86551704-d5b1-4b1c-b065-4fb84850d11a"
                         NodeFlags = MobilityStatic
                         LocalBounds = {
                             Min = (-1.2253104, 0, -1.2511611)
@@ -66,20 +63,32 @@ Prefab wildflower_meadow {
                                 W = 1
                             }
                         }
-                        Children = []
-                        DataEntries = {
-                            Values = []
-                        }
+                        RotationConvention = 1
+                        DataEntries = {}
+
                     }
                 ]
-                DataEntries = {
-                    Values = []
-                }
+                RotationConvention = 1
+                DataEntries = {}
+
             }
         ]
-        DataEntries = {
-            Values = []
-        }
+        RotationConvention = 1
+        DataEntries = {}
+
     }
-    UUID = "3a24a9ab-0ad7-42a1-af2a-a616e8ea1269"
+    Revision = 0
+    ImportInfo = {
+        SourcePath = ""
+        Settings = {
+            RigMode = Create
+            TargetSkeleton = ""
+            Scale = 1
+            FrameRate = 30
+            GenerateMeshLods = true
+            AutoMapHumanoid = true
+        }
+        SourceClip = ""
+    }
+    UUID = "17f8cb61-749b-450d-8917-749bdcf29dba"
 }

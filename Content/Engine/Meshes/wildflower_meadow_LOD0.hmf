@@ -41,13 +41,13 @@ Mesh wildflower_meadow_LOD0 {
             MeshLodDesc {
                 NumVertices = 1824
                 NumIndices = 3648
-                GeometricError = 0
+                GeometricError = 0.041828062
                 ScreenSize = 0.08
             }
             MeshLodDesc {
                 NumVertices = 488
                 NumIndices = 732
-                GeometricError = 0
+                GeometricError = 0.095607
                 ScreenSize = 0.035
             }
             MeshLodDesc {
@@ -62,7 +62,7 @@ Mesh wildflower_meadow_LOD0 {
         MeshLodData {
             VertexData = {
                 Key = "Engine://Meshes/wildflower_meadow_LOD0.VB"
-                Size = 389760
+                Size = 414120
             }
             IndexData = {
                 Key = "Engine://Meshes/wildflower_meadow_LOD0.IB"
@@ -72,7 +72,7 @@ Mesh wildflower_meadow_LOD0 {
         MeshLodData {
             VertexData = {
                 Key = "Engine://Meshes/wildflower_meadow_LOD0.VB1"
-                Size = 116736
+                Size = 124032
             }
             IndexData = {
                 Key = "Engine://Meshes/wildflower_meadow_LOD0.IB1"
@@ -82,7 +82,7 @@ Mesh wildflower_meadow_LOD0 {
         MeshLodData {
             VertexData = {
                 Key = "Engine://Meshes/wildflower_meadow_LOD0.VB2"
-                Size = 31232
+                Size = 33184
             }
             IndexData = {
                 Key = "Engine://Meshes/wildflower_meadow_LOD0.IB2"
@@ -105,5 +105,5 @@ Mesh wildflower_meadow_LOD0 {
         Size = 82837
     }
     Flags = None
-    UUID = "16f23ced-cbba-4362-a324-870214a483e7"
+    UUID = "799e0a8e-4cac-438d-9bd5-ff0ac8548fdf"
 }

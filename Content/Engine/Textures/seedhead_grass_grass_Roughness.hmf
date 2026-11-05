@@ -1,0 +1,36 @@
+Texture seedhead_grass_grass_Roughness {
+    TextureDesc = {
+        Type = Texture2D
+        Format = RG8
+        Extent = (1024, 512, 1)
+        MinFilterMode = LinearMipmap
+        MagFilterMode = Linear
+        TextureWrapMode = ClampToEdge
+        NumLayers = 1
+        ImageUsage = Sampled
+        MipOffsets = [
+            1048576
+            1310720
+            1376256
+            1392640
+            1396736
+            1397760
+            1398016
+            1398080
+            1398096
+            1398100
+            0
+            0
+            0
+            0
+            0
+            0
+        ]
+    }
+    ImageData = {
+        Key = "Engine://Textures/seedhead_grass_grass_Roughness.TEX"
+        Size = 1398102
+    }
+    Compression = Auto
+    UUID = "97f8e3a6-bb8c-4a3b-bf21-516dcc26896e"
+}
