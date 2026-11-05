@@ -276,6 +276,10 @@ PSOutput PSMain(PSInput input)
 
     const bool isFoliage = (materialParams.mask & OBJECT_MASK_FOLIAGE) != 0;
     const float transmission = (float) isFoliage * GBufferUnpackTransmission(materialBits);
+    
+    const bool isGroundCover = isFoliage
+        && (materialParams.mask & OBJECT_MASK_LIGHTMAPPED) == 0
+        && (materialBits & GBUFFER_GROUND_COVER_BIT) != 0;
 
     const float roughness = clamp(materialParams.roughness, select(isFoliage, FOLIAGE_MIN_ROUGHNESS, 0.01), 0.999);
     const float metalness = materialParams.metalness;
@@ -629,6 +633,8 @@ PSOutput PSMain(PSInput input)
 
     // leaves and grass wrap light around and let some through from behind
     const float diffuseWeight = select(isFoliage, FoliageWrapDiffuse(dot(N, L)), NdotL);
+
+    shadow *= select(isGroundCover, albedo.a * albedo.a * albedo.a, 1.0);
 
     float4 direct_component = (diffuse * diffuseWeight + specular * float4(energy_compensation, 1.0) * NdotL * select(isFoliage, FoliageSpecularWeight(N, V), 1.0)) * shadow;
 

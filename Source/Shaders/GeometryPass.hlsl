@@ -374,7 +374,8 @@ PSOutput PSMain(PSInput input)
     }
  #endif
 
-    // after the back face flip, so both sides of a blade take the ground's shading
+    // @TODO move grass to custom shader
+    
     const float groundNormalBlend = input.ground_normal_blend;
 
     if (groundNormalBlend > 0.0)
@@ -403,6 +404,11 @@ PSOutput PSMain(PSInput input)
         {
             transmission *= SelectMaterialChannel(roughness_texture, transmissionMask - 1u);
         }
+    }
+
+    if (groundNormalBlend > 0.0)
+    {
+        roughness = lerp(roughness, 1.0, saturate(groundNormalBlend * 1.5));
     }
 
     // roughness is authored as perceptual roughness; need to convert to physical roughness for the BRDF calculations
@@ -720,6 +726,11 @@ PSOutput PSMain(PSInput input)
         | (min((uint)round(saturate(input.texcoord1.y) * 16384.0), 16383u) << 14u);
 #else
     output.gbuffer_material = (uint) isFoliage * GBufferPackTransmission(transmission);
+
+    if (isFoliage && any(CURRENT_MATERIAL.ground_cover != 0.0))
+    {
+        output.gbuffer_material |= GBUFFER_GROUND_COVER_BIT;
+    }
 
 #ifndef SHADING_TYPE_FORWARD
     output.gbuffer_material |= GBufferPackEmissive(GET_MATERIAL_EMISSIVE(CURRENT_MATERIAL));

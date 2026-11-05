@@ -31,6 +31,8 @@
 
 #include <Scripting/Asset/ScriptAsset.hpp>
 
+#include <Core/Math/Quat4f.hpp>
+
 #include <Core/Reflection/Class.hpp>
 #include <Core/Reflection/ClassAttribute.hpp>
 #include <Core/Reflection/ClassRegistry.hpp>
@@ -149,22 +151,54 @@ JSON::Value MakeTargetJson(const Handle<ObjectBase>& target)
     return JSON::Value(std::move(targetObject));
 }
 
-JSON::Value CoerceStringifiedValue(const JSON::Value& value, const TypeInfo& typeInfo)
+JSON::Value QuaternionArrayToObject(const JSON::Value& value)
 {
-    if (!value.IsString() || typeInfo.IsStringType())
+    if (!value.IsArray() || value.AsArray().Size() != 4)
     {
         return value;
     }
 
-    const String& text = value.AsString();
+    static const char* const componentNames[] = { "X", "Y", "Z", "W" };
 
-    JSON::ParseResult parseResult = JSON::Parse(UTF8StringView(text.Data(), text.Data() + text.Size()));
-    if (parseResult.ok && !parseResult.value.IsNullOrUndefined())
+    JSON::Object quaternion;
+
+    for (uint32 index = 0; index < 4; index++)
     {
-        return parseResult.value;
+        const JSON::Value& component = value.AsArray()[index];
+
+        if (!component.IsNumber())
+        {
+            return value;
+        }
+
+        quaternion.Set(componentNames[index], component);
     }
 
-    return value;
+    return JSON::Value(std::move(quaternion));
+}
+
+// arguments as clients tend to write them, in the form BoxedFromJSON takes: JSON sent as a string, and quaternions as arrays
+JSON::Value CoerceArgumentJson(const JSON::Value& value, const TypeInfo& typeInfo)
+{
+    JSON::Value coerced = value;
+
+    if (coerced.IsString() && !typeInfo.IsStringType())
+    {
+        const String& text = coerced.AsString();
+
+        JSON::ParseResult parseResult = JSON::Parse(UTF8StringView(text.Data(), text.Data() + text.Size()));
+        if (parseResult.ok && !parseResult.value.IsNullOrUndefined())
+        {
+            coerced = parseResult.value;
+        }
+    }
+
+    if (typeInfo.id == TypeId::ForType<Quat4f>())
+    {
+        coerced = QuaternionArrayToObject(coerced);
+    }
+
+    return coerced;
 }
 
 // Instances made by create_instance. Owns the value so it outlives the request; only touched on the sim thread.
@@ -923,7 +957,7 @@ TResult<JSON::Value> HandleInvokeMethod(const JSON::Object& args)
             {
                 BoxedValue boxed;
 
-                const JSON::Value& coercedJson = CoerceStringifiedValue(argsJson[i], *methodParams[i].typeInfo);
+                const JSON::Value& coercedJson = CoerceArgumentJson(argsJson[i], *methodParams[i].typeInfo);
 
                 if (!TryResolveNodeHandleFromJson(coercedJson, *methodParams[i].typeInfo, boxed))
                 {
@@ -1087,7 +1121,7 @@ TResult<JSON::Value> HandleSetField(const JSON::Object& args)
 
             BoxedValue value;
 
-            const JSON::Value& coercedValueJson = CoerceStringifiedValue(valueJson, fieldTypeInfo);
+            const JSON::Value& coercedValueJson = CoerceArgumentJson(valueJson, fieldTypeInfo);
 
             if (!TryResolveNodeHandleFromJson(coercedValueJson, fieldTypeInfo, value))
             {
@@ -1606,7 +1640,7 @@ TResult<JSON::Value> HandleAddComponent(const JSON::Object& args)
                 }
 
                 const TypeInfo& fieldTypeInfo = field->GetTypeInfo();
-                JSON::Value coerced = CoerceStringifiedValue(fieldValue, fieldTypeInfo);
+                JSON::Value coerced = CoerceArgumentJson(fieldValue, fieldTypeInfo);
 
                 BoxedValue fieldBoxed;
                 if (Result convertResult = BoxedFromJSON(coerced, fieldTypeInfo, fieldBoxed); convertResult.HasError())
@@ -1848,7 +1882,7 @@ TResult<BoxedValue> MakeNewObjectFromJson(const JSON::Object& newObjectJson)
 
             BoxedValue propertyValue;
 
-            if (Result convertResult = BoxedFromJSON(CoerceStringifiedValue(it.second, property->GetTypeInfo()), property->GetTypeInfo(), propertyValue); convertResult.HasError())
+            if (Result convertResult = BoxedFromJSON(CoerceArgumentJson(it.second, property->GetTypeInfo()), property->GetTypeInfo(), propertyValue); convertResult.HasError())
             {
                 return TResult<BoxedValue>(HYP_MAKE_ERROR(Error, "{}.{}: {}", cls->GetName(), it.first, convertResult.GetError().GetMessage()));
             }
@@ -1966,7 +2000,7 @@ TResult<JSON::Value> HandleSetScriptField(const JSON::Object& args)
             }
             else if (!TryResolveNodeHandleFromJson(valueJson, property->GetTypeInfo(), value))
             {
-                if (Result convertResult = BoxedFromJSON(CoerceStringifiedValue(valueJson, property->GetTypeInfo()), property->GetTypeInfo(), value); convertResult.HasError())
+                if (Result convertResult = BoxedFromJSON(CoerceArgumentJson(valueJson, property->GetTypeInfo()), property->GetTypeInfo(), value); convertResult.HasError())
                 {
                     return MakeErrorResult(String("Failed to convert value: ") + String(convertResult.GetError().GetMessage()));
                 }

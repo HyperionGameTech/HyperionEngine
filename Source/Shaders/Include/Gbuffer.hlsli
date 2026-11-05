@@ -24,8 +24,17 @@
 #define GBUFFER_EMISSIVE_MIN_LOG2 (-10.0)
 #define GBUFFER_EMISSIVE_MAX_LOG2 (14.0)
 
-// Material data bits (non-lightmapped): [0, 5) foliage transmission, [5, 8) extended object mask, [8, 28) emissive, [28, 32) object mask
-#define GBUFFER_TRANSMISSION_MAX 31u
+/////////////////////////////////////////////////////////////
+/// Material bits (non-lightmapped) /////////////////////////
+///     0-3     = foliage transmission
+///     4       = ground cover
+///     5-7     = extended object mask
+///     8-27    = emissive
+///     28-31   = object mask
+/////////////////////////////////////////////////////////////
+
+#define GBUFFER_TRANSMISSION_MAX 15u
+#define GBUFFER_GROUND_COVER_BIT (1u << 4u)
 #define GBUFFER_EXTENDED_MASK_SHIFT 5u
 
 struct GBufferMaterialParams
