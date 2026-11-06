@@ -20,7 +20,7 @@ namespace Hyperion.Editor.ViewModels
 
         public ObservableCollection<InspectorPropertyViewModelBase> Properties { get; }
 
-        public ObservableCollection<string> Presets { get; } = new ObservableCollection<string>();
+        public ObservableCollection<string> Presets { get; } = new();
 
         private int _selectedPresetIndex = -1;
         public int SelectedPresetIndex

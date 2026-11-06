@@ -50,11 +50,8 @@ public:
 
     void RefreshScriptSourceDirectories();
 
-    /*! \brief Recreates the script object of an entity whose ScriptComponent changed script after it was added */
     void RecreateEntityScript(Entity* entity);
 
-    /*! \brief Builds (if needed) and loads the C# module of a project's Scripts folder, so the classes it declares
-     *  (e.g C# subclasses of Entity) are registered before the project's scenes are read. Editor only; null otherwise. */
     ENGINE_API static SharedPtr<dotnet::Assembly> LoadProjectScriptAssembly(
         const FilePath& contentDirectory,
         Span<const Name> pluginModules);

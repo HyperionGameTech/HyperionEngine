@@ -350,6 +350,12 @@ public:
     void ApplyBrush(const Vec3f& worldPos, float radius, float strength, bool raise);
 
     HYP_METHOD()
+    void ApplyFlattenBrush(const Vec3f& center, float radius, float falloff, float amount);
+
+    HYP_METHOD()
+    void ApplySmoothBrush(const Vec3f& center, float radius, float strength);
+
+    HYP_METHOD()
     float GetHeightAt(const Vec2f& worldXZ) const;
 
     HYP_METHOD()

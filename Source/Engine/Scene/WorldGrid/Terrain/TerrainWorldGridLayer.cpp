@@ -2237,6 +2237,24 @@ void TerrainWorldGridLayer::ApplyBrush(const Vec3f& worldPos, float radius, floa
     MarkHeightsDirty(Vec4f(worldPos.x - margin, worldPos.z - margin, worldPos.x + margin, worldPos.z + margin));
 }
 
+void TerrainWorldGridLayer::ApplyFlattenBrush(const Vec3f& center, float radius, float falloff, float amount)
+{
+    m_brush.FlattenCircle(Vec2f(center.x, center.z), radius, falloff, center.y, amount);
+
+    const float reach = MathUtil::Max(radius, 0.0f) + MathUtil::Max(falloff, 0.0f) + MathUtil::Max(m_layerInfo.scale.x, m_layerInfo.scale.z);
+
+    MarkHeightsDirty(Vec4f(center.x - reach, center.z - reach, center.x + reach, center.z + reach));
+}
+
+void TerrainWorldGridLayer::ApplySmoothBrush(const Vec3f& center, float radius, float strength)
+{
+    m_brush.Smooth(Vec2f(center.x, center.z), radius, strength);
+
+    const float reach = radius + MathUtil::Max(m_layerInfo.scale.x, m_layerInfo.scale.z);
+
+    MarkHeightsDirty(Vec4f(center.x - reach, center.z - reach, center.x + reach, center.z + reach));
+}
+
 float TerrainWorldGridLayer::GetHeightAt(const Vec2f& worldXZ) const
 {
     return SampleHeightAtBlocking(worldXZ);
@@ -2252,11 +2270,8 @@ void TerrainWorldGridLayer::FinishShapeEdit(const Vec4f& worldRect)
 
 void TerrainWorldGridLayer::FlattenCircle(const Vec3f& center, float radius, float falloff)
 {
-    m_brush.FlattenCircle(Vec2f(center.x, center.z), radius, falloff, center.y);
-
-    const float reach = MathUtil::Max(radius, 0.0f) + MathUtil::Max(falloff, 0.0f);
-
-    FinishShapeEdit(Vec4f(center.x - reach, center.z - reach, center.x + reach, center.z + reach));
+    ApplyFlattenBrush(center, radius, falloff, 1.0f);
+    EndBrushStroke();
 }
 
 void TerrainWorldGridLayer::FlattenRect(const Vec2f& minXZ, const Vec2f& maxXZ, float height, float falloff)
@@ -2283,9 +2298,8 @@ void TerrainWorldGridLayer::Ramp(const Vec3f& from, const Vec3f& to, float width
 
 void TerrainWorldGridLayer::SmoothArea(const Vec3f& center, float radius, float strength)
 {
-    m_brush.Smooth(Vec2f(center.x, center.z), radius, strength);
-
-    FinishShapeEdit(Vec4f(center.x - radius, center.z - radius, center.x + radius, center.z + radius));
+    ApplySmoothBrush(center, radius, strength);
+    EndBrushStroke();
 }
 
 void TerrainWorldGridLayer::PaintSplat(const Vec3f& worldPos, float radius, float strength, uint32 layerIndex, bool erase)

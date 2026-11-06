@@ -1169,6 +1169,34 @@ namespace Hyperion.Editor.ViewModels
 
         public ObservableCollection<TaskItemViewModel> Tasks { get; } = new();
 
+        public TaskItemViewModel? PrimaryTask
+        {
+            get
+            {
+                if (Tasks.Count == 0)
+                {
+                    return null;
+                }
+
+                return Tasks[^1];
+            }
+        }
+
+        public bool HasTasks => Tasks.Count > 0;
+
+        public bool HasMultipleTasks => Tasks.Count > 1;
+
+        public string TaskCountText => $"+{Math.Max(Tasks.Count - 1, 0)}";
+
+        private void NotifyTasksChanged()
+        {
+            OnPropertyChanged(nameof(Tasks));
+            OnPropertyChanged(nameof(PrimaryTask));
+            OnPropertyChanged(nameof(HasTasks));
+            OnPropertyChanged(nameof(HasMultipleTasks));
+            OnPropertyChanged(nameof(TaskCountText));
+        }
+
         public ForegroundTaskViewModel ForegroundTask { get; private set; }
 
         private SceneViewModel? _activeScene;
@@ -2058,8 +2086,8 @@ namespace Hyperion.Editor.ViewModels
                         return;
                     }
 
-                    Tasks.Add(new TaskItemViewModel(task.Id, task.Class.Name.ToString(), isForegroundTask: false));
-                    OnPropertyChanged(nameof(Tasks));
+                    Tasks.Add(new TaskItemViewModel(task));
+                    NotifyTasksChanged();
                 }
             });
         }
@@ -2074,8 +2102,9 @@ namespace Hyperion.Editor.ViewModels
                 {
                     if (Tasks[i].TaskId.Equals(taskId))
                     {
+                        Tasks[i].Detach();
                         Tasks.RemoveAt(i);
-                        OnPropertyChanged(nameof(Tasks));
+                        NotifyTasksChanged();
                         return;
                     }
                 }
@@ -2627,7 +2656,7 @@ namespace Hyperion.Editor.ViewModels
             Inspector.SetSelectedNode(node, SceneHierarchy.Scene, isRootNode);
         }
 
-        public void HandleShiftClick(NodeViewModel clickedNode)
+        public void HandleShiftClick(NodeViewModel clickedNode, bool addToSelection)
         {
             Dispatcher.UIThread.VerifyAccess();
 
@@ -2636,70 +2665,76 @@ namespace Hyperion.Editor.ViewModels
                 return;
             }
 
-            // Save the anchor (currently selected/focused node) before updating it
-            NodeViewModel? anchorNode = SceneHierarchy.SelectedNode;
+            NodeViewModel? anchorNode = SceneHierarchy.SelectionAnchor;
 
-            // Get the clicked node's native reference
-            Node clickedNodeRef = clickedNode.Node;
-
-            // Set the clicked node as the new focused node (with notification suppressed)
-            SceneHierarchy.SelectNodeFromEngine(clickedNodeRef);
-
-            // Get flattened list of all visible nodes in tree order
-            List<NodeViewModel> flatNodes = SceneHierarchy.GetFlattenedNodes();
-
-            int anchorIndex = -1;
-            int clickedIndex = -1;
-
-            for (int i = 0; i < flatNodes.Count; i++)
+            if (anchorNode == null || !SceneHierarchy.SelectedNodes.Contains(anchorNode))
             {
-                if (anchorNode != null && flatNodes[i] == anchorNode)
-                {
-                    anchorIndex = i;
-                }
-
-                if (flatNodes[i] == clickedNode)
-                {
-                    clickedIndex = i;
-                }
+                anchorNode = SceneHierarchy.SelectedNode;
             }
+
+            List<NodeViewModel> flatNodes = SceneHierarchy.GetVisibleFlattenedNodes();
+
+            int clickedIndex = flatNodes.IndexOf(clickedNode);
 
             if (clickedIndex == -1)
             {
                 return;
             }
 
-            // If no previous anchor, treat as normal single-click selection
+            int anchorIndex = -1;
+
+            if (anchorNode != null)
+            {
+                anchorIndex = flatNodes.IndexOf(anchorNode);
+            }
+
             if (anchorIndex == -1)
             {
                 anchorIndex = clickedIndex;
             }
 
-            // Determine range bounds
+            SceneHierarchy.SelectionAnchor = flatNodes[anchorIndex];
+
             int rangeStart = Math.Min(anchorIndex, clickedIndex);
             int rangeEnd = Math.Max(anchorIndex, clickedIndex);
 
-            // Capture nodes in the range
-            List<Node> nodesInRange = new List<Node>();
+            if (!addToSelection)
+            {
+                SceneHierarchy.SelectedNodes.Clear();
+            }
+
             for (int i = rangeStart; i <= rangeEnd; i++)
             {
                 NodeViewModel vm = flatNodes[i];
-                if (vm.Node != null && vm.Node.IsValid)
+
+                if (vm.Node != null && vm.Node.IsValid && !SceneHierarchy.SelectedNodes.Contains(vm))
                 {
-                    nodesInRange.Add(vm.Node);
+                    SceneHierarchy.SelectedNodes.Add(vm);
                 }
             }
 
-            // Push the range selection to the engine on the sim thread
+            Node clickedNodeRef = clickedNode.Node;
+
+            SceneHierarchy.SelectNodeFromEngine(clickedNodeRef);
+            SceneHierarchy.NotifySelectedNodesChanged();
+            UpdateCopyDeleteHeaders();
+
+            Node[] selectedNodes = SceneHierarchy.SelectedNodes
+                .Select(vm => vm.Node)
+                .Where(n => n != null && n.IsValid)
+                .ToArray();
+
             _ = EngineManager.PostToSimThread(() =>
             {
-                _editorSubsystem.SetSelectedNodes(new Node[] { clickedNodeRef });
+                _editorSubsystem.SetSelectedNodes(selectedNodes);
                 _editorSubsystem.SetFocusedNode(clickedNodeRef, false);
             });
 
-            // Update the inspector for the new focused node
-            bool isRootNode = SceneHierarchy.IsRootNode(clickedNodeRef);
-            Inspector.SetSelectedNode(clickedNodeRef, SceneHierarchy.Scene, isRootNode);
+            if (selectedNodes.Length <= 1)
+            {
+                bool isRootNode = SceneHierarchy.IsRootNode(clickedNodeRef);
+                Inspector.SetSelectedNode(clickedNodeRef, SceneHierarchy.Scene, isRootNode);
+            }
         }
 
         private void OnSceneAdded(World world, Scene scene)

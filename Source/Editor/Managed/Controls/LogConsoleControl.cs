@@ -34,7 +34,7 @@ namespace Hyperion.Editor.Controls
         };
 
         private static readonly IBrush LinkBrush = new ImmutableSolidColorBrush(Color.Parse("#FF6DA0FF"));
-        private static readonly IBrush BackgroundBrush = new ImmutableSolidColorBrush(Color.Parse("#FF060709"));
+        private static readonly IBrush BackgroundBrush = new ImmutableSolidColorBrush(Color.Parse("#FF15171A"));
         private static readonly IBrush SelectionBrush = new ImmutableSolidColorBrush(Color.Parse("#1C58B8FF"));
         private static readonly Typeface MonoTypeface = new Typeface(new FontFamily("Cascadia Mono, Menlo, Monaco, SFMono-Regular, Consolas, Courier New, monospace"));
         private static readonly Cursor HandCursor = new Cursor(StandardCursorType.Hand);

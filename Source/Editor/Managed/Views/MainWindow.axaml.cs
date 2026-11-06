@@ -38,6 +38,7 @@ namespace Hyperion.Editor
     public partial class MainWindow : Window
     {
         private const bool IsRenderingOnMainThread = true;
+        private const bool WorldSelectorInMenu = true;
 
         /// For help menu
         private const string DocumentationUrl = "https://hyperionengine.dev/docs";
@@ -137,9 +138,10 @@ namespace Hyperion.Editor
         private const double ToolbarGroupGap = 8;
         private const double ToolbarDensityHysteresis = 12;
 
-        // so we can round corners on non-Windows OSes (Windows has its own rounded corners)
-        private static bool UseCustomWindowCorners => !OperatingSystem.IsWindows();
+        // so we can round corners on Linux (Windows and macOS have their own rounded corners)
+        private static bool UseCustomWindowCorners => !OperatingSystem.IsWindows() && !OperatingSystem.IsMacOS();
         private const double WindowCornerRadius = 8;
+        private const double TitleBarHeight = 32;
 
         public MainWindow()
         {
@@ -149,6 +151,16 @@ namespace Hyperion.Editor
 
             InitializeComponent();
 
+            if (OperatingSystem.IsMacOS())
+            {
+                WindowDecorations = WindowDecorations.Full;
+                ExtendClientAreaToDecorationsHint = true;
+                ExtendClientAreaTitleBarHeightHint = TitleBarHeight;
+                TitleBar.Classes.Add("mac");
+                CaptionButtons.IsVisible = false;
+                ResizeGrips.IsVisible = false;
+            }
+
             if (UseCustomWindowCorners)
             {
                 TransparencyLevelHint = [WindowTransparencyLevel.Transparent];
@@ -157,7 +169,6 @@ namespace Hyperion.Editor
             }
 
             viewModel.SceneHierarchy.PropertyChanged += OnSceneHierarchyPropertyChanged;
-            viewModel.PropertyChanged += OnViewModelChromePropertyChanged;
 
             EditorPluginService.Instance.Documents.CollectionChanged += (_, e) =>
             {
@@ -187,6 +198,10 @@ namespace Hyperion.Editor
             AddSceneContextMenu.Opened += (_, _) => RefreshPluginAddMenuEntries(AddSceneContextMenu.Items);
 
             WorldNameEditor.AddHandler(KeyDownEvent, OnWorldNameEditorKeyDown, RoutingStrategies.Tunnel);
+
+            WorldMenu.IsVisible = WorldSelectorInMenu;
+            WorldCrumbChevron.IsVisible = !WorldSelectorInMenu;
+            WorldCrumbButton.IsVisible = !WorldSelectorInMenu;
 
             PanelService.Instance.ActivePanelChanged += OnPanelServiceActivePanelChanged;
             ContentBrowserViewModel.BringToFrontRequested += OnContentBrowserBringToFrontRequested;
@@ -345,7 +360,8 @@ namespace Hyperion.Editor
             if (change.Property == WindowStateProperty)
             {
                 bool isMaximized = WindowState == WindowState.Maximized;
-                ResizeGrips.IsVisible = WindowState == WindowState.Normal;
+                ResizeGrips.IsVisible = WindowState == WindowState.Normal && !OperatingSystem.IsMacOS();
+                TitleBar.Classes.Set("fullscreen", WindowState == WindowState.FullScreen);
                 MaximizeGlyph.IsVisible = !isMaximized;
                 RestoreGlyph.IsVisible = isMaximized;
                 ToolTip.SetTip(MaximizeButton, isMaximized ? "Restore" : "Maximize");
@@ -358,55 +374,13 @@ namespace Hyperion.Editor
             }
         }
 
-        private void OnViewModelChromePropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
-        {
-            switch (e.PropertyName)
-            {
-                case nameof(MainWindowViewModel.IsGameModeSimulating):
-                case nameof(MainWindowViewModel.IsGameModePaused):
-                case nameof(MainWindowViewModel.IsInEditMode):
-                case nameof(MainWindowViewModel.EditModeDescription):
-                case nameof(MainWindowViewModel.IsEditModeDirty):
-                    UpdateChromeState();
-                    break;
-            }
-        }
-
         private void UpdateChromeState()
         {
-            if (DataContext is not MainWindowViewModel viewModel)
-            {
-                return;
-            }
-
-            bool playing = viewModel.IsGameModeSimulating;
-            bool paused = !playing && viewModel.IsGameModePaused;
-            bool editing = !playing && !paused && viewModel.IsInEditMode;
-
-            TitleBar.Classes.Set("playing", playing);
-            TitleBar.Classes.Set("paused", paused);
-            TitleBar.Classes.Set("editing", editing);
             TitleBar.Classes.Set("inactive", !IsActive);
 
             string borderColorKey = "Color.BorderLight";
 
-            if (playing)
-            {
-                ChromeStateText.Text = "Playing";
-                borderColorKey = "Color.PlayMuted";
-            }
-            else if (paused)
-            {
-                ChromeStateText.Text = "Paused";
-                borderColorKey = "Color.Warning";
-            }
-            else if (editing)
-            {
-                ChromeStateText.Text = viewModel.IsEditModeDirty ? $"{viewModel.EditModeDescription} •" : viewModel.EditModeDescription;
-                borderColorKey = "Color.AccentMuted";
-            }
-
-            if (!IsActive && !playing && !paused)
+            if (!IsActive)
             {
                 borderColorKey = "Color.Border";
             }
@@ -579,6 +553,36 @@ namespace Hyperion.Editor
 
             var flyout = new MenuFlyout { Placement = PlacementMode.BottomEdgeAlignedLeft };
 
+            foreach (Control entry in BuildWorldMenuEntries(viewModel))
+            {
+                flyout.Items.Add(entry);
+            }
+
+            flyout.Opened += (_, _) => WorldCrumbButton.Classes.Set("open", true);
+            flyout.Closed += (_, _) => WorldCrumbButton.Classes.Set("open", false);
+
+            flyout.ShowAt(WorldCrumbButton);
+        }
+
+        private void OnWorldMenuSubmenuOpened(object? sender, RoutedEventArgs e)
+        {
+            if (!ReferenceEquals(e.Source, sender) || sender is not MenuItem menu || DataContext is not MainWindowViewModel viewModel)
+            {
+                return;
+            }
+
+            menu.Items.Clear();
+
+            foreach (Control entry in BuildWorldMenuEntries(viewModel))
+            {
+                menu.Items.Add(entry);
+            }
+        }
+
+        private List<Control> BuildWorldMenuEntries(MainWindowViewModel viewModel)
+        {
+            var entries = new List<Control>();
+
             string currentWorld = viewModel.WorldDisplayName;
             bool canSwitch = !viewModel.IsSimulating;
 
@@ -607,7 +611,7 @@ namespace Hyperion.Editor
                     item.Click += (_, _) => EngineManager.EditorGame?.EditorSubsystem?.ExecuteCommandByName(new Name("EditorCommandOpenWorld"), worldName);
                 }
 
-                flyout.Items.Add(item);
+                entries.Add(item);
             }
 
             var newWorldItem = new MenuItem { Header = "New World...", IsEnabled = canSwitch };
@@ -616,14 +620,11 @@ namespace Hyperion.Editor
             var settingsItem = new MenuItem { Header = "World Settings..." };
             settingsItem.Click += OnWorldSettingsClick;
 
-            flyout.Items.Add(new Separator());
-            flyout.Items.Add(newWorldItem);
-            flyout.Items.Add(settingsItem);
+            entries.Add(new Separator());
+            entries.Add(newWorldItem);
+            entries.Add(settingsItem);
 
-            flyout.Opened += (_, _) => WorldCrumbButton.Classes.Set("open", true);
-            flyout.Closed += (_, _) => WorldCrumbButton.Classes.Set("open", false);
-
-            flyout.ShowAt(WorldCrumbButton);
+            return entries;
         }
 
         private void BeginNewWorldEdit()
@@ -660,7 +661,7 @@ namespace Hyperion.Editor
             ToolTip.SetIsOpen(WorldNameEditor, false);
             WorldNameEditor.Classes.Set("invalid", false);
             WorldNameEditor.IsVisible = false;
-            WorldCrumbButton.IsVisible = true;
+            WorldCrumbButton.IsVisible = !WorldSelectorInMenu;
         }
 
         private string? GetNewWorldNameError(string name)
@@ -2737,7 +2738,7 @@ namespace Hyperion.Editor
                     if (nodeVm != null)
                     {
                         var vm = DataContext as MainWindowViewModel;
-                        vm?.HandleShiftClick(nodeVm);
+                        vm?.HandleShiftClick(nodeVm, (keyModifiers & KeyModifiers.Control) != 0);
                     }
 
                     e.Handled = true;
@@ -2751,6 +2752,12 @@ namespace Hyperion.Editor
                 }
 
                 _dragCandidate = FindNodeViewModelInEventSource(e.Source);
+
+                if (_dragCandidate != null && DataContext is MainWindowViewModel anchorVm)
+                {
+                    anchorVm.SceneHierarchy.SelectionAnchor = _dragCandidate;
+                }
+
                 _dragPressedArgs = e;
                 _dragStartPoint = e.GetPosition(sender as Visual);
                 _isDragging = false;
