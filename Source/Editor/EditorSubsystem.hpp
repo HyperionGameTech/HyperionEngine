@@ -185,7 +185,15 @@ public:
     }
 
     /// The editor scene node that stands in for one instance of \p group, so it can be selected and moved like any other node
-    Handle<InstanceHandleNode> GetOrCreateInstanceHandle(const Handle<InstanceGroup>& group, InstanceId instanceId);
+    Handle<InstanceHandleNode> GetOrCreateInstanceHandle(
+        const Handle<InstanceGroup>& group,
+        InstanceId instanceId);
+
+    /// Get up to \p maxCount Instance Handle nodes for the given \p group.
+    HYP_METHOD()
+    Array<Handle<Node>> GetInstanceHandles(
+        const Handle<InstanceGroup>& group,
+        uint32 maxCount);
 
     /// Use GetProjectWorld() instead if you need the project's world
     /// Otherwise, you can cast to Subsystem and call GetWorld on that.
@@ -400,17 +408,17 @@ public:
     ///Terrain
 
     HYP_METHOD()
-    Handle<EditorTerrainState> GetTerrainState();
+    const Handle<EditorTerrainState>& GetTerrainState();
 
     ///Decals
 
     HYP_METHOD()
-    Handle<EditorDecalPainterState> GetDecalPainterState();
+    const Handle<EditorDecalPainterState>& GetDecalPainterState();
 
     ///Instances
 
     HYP_METHOD()
-    Handle<EditorInstancePainterState> GetInstancePainterState();
+    const Handle<EditorInstancePainterState>& GetInstancePainterState();
 
     /// The enabled decal or instance painter, if any (at most one is)
     EditorSurfacePainterState* GetActiveSurfacePainter();
@@ -420,7 +428,7 @@ public:
     ///Prefab editing
 
     HYP_METHOD()
-    Handle<EditorPrefabEditState> GetPrefabEditState();
+    const Handle<EditorPrefabEditState>& GetPrefabEditState();
 
     HYP_METHOD()
     bool IsEditingPrefab() const;
@@ -1026,6 +1034,9 @@ private:
     void DebugDrawSpotLight(class DebugDrawCommandList& debugDrawCommandList, const class Light& light);
     void DebugDrawSelectedInstances(class DebugDrawCommandList& debugDrawCommandList);
 
+    Handle<InstanceHandleNode> FindOrCreateInstanceHandle(const Handle<InstanceGroup>& group, InstanceId instanceId);
+    void AttachInstanceHandle(const Handle<InstanceHandleNode>& handle);
+    void AttachSelectedInstanceHandles();
     void DetachUnselectedInstanceHandles(const Array<Handle<Node>>& selectedNodes);
     void ClearInstanceHandles();
 

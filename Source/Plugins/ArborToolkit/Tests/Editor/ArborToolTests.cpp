@@ -583,7 +583,7 @@ HYP_EDITOR_TEST(TerrainShaping, ShapesAndTakesPaint)
     HYP_TEST_REQUIRE(group.IsValid());
     HYP_TEST_CHECK(group->NumInstances() == placed);
 
-    Array<Transform> transforms;
+    Array<Transform, SceneAllocator> transforms;
     group->GetInstanceTransforms(transforms);
 
     bool allOnPlateau = !transforms.Empty();

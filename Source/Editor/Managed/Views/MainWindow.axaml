@@ -2226,7 +2226,43 @@
                                                             <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
                                                         </ControlTheme>
                                                     </TreeView.ItemContainerTheme>
-                                                    <TreeView.ItemTemplate>
+                                                    <TreeView.DataTemplates>
+                                                        <TreeDataTemplate x:DataType="vm:InstanceNodeViewModel" ItemsSource="{Binding Children}">
+                                                            <Grid HorizontalAlignment="Stretch" Background="Transparent">
+                                                                <StackPanel
+                                                                    Margin="2,2"
+                                                                    VerticalAlignment="Center"
+                                                                    Orientation="Horizontal"
+                                                                    Spacing="6">
+                                                                    <controls:Codicon
+                                                                        VerticalAlignment="Center"
+                                                                        Kind="{Binding IconKind}"
+                                                                        Opacity="0.5"
+                                                                        Size="14" />
+                                                                    <TextBlock
+                                                                        VerticalAlignment="Center"
+                                                                        Opacity="0.85"
+                                                                        Text="{Binding DisplayName}" />
+                                                                </StackPanel>
+                                                                <Grid.ContextMenu>
+                                                                    <ContextMenu>
+                                                                        <MenuItem
+                                                                            Command="{Binding Copy, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                            Header="{Binding CopyHeader, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                            IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}" />
+                                                                        <MenuItem
+                                                                            Command="{Binding Paste, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                            Header="{Binding PasteHeader, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                            IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}" />
+                                                                        <Separator />
+                                                                        <MenuItem
+                                                                            Command="{Binding DeleteNode, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                            Header="{Binding DeleteHeader, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                            IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}" />
+                                                                    </ContextMenu>
+                                                                </Grid.ContextMenu>
+                                                            </Grid>
+                                                        </TreeDataTemplate>
                                                         <TreeDataTemplate x:DataType="vm:NodeViewModel" ItemsSource="{Binding Children}">
                                                             <Grid HorizontalAlignment="Stretch" Background="Transparent">
                                                                 <!--  Drop-target highlight: sits behind the label, shown during drag-over  -->
@@ -2256,6 +2292,11 @@
                                                                         FontStyle="{Binding NameFontStyle}"
                                                                         IsVisible="{Binding !IsEditingName}"
                                                                         Text="{Binding DisplayName}" />
+                                                                    <TextBlock
+                                                                        VerticalAlignment="Center"
+                                                                        IsVisible="{Binding IsInstanceGroup}"
+                                                                        Opacity="0.5"
+                                                                        Text="{Binding InstanceCountText}" />
                                                                     <TextBox
                                                                         Name="NodeRenameTextBox"
                                                                         MinWidth="80"
@@ -2306,12 +2347,12 @@
                                                                         <MenuItem
                                                                             Command="{Binding TeleportToNode, Source={x:Static vm:MainWindowViewModel.Instance}}"
                                                                             CommandParameter="{Binding UUID}"
-                                                                            Header="Teleport to"
+                                                                            Header="Teleport To"
                                                                             IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}" />
                                                                         <MenuItem
                                                                             Command="{Binding MoveToCameraNode, Source={x:Static vm:MainWindowViewModel.Instance}}"
                                                                             CommandParameter="{Binding UUID}"
-                                                                            Header="Move to camera"
+                                                                            Header="Move this Here"
                                                                             IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}" />
                                                                         <MenuItem
                                                                             Click="OnMoveToGrandparentMenuItemClick"
@@ -2320,7 +2361,7 @@
                                                                             IsVisible="{Binding CanMoveToGrandparent}" />
                                                                         <Separator />
                                                                         <MenuItem
-                                                                            Header="Move to scene"
+                                                                            Header="Move this to Another Scene"
                                                                             IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}"
                                                                             IsVisible="{Binding HasMoveToSceneTargets}"
                                                                             ItemsSource="{Binding MoveToSceneTargets}">
@@ -2505,7 +2546,7 @@
                                                                 </Grid.ContextMenu>
                                                             </Grid>
                                                         </TreeDataTemplate>
-                                                    </TreeView.ItemTemplate>
+                                                    </TreeView.DataTemplates>
                                                 </TreeView>
 
                                                 <Border

@@ -80,7 +80,7 @@ protected:
     bool HasActiveAsset() const override;
     Vec3f GetPlacementScale() const override;
 
-    void StampAt(const SurfaceHit& hit) override;
+    void PaintAt(const SurfaceHit& hit) override;
     void EraseAt(const SurfaceHit& hit) override;
 
     void ResetStrokeEdits() override;

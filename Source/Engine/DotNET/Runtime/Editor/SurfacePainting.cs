@@ -37,6 +37,8 @@ namespace Hyperion
 
         public float SinkDepth => this.GetSinkDepth();
 
+        public bool OnlyOnGround => this.GetOnlyOnGround();
+
         public float ScaleMin => this.GetScaleMin();
 
         public float ScaleMax => this.GetScaleMax();

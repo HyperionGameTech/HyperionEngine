@@ -40,9 +40,60 @@ namespace Hyperion.Editor.ViewModels
         public event Action? SelectionChanged;
         public event Action<Scene>? SceneChildrenChanged;
 
-        private readonly NodeViewModelIndex _nodeViewModelIndex = new NodeViewModelIndex();
+        private readonly NodeViewModelIndex _nodeViewModelIndex;
 
         private int _attachGeneration;
+
+        // instances selected in the viewport whose rows weren't listed yet
+        private List<Node>? _pendingSelection;
+        private Node? _pendingFocusedNode;
+
+        public SceneHierarchyViewModel()
+        {
+            _nodeViewModelIndex = new NodeViewModelIndex();
+            _nodeViewModelIndex.InstanceRowsChanged += OnInstanceRowsChanged;
+        }
+
+        private void OnInstanceRowsChanged()
+        {
+            List<Node>? pendingSelection = _pendingSelection;
+            Node? pendingFocusedNode = _pendingFocusedNode;
+
+            _pendingSelection = null;
+            _pendingFocusedNode = null;
+
+            if (pendingFocusedNode != null)
+            {
+                SelectNodeFromEngine(pendingFocusedNode, requestMissingRows: false);
+            }
+
+            if (pendingSelection != null)
+            {
+                UpdateSelectionFromEngine(pendingSelection, requestMissingRows: false);
+            }
+        }
+
+        private void RequestInstanceRows(List<InstanceHandleNode> handles)
+        {
+            _ = EngineManager.PostToSimThread(() =>
+            {
+                List<UUID> groupUUIDs = handles
+                    .Where(handle => handle.IsValid)
+                    .Select(handle => handle.GetInstanceGroup())
+                    .Where(group => group != null && group.IsValid)
+                    .Select(group => group!.UUID)
+                    .Distinct()
+                    .ToList();
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    foreach (UUID groupUUID in groupUUIDs)
+                    {
+                        _nodeViewModelIndex.Find(groupUUID)?.ScheduleInstanceRefresh();
+                    }
+                });
+            });
+        }
 
         public void AttachToScene(Scene? scene)
         {
@@ -53,6 +104,9 @@ namespace Hyperion.Editor.ViewModels
             _scene = scene;
             RootNodes.Clear();
             _nodeViewModelIndex.Clear();
+
+            _pendingSelection = null;
+            _pendingFocusedNode = null;
 
             _suppressSelectionNotifications = true;
             try
@@ -242,11 +296,19 @@ namespace Hyperion.Editor.ViewModels
             RootNodes.Clear();
             _nodeViewModelIndex.Clear();
 
+            _pendingSelection = null;
+            _pendingFocusedNode = null;
+
             _onSelectedNodeChanged?.Remove();
             _onSelectedNodeChanged = null;
         }
 
         public void SelectNodeFromEngine(Node? node)
+        {
+            SelectNodeFromEngine(node, requestMissingRows: true);
+        }
+
+        private void SelectNodeFromEngine(Node? node, bool requestMissingRows)
         {
             Dispatcher.UIThread.VerifyAccess();
 
@@ -254,6 +316,8 @@ namespace Hyperion.Editor.ViewModels
 
             try
             {
+                _pendingFocusedNode = null;
+
                 if (node == null || !node.IsValid)
                 {
                     SelectedNode = null;
@@ -266,6 +330,15 @@ namespace Hyperion.Editor.ViewModels
                 {
                     ExpandAncestors(viewModel);
                 }
+                else if (node is InstanceHandleNode instanceHandle)
+                {
+                    _pendingFocusedNode = node;
+
+                    if (requestMissingRows)
+                    {
+                        RequestInstanceRows(new List<InstanceHandleNode> { instanceHandle });
+                    }
+                }
 
                 SelectedNode = viewModel;
             }
@@ -277,11 +350,19 @@ namespace Hyperion.Editor.ViewModels
 
         public void UpdateSelectionFromEngine(IEnumerable<Node> nodes)
         {
+            UpdateSelectionFromEngine(nodes, requestMissingRows: true);
+        }
+
+        private void UpdateSelectionFromEngine(IEnumerable<Node> nodes, bool requestMissingRows)
+        {
             Dispatcher.UIThread.VerifyAccess();
+
+            List<Node> selection = nodes.ToList();
+            List<InstanceHandleNode> missingInstanceHandles = new List<InstanceHandleNode>();
 
             SelectedNodes.Clear();
 
-            foreach (Node node in nodes)
+            foreach (Node node in selection)
             {
                 if (node == null || !node.IsValid)
                 {
@@ -293,6 +374,22 @@ namespace Hyperion.Editor.ViewModels
                 if (viewModel != null)
                 {
                     SelectedNodes.Add(viewModel);
+                }
+                else if (node is InstanceHandleNode instanceHandle)
+                {
+                    missingInstanceHandles.Add(instanceHandle);
+                }
+            }
+
+            _pendingSelection = null;
+
+            if (missingInstanceHandles.Count > 0)
+            {
+                _pendingSelection = selection;
+
+                if (requestMissingRows)
+                {
+                    RequestInstanceRows(missingInstanceHandles);
                 }
             }
 

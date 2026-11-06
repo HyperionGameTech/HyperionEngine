@@ -2778,7 +2778,7 @@ namespace Hyperion.Editor
 
         private async void OnSceneTreePointerMoved(object? sender, PointerEventArgs e)
         {
-            if (_dragCandidate == null || _isDragging)
+            if (_dragCandidate == null || _isDragging || _dragCandidate.IsInstance)
                 return;
 
             if (!e.GetCurrentPoint(sender as Visual).Properties.IsLeftButtonPressed)
@@ -2884,6 +2884,7 @@ namespace Hyperion.Editor
 
             bool valid = dragged != null
                 && target != null
+                && !target.IsInstance
                 && GetDraggedNodes(dragged).All(node => node != target && !SceneHierarchyViewModel.IsAncestorOf(node, target));
 
             e.DragEffects = valid ? DragDropEffects.Move : DragDropEffects.None;
@@ -2906,6 +2907,11 @@ namespace Hyperion.Editor
             {
                 var assetTarget = FindNodeViewModelInEventSource(e.Source);
 
+                if (assetTarget?.IsInstance == true)
+                {
+                    assetTarget = assetTarget.Parent;
+                }
+
                 EndDrag();
 
                 var vm = DataContext as MainWindowViewModel;
@@ -2926,7 +2932,7 @@ namespace Hyperion.Editor
 
             EndDrag();
 
-            if (dragged == null || target == null)
+            if (dragged == null || target == null || target.IsInstance)
                 return;
 
             var vm_node = DataContext as MainWindowViewModel;
@@ -2938,9 +2944,10 @@ namespace Hyperion.Editor
         // Dragging any node of the current selection drags the whole selection.
         private List<NodeViewModel> GetDraggedNodes(NodeViewModel dragged)
         {
+            // instances stay in their group
             if (DataContext is MainWindowViewModel mvm && mvm.SceneHierarchy.SelectedNodes.Contains(dragged))
             {
-                return mvm.SceneHierarchy.SelectedNodes.ToList();
+                return mvm.SceneHierarchy.SelectedNodes.Where(node => !node.IsInstance).ToList();
             }
 
             return new List<NodeViewModel> { dragged };

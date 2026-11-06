@@ -34,6 +34,8 @@ namespace Hyperion {
 
 static constexpr float MinClusterSize = 1.0f;
 
+ScriptableDelegate<void> InstanceGroup::OnInstanceListChanged;
+
 InstanceGroup::InstanceGroup()
     : m_clusterSize(64.0f),
       m_nextId(0),
@@ -53,7 +55,10 @@ InstanceGroup::InstanceGroup(const Handle<Prefab>& prefab)
     m_prefab = prefab;
 }
 
-InstanceGroup::~InstanceGroup() = default;
+InstanceGroup::~InstanceGroup()
+{
+    OnInstanceListChanged.RemoveAllForTarget(this);
+}
 
 void InstanceGroup::Init()
 {
@@ -144,6 +149,8 @@ void InstanceGroup::SetInstanceData(const Handle<InstanceSetData>& instanceData)
     m_instancesNeedStore = false;
 
     MarkAllCellsDirty();
+
+    OnInstanceListChanged.Fire(this);
 }
 
 #ifdef HYP_EDITOR
@@ -271,6 +278,7 @@ bool InstanceGroup::AddInstanceWithId(InstanceId id, const Transform& transform)
     AddToCell(id, cell);
 
     OnInstancesChanged();
+    OnInstanceListChanged.Fire(this);
 
     return true;
 }
@@ -303,6 +311,7 @@ bool InstanceGroup::RemoveInstance(InstanceId id)
     m_instances.PopBack();
 
     OnInstancesChanged();
+    OnInstanceListChanged.Fire(this);
 
     return true;
 }
@@ -380,7 +389,7 @@ bool InstanceGroup::GetInstanceTransform(InstanceId id, Transform& outTransform)
     return true;
 }
 
-uint32 InstanceGroup::GetInstanceTransforms(Array<Transform>& outTransforms)
+uint32 InstanceGroup::GetInstanceTransforms(Array<Transform, SceneAllocator>& outTransforms)
 {
     EnsureInstancesLoaded();
 
@@ -389,6 +398,20 @@ uint32 InstanceGroup::GetInstanceTransforms(Array<Transform>& outTransforms)
     for (const InstanceEntry& entry : m_instances)
     {
         outTransforms.PushBack(entry.transform);
+    }
+
+    return uint32(m_instances.Size());
+}
+
+uint32 InstanceGroup::GetInstanceIds(Array<InstanceId, SceneAllocator>& outIds)
+{
+    EnsureInstancesLoaded();
+
+    outIds.Reserve(outIds.Size() + m_instances.Size());
+
+    for (const InstanceEntry& entry : m_instances)
+    {
+        outIds.PushBack(entry.id);
     }
 
     return uint32(m_instances.Size());

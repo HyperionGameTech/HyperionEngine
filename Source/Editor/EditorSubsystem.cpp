@@ -311,9 +311,7 @@ void ForEachBakedEnvProbe(World* world, Function&& function)
 
 #pragma endregion Helpers
 
-#pragma region Terrain
-
-Handle<EditorTerrainState> EditorSubsystem::GetTerrainState()
+const Handle<EditorTerrainState>& EditorSubsystem::GetTerrainState()
 {
     if (!m_terrainSculpting.IsValid())
     {
@@ -326,7 +324,7 @@ Handle<EditorTerrainState> EditorSubsystem::GetTerrainState()
     return m_terrainSculpting;
 }
 
-Handle<EditorDecalPainterState> EditorSubsystem::GetDecalPainterState()
+const Handle<EditorDecalPainterState>& EditorSubsystem::GetDecalPainterState()
 {
     if (!m_decalPainter.IsValid())
     {
@@ -339,7 +337,7 @@ Handle<EditorDecalPainterState> EditorSubsystem::GetDecalPainterState()
     return m_decalPainter;
 }
 
-Handle<EditorInstancePainterState> EditorSubsystem::GetInstancePainterState()
+const Handle<EditorInstancePainterState>& EditorSubsystem::GetInstancePainterState()
 {
     if (!m_instancePainter.IsValid())
     {
@@ -354,7 +352,12 @@ Handle<EditorInstancePainterState> EditorSubsystem::GetInstancePainterState()
 
 EditorSurfacePainterState* EditorSubsystem::GetActiveSurfacePainter()
 {
-    for (EditorSurfacePainterState* painter : { static_cast<EditorSurfacePainterState*>(GetDecalPainterState().Get()), static_cast<EditorSurfacePainterState*>(GetInstancePainterState().Get()) })
+    EditorSurfacePainterState* painters[] = {
+        GetDecalPainterState().Get(),
+        GetInstancePainterState().Get()
+    };
+
+    for (EditorSurfacePainterState* painter : painters)
     {
         if (painter->IsEnabled())
         {
@@ -376,7 +379,7 @@ void EditorSubsystem::DisableSurfacePainters(const EditorSurfacePainterState* ex
     }
 }
 
-Handle<EditorPrefabEditState> EditorSubsystem::GetPrefabEditState()
+const Handle<EditorPrefabEditState>& EditorSubsystem::GetPrefabEditState()
 {
     if (!m_prefabEditState.IsValid())
     {
@@ -605,8 +608,6 @@ void EditorSubsystem::UpdateViewportIsolation()
         viewport->SetIsolatedScenes(this, isolatedScenes);
     }
 }
-
-#pragma endregion Terrain
 
 bool EditorSubsystem::IsMeshEditModeEnabled() const
 {
@@ -3566,6 +3567,68 @@ Handle<InstanceHandleNode> EditorSubsystem::GetOrCreateInstanceHandle(const Hand
 {
     AssertOnThread(g_simThread);
 
+    Handle<InstanceHandleNode> handle = FindOrCreateInstanceHandle(group, instanceId);
+
+    if (handle.IsValid())
+    {
+        AttachInstanceHandle(handle);
+    }
+
+    return handle;
+}
+
+Array<Handle<Node>> EditorSubsystem::GetInstanceHandles(const Handle<InstanceGroup>& group, uint32 maxCount)
+{
+    AssertOnThread(g_simThread);
+
+    Array<Handle<Node>> handles;
+
+    if (!group.IsValid())
+    {
+        return handles;
+    }
+
+    Array<InstanceId, SceneAllocator> instanceIds;
+    group->GetInstanceIds(instanceIds);
+    std::sort(instanceIds.Begin(), instanceIds.End());
+
+    const size_t num = MathUtil::Min(size_t(maxCount), size_t(instanceIds.Size()));
+    handles.Reserve(num);
+
+    for (size_t index = 0; index < num; index++)
+    {
+        if (Handle<InstanceHandleNode> handle = FindOrCreateInstanceHandle(group, instanceIds[index]); handle.IsValid())
+        {
+            handles.PushBack(std::move(handle));
+        }
+    }
+
+    Transform transform;
+
+    for (const Handle<Node>& node : m_selectedNodes)
+    {
+        const InstanceHandleNode* selectedHandle = TryCast<InstanceHandleNode>(node.Get());
+
+        if (!selectedHandle
+            || selectedHandle->GetGroup().Lock() != group
+            || !group->GetInstanceTransform(selectedHandle->GetInstanceId(), transform)
+            || handles.Contains(node))
+        {
+            continue;
+        }
+
+        handles.PushBack(node);
+    }
+
+    return handles;
+}
+
+Handle<InstanceHandleNode> EditorSubsystem::FindOrCreateInstanceHandle(
+    const Handle<InstanceGroup>& group,
+    InstanceId instanceId)
+{
+    AssertOnThread(g_simThread);
+
     if (!group.IsValid() || instanceId == InvalidInstanceId)
     {
         return Handle<InstanceHandleNode>::Null();
@@ -3595,8 +3658,17 @@ Handle<InstanceHandleNode> EditorSubsystem::GetOrCreateInstanceHandle(const Hand
         handle->SetName(NAME_FMT("{}_{}", group->GetName(), uint32(instanceId)));
         InitObject(handle);
 
+        handle->SyncFromInstance();
+
         m_instanceHandles.Set(key, handle.ToWeak());
     }
+
+    return handle;
+}
+
+void EditorSubsystem::AttachInstanceHandle(const Handle<InstanceHandleNode>& handle)
+{
+    AssertOnThread(g_simThread);
 
     if (m_editorScene.IsValid() && m_editorScene->GetRoot().IsValid() && handle->GetParent() != m_editorScene->GetRoot().Get())
     {
@@ -3604,8 +3676,18 @@ Handle<InstanceHandleNode> EditorSubsystem::GetOrCreateInstanceHandle(const Hand
     }
 
     handle->SyncFromInstance();
+}
 
-    return handle;
+void EditorSubsystem::AttachSelectedInstanceHandles()
+{
+    for (const Handle<Node>& node : m_selectedNodes)
+    {
+        if (Handle<InstanceHandleNode> handle = TryCast<InstanceHandleNode>(node);
+                handle.IsValid() && handle->GetParent() == nullptr)
+        {
+            AttachInstanceHandle(handle);
+        }
+    }
 }
 
 void EditorSubsystem::DetachUnselectedInstanceHandles(const Array<Handle<Node>>& selectedNodes)
@@ -6428,6 +6510,8 @@ void EditorSubsystem::AddToSelection(const Handle<Node>& node)
 
     if (result.second)
     {
+        AttachSelectedInstanceHandles();
+
         OnSelectionChanged();
     }
 }
@@ -6489,6 +6573,8 @@ void EditorSubsystem::SetSelectedNodes(const Array<Handle<Node>>& nodes)
     }
 
     m_selectedNodes = Set<Handle<Node>, EditorAllocator>(nodes.Begin(), nodes.End());
+
+    AttachSelectedInstanceHandles();
 
     OnSelectionChanged();
 }

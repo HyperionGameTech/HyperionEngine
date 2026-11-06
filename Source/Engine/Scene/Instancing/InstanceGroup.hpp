@@ -114,11 +114,10 @@ public:
     void RemoveInstancesInSphere(const BoundingSphere& sphere, Array<InstanceRecord>& outRemoved);
 
     bool SetInstanceTransform(InstanceId id, const Transform& transform);
-
     bool GetInstanceTransform(InstanceId id, Transform& outTransform) const;
 
-    /// Every instance's transform, in no particular order. Returns how many were added.
-    uint32 GetInstanceTransforms(Array<Transform>& outTransforms);
+    uint32 GetInstanceTransforms(Array<Transform, SceneAllocator>& outTransforms);
+    uint32 GetInstanceIds(Array<InstanceId, SceneAllocator>& outIds);
 
     /// The instance drawn at \p instanceIndex by the cluster entity for \p cell
     InstanceId GetClusterInstanceId(Vec2i cell, uint32 instanceIndex) const;
@@ -137,6 +136,10 @@ public:
     HYP_METHOD(EditorOnly, EditorAction = "Rebuild Instances")
     void RebuildInstances();
 #endif
+
+    /// Fired when instances are added or removed, not when they move
+    HYP_FIELD()
+    static ScriptableDelegate<void> OnInstanceListChanged;
 
 protected:
     void Init() override;

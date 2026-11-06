@@ -329,6 +329,7 @@ bool EditorSurfacePainterState::RaycastSurface(const Ray& ray, SurfaceHit& outHi
                 outHit.scene = scene;
                 outHit.position = hit.hitpoint;
                 outHit.normal = hit.normal.LengthSquared() > 0.0001f ? hit.normal.Normalized() : -ray.direction;
+                outHit.isGround = false;
 
                 // normals come from triangle winding, face them back at the camera
                 if (outHit.normal.Dot(ray.direction) > 0.0f)
@@ -356,7 +357,6 @@ bool EditorSurfacePainterState::RaycastSurface(const Ray& ray, SurfaceHit& outHi
             }
 
             Vec3f hitPoint;
-
             if (!terrainLayer->RaycastSurface(ray, hitPoint))
             {
                 continue;
@@ -374,16 +374,17 @@ bool EditorSurfacePainterState::RaycastSurface(const Ray& ray, SurfaceHit& outHi
             // the drawn surface's slope, a sample either side
             const Vec3f& scale = terrainLayer->GetLayerInfo().scale;
             const float step = MathUtil::Max(scale.x, scale.z, 0.01f);
-            const Vec2f at(hitPoint.x, hitPoint.z);
+            const Vec2f hitPointXY = hitPoint.GetXY();
 
-            const float left = terrainLayer->SampleDrawnHeightAt(at - Vec2f(step, 0.0f));
-            const float right = terrainLayer->SampleDrawnHeightAt(at + Vec2f(step, 0.0f));
-            const float back = terrainLayer->SampleDrawnHeightAt(at - Vec2f(0.0f, step));
-            const float front = terrainLayer->SampleDrawnHeightAt(at + Vec2f(0.0f, step));
+            const float left = terrainLayer->SampleDrawnHeightAt(hitPointXY - Vec2f(step, 0.0f));
+            const float right = terrainLayer->SampleDrawnHeightAt(hitPointXY + Vec2f(step, 0.0f));
+            const float back = terrainLayer->SampleDrawnHeightAt(hitPointXY - Vec2f(0.0f, step));
+            const float front = terrainLayer->SampleDrawnHeightAt(hitPointXY + Vec2f(0.0f, step));
 
             outHit.scene = terrainLayer->GetScene();
             outHit.position = hitPoint;
-            outHit.normal = Vec3f(left - right, 2.0f * step, back - front).Normalized();
+            outHit.normal = Vec3f { left - right, 2.0f * step, back - front }.Normalized();
+            outHit.isGround = true;
 
             hasHit = true;
         }
@@ -428,7 +429,7 @@ bool EditorSurfacePainterState::AcceptStrokeScene(const Handle<Scene>& scene)
         return true;
     }
 
-    return strokeScene == scene;
+    return (strokeScene == scene);
 }
 
 void EditorSurfacePainterState::OnStamped(const SurfaceHit& hit)
@@ -449,7 +450,11 @@ float EditorSurfacePainterState::RandomInRange(float min, float max)
     return MathUtil::RandomInRange(m_rotationSeed, min, max);
 }
 
-uint32 EditorSurfacePainterState::PaintArea(const Vec3f& center, float radius, uint32 count, bool erase)
+uint32 EditorSurfacePainterState::PaintArea(
+    const Vec3f& center,
+    float radius,
+    uint32 count,
+    bool erase)
 {
     AssertOnThread(g_simThread);
 
@@ -528,7 +533,7 @@ uint32 EditorSurfacePainterState::PaintArea(const Vec3f& center, float radius, u
 
         const uint32 before = m_stampCount;
 
-        StampAt(hit);
+        PaintAt(hit);
 
         if (m_stampCount != before)
         {
@@ -538,7 +543,12 @@ uint32 EditorSurfacePainterState::PaintArea(const Vec3f& center, float radius, u
 
     EndStroke();
 
-    return erase ? erasedAt : m_stampCount - stampCountBefore;
+    if (erase)
+    {
+        return erasedAt;
+    }
+
+    return (m_stampCount - stampCountBefore);
 }
 
 void EditorSurfacePainterState::BeginStroke(const Vec2f& relativePos, bool erase)
@@ -580,7 +590,7 @@ void EditorSurfacePainterState::BeginStroke(const Vec2f& relativePos, bool erase
     }
     else
     {
-        StampAt(hit);
+        PaintAt(hit);
     }
 }
 
@@ -623,7 +633,7 @@ void EditorSurfacePainterState::UpdateStroke(const Vec2f& relativePos, bool eras
         return;
     }
 
-    StampAt(hit);
+    PaintAt(hit);
 }
 
 void EditorSurfacePainterState::EndStroke()
@@ -679,7 +689,6 @@ void EditorSurfacePainterState::UpdateHover(const Vec2f& relativePos)
     }
 
     SurfaceHit hit;
-
     m_hasHover = TryGetSurfaceHit(relativePos, hit);
 
     if (m_hasHover)
@@ -697,18 +706,27 @@ void EditorSurfacePainterState::DebugDrawCursor(DebugDrawCommandList& debugDrawC
         return;
     }
 
-    const bool erasing = m_isStroking ? m_strokeErase : false;
-
-    if (erasing)
+    // Erasing
+    if (m_isStroking && m_strokeErase)
     {
         debugDrawCommandList.sphere(m_hover.position, m_eraseRadius, Color(1.0f, 0.3f, 0.2f, 1.0f), attributes);
 
         return;
     }
 
-    const Color color = m_isStroking
-        ? Color(1.0f, 0.55f, 0.1f, 1.0f)
-        : (HasActiveAsset() ? Color(0.35f, 0.8f, 1.0f, 1.0f) : Color(0.6f, 0.6f, 0.6f, 1.0f));
+    Color color = Color(0.6f, 0.6f, 0.6f, 1.0f);
+
+    if (CanPaintSurface(m_hover))
+    {
+        if (m_isStroking)
+        {
+            color = Color(1.0f, 0.55f, 0.1f, 1.0f);
+        }
+        else if (HasActiveAsset())
+        {
+            color = Color(0.35f, 0.8f, 1.0f, 1.0f);
+        }
+    }
 
     debugDrawCommandList.box(GetCursorTransform(m_hover), color, attributes);
 }

@@ -32,7 +32,7 @@ namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
-static CVar<bool> s_cvDecalsDebugDraw { "Rendering.Decals.DebugDraw", false };
+CVar<bool> g_cvDecalsDebugDraw { "Rendering.Decals.DebugDraw", false };
 
 #pragma region EditorDecalPainterState
 
@@ -118,7 +118,7 @@ Handle<DecalProxy> EditorDecalPainterState::FindOrCreateDecalProxy(const Handle<
     return decalProxy;
 }
 
-void EditorDecalPainterState::StampAt(const SurfaceHit& hit)
+void EditorDecalPainterState::PaintAt(const SurfaceHit& hit)
 {
     AssertOnThread(g_simThread);
 
@@ -189,7 +189,12 @@ void EditorDecalPainterState::CommitStrokeEdits(const WeakHandle<Scene>& strokeS
 
 void EditorDecalPainterState::DebugDrawCursor(DebugDrawCommandList& debugDrawCommandList)
 {
-    if (s_cvDecalsDebugDraw.Get() && m_subsystem->GetCurrentProject().IsValid())
+    if (!g_cvDecalsDebugDraw.Get())
+    {
+        return;
+    }
+
+    if (m_subsystem->GetCurrentProject().IsValid())
     {
         if (const Handle<World>& world = m_subsystem->GetCurrentProject()->GetWorld(); world.IsValid())
         {
@@ -200,7 +205,8 @@ void EditorDecalPainterState::DebugDrawCursor(DebugDrawCommandList& debugDrawCom
                     continue;
                 }
 
-                for (auto [decalProxy] : scene->GetEntityManager()->GetEntitySet<EntityType<DecalProxy>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+                for (auto [decalProxy] : scene->GetEntityManager()->GetEntitySet<EntityType<DecalProxy>>()
+                        .GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
                 {
                     for (const DecalInstance& instance : decalProxy->GetInstances())
                     {
