@@ -99,22 +99,25 @@ public:
 private:
     void DestroyObject()
     {
-        if (!ptr)
+        T* p = ptr;
+        ptr = nullptr;
+
+        if (!p)
+        {
             return;
+        }
 
         if constexpr (IsObjectV<T>)
         {
-            if (ptr->GetObjectHeader_Internal() != nullptr)
+            if (p->GetObjectHeader_Internal() != nullptr)
             {
-                ptr->Release();
-                ptr = nullptr;
+                p->Release();
 
                 return;
             }
         }
 
-        delete ptr;
-        ptr = nullptr;
+        delete p;
     }
 
     T* ptr;
@@ -141,13 +144,15 @@ public:
 private:
     void DestroyObject()
     {
-        if (!ptr)
+        T* p = ptr;
+        ptr = nullptr;
+
+        if (!p)
         {
             return;
         }
 
-        ptr->Release();
-        ptr = nullptr;
+        p->Release();
     }
 
     T* ptr;
@@ -158,6 +163,8 @@ private:
 class ENGINE_API DeletionQueue
 {
 public:
+    static constexpr uint32 MaxEntrySize = 64;
+
     struct EntryHeader
     {
         uint32 offset = 0;
@@ -350,6 +357,7 @@ public:
                 && std::is_trivially_move_assignable_v<DeletionQueueElem<T>>
                 && std::is_trivially_copyable_v<DeletionQueueElem<T>>,
             "DeletionQueueElem must be trivially moveable and trivially copyable");
+        static_assert(sizeof(DeletionQueueElem<T>) <= MaxEntrySize && alignof(DeletionQueueElem<T>) <= 16);
 
         EntryHeader header {};
 
@@ -375,6 +383,7 @@ public:
     T* AllocCustom(void (*destructFn)(void*), Mutex::Guard** ppGuard, uint32 desiredIdx = ~0u)
     {
         static_assert(is_pod_type_v<T>, "T must be a POD type");
+        static_assert(sizeof(T) <= MaxEntrySize && alignof(T) <= 16);
 
         EntryHeader header {};
 

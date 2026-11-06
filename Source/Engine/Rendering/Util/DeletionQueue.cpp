@@ -19,7 +19,21 @@
 
 namespace Hyperion {
 
-static constexpr uint32 MinCyclesBeforeDelete = 10;
+namespace {
+
+constexpr uint32 MinCyclesBeforeDelete = 10;
+
+void InvokeDestructFn(const DeletionQueue::EntryHeader& header, const void* entryPtr)
+{
+    Assert(header.size <= DeletionQueue::MaxEntrySize);
+
+    alignas(16) uint8 entryStorage[DeletionQueue::MaxEntrySize];
+    Memory::Copy(entryStorage, entryPtr, header.size);
+
+    header.destructFn(entryStorage);
+}
+
+} // namespace
 
 DeletionQueue& DeletionQueue::GetInstance()
 {
@@ -252,7 +266,7 @@ void DeletionQueue::OnFrameEnd(uint32 prevFrameIndex)
             AssertDebug(header.offset < entryList.bufferSize);
             AssertDebug(header.size <= entryList.bufferSize - header.offset);
 
-            header.destructFn(reinterpret_cast<void*>(reinterpret_cast<UIntPtr>(entryList.raw) + header.offset));
+            InvokeDestructFn(header, reinterpret_cast<void*>(reinterpret_cast<UIntPtr>(entryList.raw) + header.offset));
         }
 
         it = headers.Erase(it); // remove the entry from the list
@@ -285,6 +299,11 @@ void DeletionQueue::OnFrameEnd(uint32 prevFrameIndex)
         }
 
         const uint32 newSize = headers.Back().offset + headers.Back().size;
+
+        // headers must stay sorted by offset 
+        Assert(newSize >= headers.Back().offset && firstOffset + size_t(newSize) <= entryList.bufferSize,
+            "DeletionQueue entry list corrupted (firstOffset: {}, newSize: {}, bufferSize: {})",
+            firstOffset, newSize, uint64(entryList.bufferSize));
 
         // Move elements to the front of the buffer
         Memory::Move(
@@ -333,7 +352,7 @@ size_t DeletionQueue::ForceDeleteAll(uint32 bufferIndex)
             if (header.destructFn)
             {
                 // swap while we force destruct
-                header.destructFn(reinterpret_cast<void*>(reinterpret_cast<UIntPtr>(entryList.raw) + header.offset));
+                InvokeDestructFn(header, reinterpret_cast<void*>(reinterpret_cast<UIntPtr>(entryList.raw) + header.offset));
             }
         }
 
