@@ -82,7 +82,7 @@
 
     <Window.Styles>
         <Style Selector="Grid#TitleBar">
-            <Setter Property="Background" Value="{DynamicResource Brush.Background}" />
+            <Setter Property="Background" Value="{DynamicResource Brush.TitleBar}" />
         </Style>
 
         <Style Selector="Panel.chrome-content">
@@ -97,17 +97,18 @@
             <Setter Property="Opacity" Value="0.45" />
         </Style>
 
+        <Style Selector="StackPanel.chrome-leading">
+            <Setter Property="Margin" Value="12,0,0,0" />
+        </Style>
+        <Style Selector="Grid#TitleBar.mac StackPanel.chrome-leading">
+            <Setter Property="Margin" Value="78,0,0,0" />
+        </Style>
+        <Style Selector="Grid#TitleBar.mac.fullscreen StackPanel.chrome-leading">
+            <Setter Property="Margin" Value="12,0,0,0" />
+        </Style>
+
         <Style Selector="Path.chrome-mark">
             <Setter Property="Fill" Value="{DynamicResource Brush.Text}" />
-        </Style>
-        <Style Selector="Grid#TitleBar.playing Path.chrome-mark">
-            <Setter Property="Fill" Value="{DynamicResource Brush.PlayHover}" />
-        </Style>
-        <Style Selector="Grid#TitleBar.paused Path.chrome-mark">
-            <Setter Property="Fill" Value="{DynamicResource Brush.Warning}" />
-        </Style>
-        <Style Selector="Grid#TitleBar.editing Path.chrome-mark">
-            <Setter Property="Fill" Value="{DynamicResource Brush.AccentHover}" />
         </Style>
 
         <Style Selector="Menu.chrome-menu">
@@ -179,74 +180,6 @@
         </Style>
         <Style Selector="TextBox.chrome-crumb-edit.invalid /template/ Border#PART_BorderElement, TextBox.chrome-crumb-edit.invalid:focus /template/ Border#PART_BorderElement">
             <Setter Property="BorderBrush" Value="{DynamicResource Brush.Danger}" />
-        </Style>
-
-        <Style Selector="Border.chrome-state-stripe">
-            <Setter Property="Height" Value="2" />
-            <Setter Property="VerticalAlignment" Value="Top" />
-            <Setter Property="IsVisible" Value="False" />
-        </Style>
-
-        <Style Selector="Border.chrome-state-pill">
-            <Setter Property="Height" Value="20" />
-            <Setter Property="Padding" Value="9,0,10,0" />
-            <Setter Property="CornerRadius" Value="10" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="IsVisible" Value="False" />
-        </Style>
-
-        <Style Selector="TextBlock.chrome-state-text">
-            <Setter Property="FontSize" Value="11" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="VerticalAlignment" Value="Center" />
-        </Style>
-
-        <Style Selector="Grid#TitleBar.playing Border.chrome-state-stripe">
-            <Setter Property="IsVisible" Value="True" />
-            <Setter Property="Background" Value="{DynamicResource Brush.Play}" />
-        </Style>
-        <Style Selector="Grid#TitleBar.playing Border.chrome-state-pill">
-            <Setter Property="IsVisible" Value="True" />
-            <Setter Property="Background" Value="#1F16A34A" />
-            <Setter Property="BorderBrush" Value="#5916A34A" />
-        </Style>
-        <Style Selector="Grid#TitleBar.playing Ellipse.chrome-state-dot">
-            <Setter Property="Fill" Value="{DynamicResource Brush.PlayHover}" />
-        </Style>
-        <Style Selector="Grid#TitleBar.playing TextBlock.chrome-state-text">
-            <Setter Property="Foreground" Value="{DynamicResource Brush.PlayHover}" />
-        </Style>
-
-        <Style Selector="Grid#TitleBar.paused Border.chrome-state-stripe">
-            <Setter Property="IsVisible" Value="True" />
-            <Setter Property="Background" Value="{DynamicResource Brush.Warning}" />
-        </Style>
-        <Style Selector="Grid#TitleBar.paused Border.chrome-state-pill">
-            <Setter Property="IsVisible" Value="True" />
-            <Setter Property="Background" Value="#1FE3A84D" />
-            <Setter Property="BorderBrush" Value="#59E3A84D" />
-        </Style>
-        <Style Selector="Grid#TitleBar.paused Ellipse.chrome-state-dot">
-            <Setter Property="Fill" Value="{DynamicResource Brush.Warning}" />
-        </Style>
-        <Style Selector="Grid#TitleBar.paused TextBlock.chrome-state-text">
-            <Setter Property="Foreground" Value="{DynamicResource Brush.Warning}" />
-        </Style>
-
-        <Style Selector="Grid#TitleBar.editing Border.chrome-state-stripe">
-            <Setter Property="IsVisible" Value="True" />
-            <Setter Property="Background" Value="{DynamicResource Brush.Accent}" />
-        </Style>
-        <Style Selector="Grid#TitleBar.editing Border.chrome-state-pill">
-            <Setter Property="IsVisible" Value="True" />
-            <Setter Property="Background" Value="#1F3D7EFF" />
-            <Setter Property="BorderBrush" Value="#593D7EFF" />
-        </Style>
-        <Style Selector="Grid#TitleBar.editing Ellipse.chrome-state-dot">
-            <Setter Property="Fill" Value="{DynamicResource Brush.AccentHover}" />
-        </Style>
-        <Style Selector="Grid#TitleBar.editing TextBlock.chrome-state-text">
-            <Setter Property="Foreground" Value="{DynamicResource Brush.AccentHover}" />
         </Style>
 
         <Style Selector="Button.caption">
@@ -678,7 +611,7 @@
                     PointerPressed="OnTitleBarPointerPressed">
                     <Panel Classes="chrome-content">
                         <StackPanel
-                            Margin="12,0,0,0"
+                            Classes="chrome-leading"
                             VerticalAlignment="Center"
                             Orientation="Horizontal"
                             Spacing="6">
@@ -1038,6 +971,28 @@
                                 </MenuItem>
                             </Menu>
                         </StackPanel>
+                        <Menu
+                            x:Name="WorldMenu"
+                            Margin="0,0,8,0"
+                            HorizontalAlignment="Right"
+                            Classes="chrome-menu">
+                            <MenuItem
+                                IsVisible="{Binding WorldDisplayName, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}"
+                                SubmenuOpened="OnWorldMenuSubmenuOpened"
+                                ToolTip.Tip="Switch World">
+                                <MenuItem.Header>
+                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                        <TextBlock VerticalAlignment="Center" Text="{Binding WorldDisplayName}" />
+                                        <controls:Codicon
+                                            VerticalAlignment="Center"
+                                            Foreground="{DynamicResource Brush.TextFaint}"
+                                            Kind="ChevronDown"
+                                            Size="10" />
+                                    </StackPanel>
+                                </MenuItem.Header>
+                                <Separator />
+                            </MenuItem>
+                        </Menu>
                     </Panel>
                 </Border>
 
@@ -1051,13 +1006,14 @@
                             VerticalAlignment="Center"
                             IsVisible="{Binding ProjectDisplayName, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}"
                             Orientation="Horizontal">
-                            <Button
-                                Classes="chrome-crumb"
-                                Click="OnProjectSettingsClick"
-                                ToolTip.Tip="Project Settings">
-                                <TextBlock Classes="chrome-project" Text="{Binding ProjectDisplayName}" />
-                            </Button>
+                            <TextBlock
+                                Margin="8,0"
+                                VerticalAlignment="Center"
+                                Classes="chrome-project"
+                                IsHitTestVisible="False"
+                                Text="{Binding ProjectDisplayName}" />
                             <controls:Codicon
+                                x:Name="WorldCrumbChevron"
                                 Margin="0"
                                 VerticalAlignment="Center"
                                 Foreground="{DynamicResource Brush.TextFaint}"
@@ -1087,27 +1043,8 @@
                                 ToolTip.Placement="Bottom"
                                 ToolTip.ShowDelay="0" />
                         </StackPanel>
-
-                        <Border
-                            x:Name="ChromeStatePill"
-                            Classes="chrome-state-pill"
-                            IsHitTestVisible="False">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <Ellipse
-                                    Width="6"
-                                    Height="6"
-                                    VerticalAlignment="Center"
-                                    Classes="chrome-state-dot" />
-                                <TextBlock x:Name="ChromeStateText" Classes="chrome-state-text" />
-                            </StackPanel>
-                        </Border>
                     </StackPanel>
                 </Panel>
-
-                <Border
-                    Grid.ColumnSpan="2"
-                    Classes="chrome-state-stripe"
-                    IsHitTestVisible="False" />
 
                 <StackPanel
                     x:Name="CaptionButtons"
@@ -4047,28 +3984,100 @@
                             Classes="status-hint"
                             Text="{Binding StatusText}"
                             TextTrimming="CharacterEllipsis" />
-                        <ItemsControl Grid.Column="1" ItemsSource="{Binding Tasks}">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <StackPanel Orientation="Horizontal" Spacing="8" />
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="vm:TaskItemViewModel">
-                                    <Border Classes="task-box">
-                                        <StackPanel Spacing="3">
-                                            <TextBlock Classes="task-title" Text="{Binding TaskName}" />
-                                            <ProgressBar
-                                                Width="80"
-                                                Height="3"
-                                                Maximum="1.0"
-                                                Minimum="0"
-                                                Value="{Binding Progress}" />
-                                        </StackPanel>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
+                        <Button
+                            Grid.Column="1"
+                            Classes="status-task"
+                            IsVisible="{Binding HasTasks}"
+                            ToolTip.Tip="{Binding PrimaryTask.ToolTipText}">
+                            <StackPanel Orientation="Horizontal" Spacing="7">
+                                <ProgressBar
+                                    Width="44"
+                                    MinWidth="0"
+                                    Height="3"
+                                    MinHeight="0"
+                                    VerticalAlignment="Center"
+                                    IsIndeterminate="{Binding PrimaryTask.IsIndeterminate}"
+                                    Maximum="1.0"
+                                    Minimum="0"
+                                    Value="{Binding PrimaryTask.Progress}" />
+                                <TextBlock
+                                    MaxWidth="260"
+                                    VerticalAlignment="Center"
+                                    Classes="status-task-title"
+                                    Text="{Binding PrimaryTask.Title}"
+                                    TextTrimming="CharacterEllipsis" />
+                                <TextBlock
+                                    VerticalAlignment="Center"
+                                    Classes="status-hint"
+                                    IsVisible="{Binding !PrimaryTask.IsIndeterminate}"
+                                    Text="{Binding PrimaryTask.ProgressText}" />
+                                <Border Classes="status-task-count" IsVisible="{Binding HasMultipleTasks}">
+                                    <TextBlock Text="{Binding TaskCountText}" />
+                                </Border>
+                            </StackPanel>
+                            <Button.Flyout>
+                                <Flyout Placement="TopEdgeAlignedRight">
+                                    <ItemsControl Width="300" ItemsSource="{Binding Tasks}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <StackPanel Spacing="12" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:TaskItemViewModel">
+                                                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto">
+                                                    <TextBlock
+                                                        Classes="task-title"
+                                                        Text="{Binding Title}"
+                                                        TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock
+                                                        Grid.Column="1"
+                                                        Margin="8,0,0,0"
+                                                        Classes="status-hint"
+                                                        Text="{Binding ProgressText}" />
+                                                    <TextBlock
+                                                        Grid.Row="1"
+                                                        Grid.ColumnSpan="2"
+                                                        Margin="0,2,0,0"
+                                                        Classes="status-hint"
+                                                        IsVisible="{Binding HasDescription}"
+                                                        Text="{Binding Description}"
+                                                        TextTrimming="CharacterEllipsis"
+                                                        ToolTip.Tip="{Binding Description}" />
+                                                    <Grid
+                                                        Grid.Row="2"
+                                                        Grid.ColumnSpan="2"
+                                                        Margin="0,6,0,0"
+                                                        ColumnDefinitions="*,Auto">
+                                                        <ProgressBar
+                                                            MinWidth="0"
+                                                            Height="3"
+                                                            MinHeight="0"
+                                                            VerticalAlignment="Center"
+                                                            IsIndeterminate="{Binding IsIndeterminate}"
+                                                            Maximum="1.0"
+                                                            Minimum="0"
+                                                            Value="{Binding Progress}" />
+                                                        <Button
+                                                            Grid.Column="1"
+                                                            Margin="8,0,0,0"
+                                                            Classes="reset-icon"
+                                                            Command="{Binding CancelCommand}"
+                                                            ToolTip.Tip="Cancel">
+                                                            <Path
+                                                                Width="8"
+                                                                Height="8"
+                                                                Data="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+                                                                Stretch="Uniform" />
+                                                        </Button>
+                                                    </Grid>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Flyout>
+                            </Button.Flyout>
+                        </Button>
                     </Grid>
                 </Border>
             </Grid>
@@ -4152,7 +4161,7 @@
         <!--  Foreground task overlay  -->
         <views:ForegroundTaskOverlay DataContext="{Binding ForegroundTask}" />
 
-        <!--  Rounded frame outline (non-Windows only; DWM draws the frame on Windows)  -->
+        <!--  Rounded frame outline (Linux only; Windows and macOS draw their own frame)  -->
         <Border
             x:Name="WindowFrameOutline"
             BorderThickness="1"

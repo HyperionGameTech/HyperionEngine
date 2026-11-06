@@ -47,7 +47,7 @@ public:
 
     void Sculpt(const Vec3f& worldPos, float radius, float strength, bool raise);
 
-    void FlattenCircle(const Vec2f& centerXZ, float radius, float falloff, float height);
+    void FlattenCircle(const Vec2f& centerXZ, float radius, float falloff, float height, float amount = 1.0f);
     void FlattenRect(const Vec2f& minXZ, const Vec2f& maxXZ, float falloff, float height);
 
     void Ramp(const Vec3f& from, const Vec3f& to, float width, float falloff);

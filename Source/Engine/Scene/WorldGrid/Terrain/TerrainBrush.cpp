@@ -338,10 +338,11 @@ void TerrainBrush::Sculpt(const Vec3f& worldPos, float radius, float strength, b
         });
 }
 
-void TerrainBrush::FlattenCircle(const Vec2f& centerXZ, float radius, float falloff, float height)
+void TerrainBrush::FlattenCircle(const Vec2f& centerXZ, float radius, float falloff, float height, float amount)
 {
     radius = MathUtil::Max(radius, 0.0f);
     falloff = MathUtil::Max(falloff, 0.0f);
+    amount = MathUtil::Clamp(amount, 0.0f, 1.0f);
 
     const float reach = radius + falloff;
     const float target = height - m_layer.GetLayerInfo().offset.y;
@@ -350,7 +351,7 @@ void TerrainBrush::FlattenCircle(const Vec2f& centerXZ, float radius, float fall
         Vec4f(centerXZ.x - reach, centerXZ.y - reach, centerXZ.x + reach, centerXZ.y + reach),
         [&](const Vec2f& sampleXZ, float current, const float*, uint32, uint32, uint32)
         {
-            return MathUtil::Lerp(current, target, FalloffWeight((sampleXZ - centerXZ).Length(), radius, reach));
+            return MathUtil::Lerp(current, target, amount * FalloffWeight((sampleXZ - centerXZ).Length(), radius, reach));
         });
 }
 

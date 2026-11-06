@@ -527,6 +527,18 @@ public:
         {
             mode = TerrainSculptMode::PaintGroundCover;
         }
+        else if (GetArgument(0) == "flatten")
+        {
+            mode = TerrainSculptMode::Flatten;
+        }
+        else if (GetArgument(0) == "smooth")
+        {
+            mode = TerrainSculptMode::Smooth;
+        }
+        else if (GetArgument(0) == "ramp")
+        {
+            mode = TerrainSculptMode::Ramp;
+        }
 
         subsystem->GetTerrainState()->SetEnabled(true);
         subsystem->GetTerrainState()->SetMode(mode);
@@ -592,6 +604,34 @@ public:
 DEFINE_EDITOR_COMMAND(SetTerrainSculptStrength);
 
 #pragma endregion SetTerrainSculptStrength
+
+#pragma region SetTerrainSculptFalloff
+
+class EditorCommandSetTerrainSculptFalloff final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandSetTerrainSculptFalloff);
+
+public:
+    virtual ~EditorCommandSetTerrainSculptFalloff() override = default;
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        float falloff = 0.0f;
+
+        if (!StringUtil::Parse(GetArgument(0), &falloff))
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandSetTerrainSculptFalloff: invalid falloff '{}'", GetArgument(0));
+
+            return;
+        }
+
+        subsystem->GetTerrainState()->SetFalloff(falloff);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(SetTerrainSculptFalloff);
+
+#pragma endregion SetTerrainSculptFalloff
 
 #pragma region SetTerrainSculptPaintLayer
 

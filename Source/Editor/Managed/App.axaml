@@ -66,36 +66,38 @@
 
     <Application.Resources>
         <ResourceDictionary>
-            <Color x:Key="Color.Background">#FF020304</Color>
-            <Color x:Key="Color.Panel">#FF060709</Color>
-            <Color x:Key="Color.PanelAlt">#FF0A0B0D</Color>
-            <Color x:Key="Color.PanelRaised">#FF0E0F12</Color>
-            <Color x:Key="Color.Border">#FF121416</Color>
-            <Color x:Key="Color.BorderLight">#FF1A1C1F</Color>
-            <Color x:Key="Color.Accent">#FF3D7EFF</Color>
-            <Color x:Key="Color.AccentHover">#FF5C93FF</Color>
-            <Color x:Key="Color.AccentMuted">#FF2E5FC2</Color>
-            <Color x:Key="Color.AccentSubtle">#143D7EFF</Color>
-            <Color x:Key="Color.AccentSelection">#3D3D7EFF</Color>
-            <Color x:Key="Color.Primary">#FF3D7EFF</Color>
-            <Color x:Key="Color.PrimaryHover">#FF5C93FF</Color>
-            <Color x:Key="Color.PrimaryMuted">#FF2E5FC2</Color>
+            <Color x:Key="Color.Background">#FF0F1012</Color>
+            <Color x:Key="Color.TitleBar">#FF0A0B0C</Color>
+            <Color x:Key="Color.Panel">#FF15171A</Color>
+            <Color x:Key="Color.PanelAlt">#FF1C1F23</Color>
+            <Color x:Key="Color.PanelRaised">#FF23272B</Color>
+            <Color x:Key="Color.Border">#FF2A2D32</Color>
+            <Color x:Key="Color.BorderLight">#FF353940</Color>
+            <Color x:Key="Color.Accent">#FF3D9AC2</Color>
+            <Color x:Key="Color.AccentHover">#FF5AB0D6</Color>
+            <Color x:Key="Color.AccentMuted">#FF2D7696</Color>
+            <Color x:Key="Color.AccentSubtle">#143D9AC2</Color>
+            <Color x:Key="Color.AccentSelection">#66246E8F</Color>
+            <Color x:Key="Color.Primary">#FF3D9AC2</Color>
+            <Color x:Key="Color.PrimaryHover">#FF5AB0D6</Color>
+            <Color x:Key="Color.PrimaryMuted">#FF2D7696</Color>
             <Color x:Key="Color.Play">#FF16A34A</Color>
             <Color x:Key="Color.PlayHover">#FF22C55E</Color>
             <Color x:Key="Color.PlayMuted">#FF15803D</Color>
-            <Color x:Key="Color.Text">#FFD0D3D9</Color>
-            <Color x:Key="Color.TextMuted">#FF72777E</Color>
-            <Color x:Key="Color.TextFaint">#FF4A4E54</Color>
+            <Color x:Key="Color.Text">#FFE2E4E8</Color>
+            <Color x:Key="Color.TextMuted">#FF8A9097</Color>
+            <Color x:Key="Color.TextFaint">#FF5C6168</Color>
             <Color x:Key="Color.Warning">#FFE3A84D</Color>
             <Color x:Key="Color.WarningSubtle">#14E3A84D</Color>
             <Color x:Key="Color.Danger">#FFE0555C</Color>
-            <Color x:Key="Color.MenuHover">#FF141618</Color>
-            <Color x:Key="Color.HoverBorder">#FF282C32</Color>
-            <Color x:Key="Color.InputBackground">#FF08090B</Color>
-            <Color x:Key="Color.InputBorder">#FF141618</Color>
+            <Color x:Key="Color.MenuHover">#FF2A2E34</Color>
+            <Color x:Key="Color.HoverBorder">#FF464B53</Color>
+            <Color x:Key="Color.InputBackground">#FF0F1013</Color>
+            <Color x:Key="Color.InputBorder">#FF2A2D32</Color>
 
             <!--  Brushes  -->
             <SolidColorBrush x:Key="Brush.Background" Color="{StaticResource Color.Background}" />
+            <SolidColorBrush x:Key="Brush.TitleBar" Color="{StaticResource Color.TitleBar}" />
             <SolidColorBrush x:Key="Brush.Panel" Color="{StaticResource Color.Panel}" />
             <SolidColorBrush x:Key="Brush.PanelAlt" Color="{StaticResource Color.PanelAlt}" />
             <SolidColorBrush x:Key="Brush.PanelRaised" Color="{StaticResource Color.PanelRaised}" />
@@ -125,48 +127,48 @@
             <SolidColorBrush x:Key="Brush.InputBorder" Color="{StaticResource Color.InputBorder}" />
 
             <!--  Dock (Dock.Avalonia) palette overrides - map the dock chrome onto the editor theme  -->
-            <SolidColorBrush x:Key="DockThemeBackgroundBrush" Color="#FF020304" />
-            <SolidColorBrush x:Key="DockThemeBackgroundLowBrush" Color="#FF060709" />
-            <SolidColorBrush x:Key="DockThemeBackgroundMidBrush" Color="#FF0A0B0D" />
-            <SolidColorBrush x:Key="DockThemeBackgroundHighBrush" Color="#FF141618" />
-            <SolidColorBrush x:Key="DockThemeControlBackgroundBrush" Color="#FF0E0F12" />
-            <SolidColorBrush x:Key="DockThemeBorderLowBrush" Color="#FF121416" />
-            <SolidColorBrush x:Key="DockThemeBorderMidBrush" Color="#FF1A1C1F" />
-            <SolidColorBrush x:Key="DockThemeBorderHighBrush" Color="#FF282C32" />
-            <SolidColorBrush x:Key="DockThemeAccentBrush" Color="#FF3D7EFF" />
-            <SolidColorBrush x:Key="DockThemeForegroundBrush" Color="#FFD0D3D9" />
-            <SolidColorBrush x:Key="DockThemeForegroundLowBrush" Color="#FF72777E" />
-            <SolidColorBrush x:Key="DockToolChromeIconBrush" Color="#FF72777E" />
-            <SolidColorBrush x:Key="DockApplicationAccentBrushLow" Color="#143D7EFF" />
-            <SolidColorBrush x:Key="DockApplicationAccentBrushMed" Color="#FF5C93FF" />
-            <SolidColorBrush x:Key="DockApplicationAccentBrushHigh" Color="#FF3D7EFF" />
-            <SolidColorBrush x:Key="DockApplicationAccentBrushIndicator" Color="#FF3D7EFF" />
-            <SolidColorBrush x:Key="DockApplicationAccentForegroundBrush" Color="#FFD0D3D9" />
+            <SolidColorBrush x:Key="DockThemeBackgroundBrush" Color="#FF0F1012" />
+            <SolidColorBrush x:Key="DockThemeBackgroundLowBrush" Color="#FF15171A" />
+            <SolidColorBrush x:Key="DockThemeBackgroundMidBrush" Color="#FF1C1F23" />
+            <SolidColorBrush x:Key="DockThemeBackgroundHighBrush" Color="#FF2A2E34" />
+            <SolidColorBrush x:Key="DockThemeControlBackgroundBrush" Color="#FF23272B" />
+            <SolidColorBrush x:Key="DockThemeBorderLowBrush" Color="#FF2A2D32" />
+            <SolidColorBrush x:Key="DockThemeBorderMidBrush" Color="#FF353940" />
+            <SolidColorBrush x:Key="DockThemeBorderHighBrush" Color="#FF464B53" />
+            <SolidColorBrush x:Key="DockThemeAccentBrush" Color="#FF3D9AC2" />
+            <SolidColorBrush x:Key="DockThemeForegroundBrush" Color="#FFE2E4E8" />
+            <SolidColorBrush x:Key="DockThemeForegroundLowBrush" Color="#FF8A9097" />
+            <SolidColorBrush x:Key="DockToolChromeIconBrush" Color="#FF8A9097" />
+            <SolidColorBrush x:Key="DockApplicationAccentBrushLow" Color="#143D9AC2" />
+            <SolidColorBrush x:Key="DockApplicationAccentBrushMed" Color="#FF5AB0D6" />
+            <SolidColorBrush x:Key="DockApplicationAccentBrushHigh" Color="#FF3D9AC2" />
+            <SolidColorBrush x:Key="DockApplicationAccentBrushIndicator" Color="#FF3D9AC2" />
+            <SolidColorBrush x:Key="DockApplicationAccentForegroundBrush" Color="#FFE2E4E8" />
 
-            <SolidColorBrush x:Key="DockSurfaceWorkbenchBrush" Color="#FF020304" />
-            <SolidColorBrush x:Key="DockSurfaceSidebarBrush" Color="#FF060709" />
-            <SolidColorBrush x:Key="DockSurfaceEditorBrush" Color="#FF060709" />
-            <SolidColorBrush x:Key="DockSurfacePanelBrush" Color="#FF0A0B0D" />
-            <SolidColorBrush x:Key="DockSurfaceHeaderBrush" Color="#FF0A0B0D" />
+            <SolidColorBrush x:Key="DockSurfaceWorkbenchBrush" Color="#FF0F1012" />
+            <SolidColorBrush x:Key="DockSurfaceSidebarBrush" Color="#FF15171A" />
+            <SolidColorBrush x:Key="DockSurfaceEditorBrush" Color="#FF15171A" />
+            <SolidColorBrush x:Key="DockSurfacePanelBrush" Color="#FF15171A" />
+            <SolidColorBrush x:Key="DockSurfaceHeaderBrush" Color="#FF1C1F23" />
             <SolidColorBrush x:Key="DockSurfaceHeaderActiveBrush" Color="#00000000" />
-            <SolidColorBrush x:Key="DockBorderSubtleBrush" Color="#FF121416" />
-            <SolidColorBrush x:Key="DockBorderStrongBrush" Color="#FF1A1C1F" />
-            <SolidColorBrush x:Key="DockSeparatorBrush" Color="#FF121416" />
-            <SolidColorBrush x:Key="DockSplitterIdleBrush" Color="#FF121416" />
-            <SolidColorBrush x:Key="DockSplitterHoverBrush" Color="#FF282C32" />
-            <SolidColorBrush x:Key="DockSplitterDragBrush" Color="#FF3D7EFF" />
+            <SolidColorBrush x:Key="DockBorderSubtleBrush" Color="#FF2A2D32" />
+            <SolidColorBrush x:Key="DockBorderStrongBrush" Color="#FF353940" />
+            <SolidColorBrush x:Key="DockSeparatorBrush" Color="#FF0F1012" />
+            <SolidColorBrush x:Key="DockSplitterIdleBrush" Color="#FF0F1012" />
+            <SolidColorBrush x:Key="DockSplitterHoverBrush" Color="#FF464B53" />
+            <SolidColorBrush x:Key="DockSplitterDragBrush" Color="#FF3D9AC2" />
             <SolidColorBrush x:Key="DockTabBackgroundBrush" Color="#00000000" />
-            <SolidColorBrush x:Key="DockTabHoverBackgroundBrush" Color="#FF141618" />
-            <SolidColorBrush x:Key="DockTabActiveBackgroundBrush" Color="#FF0A0B0D" />
-            <SolidColorBrush x:Key="DockTabActiveIndicatorBrush" Color="#FF3D7EFF" />
-            <SolidColorBrush x:Key="DockTabForegroundBrush" Color="#FF72777E" />
-            <SolidColorBrush x:Key="DockTabSelectedForegroundBrush" Color="#FFD0D3D9" />
-            <SolidColorBrush x:Key="DockTabActiveForegroundBrush" Color="#FFD0D3D9" />
-            <SolidColorBrush x:Key="DockTabCloseHoverBackgroundBrush" Color="#FF282C32" />
-            <SolidColorBrush x:Key="DockTargetIndicatorBrush" Color="#FF3D7EFF" />
-            <SolidColorBrush x:Key="DockChromeButtonForegroundBrush" Color="#FF72777E" />
-            <SolidColorBrush x:Key="DockChromeButtonHoverBackgroundBrush" Color="#FF141618" />
-            <SolidColorBrush x:Key="DockChromeButtonPressedBackgroundBrush" Color="#FF282C32" />
+            <SolidColorBrush x:Key="DockTabHoverBackgroundBrush" Color="#FF2A2E34" />
+            <SolidColorBrush x:Key="DockTabActiveBackgroundBrush" Color="#FF15171A" />
+            <SolidColorBrush x:Key="DockTabActiveIndicatorBrush" Color="#FF3D9AC2" />
+            <SolidColorBrush x:Key="DockTabForegroundBrush" Color="#FF8A9097" />
+            <SolidColorBrush x:Key="DockTabSelectedForegroundBrush" Color="#FFE2E4E8" />
+            <SolidColorBrush x:Key="DockTabActiveForegroundBrush" Color="#FFE2E4E8" />
+            <SolidColorBrush x:Key="DockTabCloseHoverBackgroundBrush" Color="#FF464B53" />
+            <SolidColorBrush x:Key="DockTargetIndicatorBrush" Color="#FF3D9AC2" />
+            <SolidColorBrush x:Key="DockChromeButtonForegroundBrush" Color="#FF8A9097" />
+            <SolidColorBrush x:Key="DockChromeButtonHoverBackgroundBrush" Color="#FF2A2E34" />
+            <SolidColorBrush x:Key="DockChromeButtonPressedBackgroundBrush" Color="#FF464B53" />
             <SolidColorBrush x:Key="DockChromeButtonDangerHoverBrush" Color="#FFE0555C" />
             <sys:Double x:Key="DockCornerRadiusSmall">4</sys:Double>
 
@@ -477,12 +479,39 @@
             <Setter Property="Padding" Value="8,5" />
         </Style>
 
-        <Style Selector="Border.task-box">
+        <Style Selector="Button.status-task">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="Padding" Value="6,2" />
+            <Setter Property="Margin" Value="8,-3,0,-3" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.status-task:over">
+            <Setter Property="Background" Value="{StaticResource Brush.MenuHover}" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+        </Style>
+        <Style Selector="Button.status-task:pressed">
+            <Setter Property="Background" Value="{StaticResource Brush.PanelRaised}" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
+        </Style>
+
+        <Style Selector="TextBlock.status-task-title">
+            <Setter Property="FontSize" Value="11.5" />
+            <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
+        </Style>
+
+        <Style Selector="Border.status-task-count">
             <Setter Property="Background" Value="{StaticResource Brush.PanelRaised}" />
             <Setter Property="BorderBrush" Value="{StaticResource Brush.BorderLight}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="{StaticResource Radius.Small}" />
-            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="CornerRadius" Value="7" />
+            <Setter Property="Padding" Value="5,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.status-task-count TextBlock">
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="Foreground" Value="{StaticResource Brush.TextMuted}" />
         </Style>
 
         <Style Selector="TextBlock.task-title">

@@ -187,13 +187,9 @@ void ReplicationApplySystem::Process(float delta, Span<Handle<Scene>> scenes)
         {
             const ReplicationOp<ReplicationOpType::Snapshot>& op = static_cast<const ReplicationOp<ReplicationOpType::Snapshot>&>(*opPtr);
 
-            // Server clock estimate: offset between the local clock and the server's sim clock.
-            // Measured from the arrival time vs. the server timestamp the snapshot was captured at.
             const int64 localNowMs = int64(Time::Now().ToMilliseconds());
             const int64 serverTimeMs = int64(op.serverTimeMs.ToMilliseconds());
 
-            // Track the inter-sample cadence in server-time space (ignores intra-burst duplicates
-            // where multiple entities stamped with the same server tick arrive together).
             if (m_hasSeenServerTime)
             {
                 const int64 intervalMs = int64(op.serverTimeMs.ToMilliseconds()) - int64(m_lastSeenServerTimeMs.ToMilliseconds());
@@ -242,8 +238,6 @@ void ReplicationApplySystem::Process(float delta, Span<Handle<Scene>> scenes)
 
             InterpolationState& interpolation = m_interpolationStates[op.netId];
 
-            // Teleport detection: if the new sample is implausibly far from the previous newest
-            // sample (respawn, shove, scene reset), clear history and snap instead of gliding.
             if (interpolation.samples.Any())
             {
                 const InterpolationState::Sample& newest = interpolation.samples.Back();
@@ -346,10 +340,6 @@ void ReplicationApplySystem::UpdateInterpolatedEntities(float delta)
 
         Entity* entity = entityIt->second.Get();
 
-        // While a Kinematic body is locally flipped to Dynamic for push prediction, its visible
-        // transform is owned by the local simulation (World::SyncPhysicsToEntities), not this
-        // replication path. Keep accumulating samples (so there's a smooth glide-back once the
-        // prediction ends) but do not write the entity transform here.
         if (RigidBodyComponent* rigidBodyComponent = entity->TryGetComponent<RigidBodyComponent>())
         {
             if (rigidBodyComponent->rigidBody.IsValid() && rigidBodyComponent->rigidBody->IsLocallyPredicted())
@@ -386,8 +376,6 @@ void ReplicationApplySystem::UpdateInterpolatedEntities(float delta)
             {
                 const float alpha = float(MathUtil::Clamp((renderTimeMs - sample_time(from)) / spanMs, 0.0, 1.0));
 
-                // Hermite interpolation using the per-sample velocities when both endpoints carry a
-                // real simulation state (smooth acceleration across the boundary, Source-style).
                 if (!from.isSleeping && !to.isSleeping)
                 {
                     const float spanSec = float(spanMs) * 0.001f;

@@ -27,6 +27,7 @@ class World;
 class WorldGrid;
 class TerrainWorldGridLayer;
 class Prefab;
+class Color;
 
 HYP_ENUM()
 enum class TerrainSculptMode : uint8
@@ -35,7 +36,10 @@ enum class TerrainSculptMode : uint8
     Lower,
     PaintSplat,
     PaintGroundCover,
-    MarkProcedural
+    MarkProcedural,
+    Flatten,
+    Smooth,
+    Ramp
 };
 
 HYP_CLASS(Serialize = false)
@@ -66,6 +70,12 @@ public:
 
     HYP_METHOD()
     void SetStrength(float strength);
+
+    HYP_METHOD()
+    float GetFalloff() const;
+
+    HYP_METHOD()
+    void SetFalloff(float falloff);
 
     HYP_METHOD()
     TerrainSculptMode GetMode() const;
@@ -148,6 +158,7 @@ private:
     void PushProceduralCellsAction(const Handle<TerrainWorldGridLayer>& terrainLayer);
 
     void DebugDrawProceduralCells(DebugDrawCommandList& debugDrawCommandList, const Handle<TerrainWorldGridLayer>& layer);
+    void DebugDrawRamp(DebugDrawCommandList& debugDrawCommandList, const Color& color, float ribbonWidth);
 
     Array<Handle<TerrainWorldGridLayer>> GetTerrainLayers() const;
     Name ResolveGroundCoverPaintLayer(const Handle<TerrainWorldGridLayer>& terrainLayer, bool createIfMissing);
@@ -161,6 +172,7 @@ private:
 
     float m_radius = 5.0f;
     float m_strength = 2.0f;
+    float m_falloff = 0.5f;
     uint32 m_paintLayer = 0;
     Name m_paintGroundCoverLayer;
     Handle<Prefab> m_groundCoverPrefab;
@@ -175,11 +187,12 @@ private:
     bool m_strokeInvert = false;
     Vec2f m_strokeScreenPos;
 
-    ///a held stroke re-picks only when the cursor moves. Picking every frame would walk the brush along the pick ray,
-    ///because the surface it just raised comes up to meet the ray closer to the camera
     bool m_strokeNeedsPick = true;
     Vec3f m_strokeWorldPos;
     WeakHandle<TerrainWorldGridLayer> m_strokeLayer;
+
+    bool m_hasStrokeAnchor = false;
+    Vec3f m_strokeAnchor;
 
     ClockTimer m_strokeTimer;
 };

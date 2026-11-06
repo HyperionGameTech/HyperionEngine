@@ -6,7 +6,6 @@
 
 #include <HyperionPch.hpp>
 
-// a host tool: it watches directories and serves blobs over sockets, neither of which a browser has
 #if !HYP_WEB
 
 #include <Framework/Commandlet/Commandlet.hpp>
@@ -93,38 +92,37 @@ namespace Hyperion {
 
 struct CacheServerContext {};
 
-// a client hanging up mid-send must not SIGPIPE the whole server
+namespace {
+
 #if defined(HYP_LINUX) || defined(HYP_ANDROID)
-static constexpr int s_sendFlags = MSG_NOSIGNAL;
+constexpr int SendFlags = MSG_NOSIGNAL;
 #else
-static constexpr int s_sendFlags = 0;
+constexpr int SendFlags = 0;
 #endif
 
-static void ConfigureClientSocket(SocketHandle clientSocket)
+void ConfigureClientSocket(SocketHandle clientSocket)
 {
-    // recv runs on the accept loop, so a client that never sends a request would stall every other client
-#if defined(HYP_WINDOWS)
+#    if defined(HYP_WINDOWS)
     const DWORD receiveTimeoutMs = 5000;
     const DWORD sendTimeoutMs = 30000;
 
     setsockopt(clientSocket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&receiveTimeoutMs, sizeof(receiveTimeoutMs));
     setsockopt(clientSocket, SOL_SOCKET, SO_SNDTIMEO, (const char*)&sendTimeoutMs, sizeof(sendTimeoutMs));
-#else
+#    else
     const struct timeval receiveTimeout = { 5, 0 };
     const struct timeval sendTimeout = { 30, 0 };
 
     setsockopt(clientSocket, SOL_SOCKET, SO_RCVTIMEO, &receiveTimeout, sizeof(receiveTimeout));
     setsockopt(clientSocket, SOL_SOCKET, SO_SNDTIMEO, &sendTimeout, sizeof(sendTimeout));
-#endif
+#    endif
 
-#if defined(HYP_APPLE)
+#    if defined(HYP_APPLE)
     int noSigPipe = 1;
     setsockopt(clientSocket, SOL_SOCKET, SO_NOSIGPIPE, &noSigPipe, sizeof(noSigPipe));
-#endif
+#    endif
 }
 
-// asset names come straight off the request path, only allow a plain file name
-static bool IsSafeAssetFileName(const String& assetName)
+bool IsSafeAssetFileName(const String& assetName)
 {
     if (assetName.Empty() || assetName.Contains(".."))
     {
@@ -144,7 +142,7 @@ static bool IsSafeAssetFileName(const String& assetName)
     return true;
 }
 
-static UTF8StringView GetQueryParam(const String& path, const String& name)
+UTF8StringView GetQueryParam(const String& path, const String& name)
 {
     size_t index = path.FindFirstIndex(String("&") + name + "=");
 
@@ -170,12 +168,14 @@ static UTF8StringView GetQueryParam(const String& path, const String& name)
     return value;
 }
 
-static bool IsPathUnderDirectory(const FilePath& path, const FilePath& directory)
+bool IsPathUnderDirectory(const FilePath& path, const FilePath& directory)
 {
     const String directoryPrefix = directory.ToCanonical() + HYP_FILESYSTEM_SEPARATOR;
 
     return path.ToCanonical().StartsWith(directoryPrefix);
 }
+
+} // namespace
 
 #if defined(HYP_WINDOWS)
 
@@ -1580,7 +1580,7 @@ protected:
                     const char* bad = "HTTP/1.0 404 Not Found\r\n"
                         "Content-Length: 0\r\n\r\n";
 
-                    send(clientSock, bad, int(strlen(bad)), s_sendFlags);
+                    send(clientSock, bad, int(strlen(bad)), SendFlags);
                     CLOSE_SOCKET(clientSock);
 
 
@@ -1599,8 +1599,8 @@ protected:
                         "\r\n",
                         hmfText.Size());
 
-                    send(clientSock, header, headerLen, s_sendFlags);
-                    send(clientSock, hmfText.Data(), int(hmfText.Size()), s_sendFlags);
+                    send(clientSock, header, headerLen, SendFlags);
+                    send(clientSock, hmfText.Data(), int(hmfText.Size()), SendFlags);
                 }
                 else if (path.StartsWith("/refresh"))
                 {
@@ -1611,7 +1611,7 @@ protected:
                         const char* bad = "HTTP/1.0 400 Bad Request\r\n"
                                           "Content-Length: 0\r\n\r\n";
 
-                        send(clientSock, bad, int(strlen(bad)), s_sendFlags);
+                        send(clientSock, bad, int(strlen(bad)), SendFlags);
                         CLOSE_SOCKET(clientSock);
 
                         return;
@@ -1664,8 +1664,8 @@ protected:
                         "\r\n",
                         body.Size());
 
-                    send(clientSock, header, headerLen, s_sendFlags);
-                    send(clientSock, body.Data(), int(body.Size()), s_sendFlags);
+                    send(clientSock, header, headerLen, SendFlags);
+                    send(clientSock, body.Data(), int(body.Size()), SendFlags);
                 }
                 else if (path.StartsWith("/hmf/"))
                 {
@@ -1677,7 +1677,7 @@ protected:
                         const char* bad = "HTTP/1.0 400 Bad Request\r\n"
                             "Content-Length: 0\r\n\r\n";
 
-                        send(clientSock, bad, int(strlen(bad)), s_sendFlags);
+                        send(clientSock, bad, int(strlen(bad)), SendFlags);
                         CLOSE_SOCKET(clientSock);
 
                         return;
@@ -1720,8 +1720,8 @@ protected:
                                 "\r\n",
                                 data.Size());
 
-                            send(clientSock, header, headerLen, s_sendFlags);
-                            send(clientSock, (const char*)data.Data(), int(data.Size()), s_sendFlags);
+                            send(clientSock, header, headerLen, SendFlags);
+                            send(clientSock, (const char*)data.Data(), int(data.Size()), SendFlags);
 
                             served = true;
                         }
@@ -1732,7 +1732,7 @@ protected:
                         const char* notFound = "HTTP/1.0 404 Not Found\r\n"
                                                "Content-Length: 0\r\n\r\n";
 
-                        send(clientSock, notFound, int(strlen(notFound)), s_sendFlags);
+                        send(clientSock, notFound, int(strlen(notFound)), SendFlags);
                     }
                 }
                 else if (path.StartsWith("/blob?"))
@@ -1746,7 +1746,7 @@ protected:
                         const char* bad = "HTTP/1.0 400 Bad Request\r\n"
                                           "Content-Length: 0\r\n\r\n";
 
-                        send(clientSock, bad, int(strlen(bad)), s_sendFlags);
+                        send(clientSock, bad, int(strlen(bad)), SendFlags);
                         CLOSE_SOCKET(clientSock);
                         return;
                     }
@@ -1849,8 +1849,8 @@ protected:
                                                                   "\r\n",
                                                                   data.Size());
 
-                                    send(clientSock, header, headerLen, s_sendFlags);
-                                    send(clientSock, (const char*)data.Data(), int(data.Size()), s_sendFlags);
+                                    send(clientSock, header, headerLen, SendFlags);
+                                    send(clientSock, (const char*)data.Data(), int(data.Size()), SendFlags);
 
                                     served = true;
                                 }
@@ -1869,8 +1869,8 @@ protected:
                                 "Content-Length: %llu\r\n"
                                 "\r\n",
                                 (unsigned long long)sizeValue);
-                            send(clientSock, header, headerLen, s_sendFlags);
-                            send(clientSock, (const char*)blobRaw, int(sizeValue), s_sendFlags);
+                            send(clientSock, header, headerLen, SendFlags);
+                            send(clientSock, (const char*)blobRaw, int(sizeValue), SendFlags);
 
                             served = true;
                         }
@@ -1880,14 +1880,14 @@ protected:
                     {
                         const char* notFound = "HTTP/1.0 404 Not Found\r\n"
                             "Content-Length: 0\r\n\r\n";
-                        send(clientSock, notFound, int(strlen(notFound)), s_sendFlags);
+                        send(clientSock, notFound, int(strlen(notFound)), SendFlags);
                     }
                 }
                 else
                 {
                     const char* notFound = "HTTP/1.0 404 Not Found\r\n"
                         "Content-Length: 0\r\n\r\n";
-                    send(clientSock, notFound, int(strlen(notFound)), s_sendFlags);
+                    send(clientSock, notFound, int(strlen(notFound)), SendFlags);
                 }
 
                 CLOSE_SOCKET(clientSock);

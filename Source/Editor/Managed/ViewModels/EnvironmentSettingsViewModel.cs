@@ -4,9 +4,6 @@ using Hyperion;
 
 namespace Hyperion.Editor.ViewModels
 {
-    /// <summary>
-    /// Environment section of the World Settings window: sky look, sky light, exposure and height fog.
-    /// </summary>
     public class EnvironmentSettingsViewModel : ViewModelBase
     {
         private const string EnvironmentPropertyName = "EnvironmentSettings";

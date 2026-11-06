@@ -121,6 +121,12 @@ float SelectMaterialChannel(float4 v, uint channel)
 #define MATERIAL_TEXTURE_RoughnessMap 4
 #define MATERIAL_TEXTURE_AoMap 5
 
+// mesh materials use these terrain layer slots
+#define MATERIAL_TEXTURE_DetailMap 7
+#define MATERIAL_TEXTURE_CoverMap 8
+#define MATERIAL_TEXTURE_DetailNormalMap 11
+#define MATERIAL_TEXTURE_CoverNormalMap 12
+
 #define MATERIAL_ALPHA_DISCARD 0.25
 
 #define HAS_TEXTURE(mat, name) bool(((mat).textureUsage & (1u << MATERIAL_TEXTURE_##name)))

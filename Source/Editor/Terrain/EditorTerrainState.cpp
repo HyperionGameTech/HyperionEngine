@@ -137,6 +137,21 @@ void EditorTerrainState::SetStrength(float strength)
     });
 }
 
+float EditorTerrainState::GetFalloff() const
+{
+    return m_falloff;
+}
+
+void EditorTerrainState::SetFalloff(float falloff)
+{
+    DispatchToSimThread([this, falloff]()
+    {
+        AssertOnThread(g_simThread);
+
+        m_falloff = MathUtil::Clamp(falloff, 0.0f, 1.0f);
+    });
+}
+
 TerrainSculptMode EditorTerrainState::GetMode() const
 {
     return m_mode;
@@ -488,6 +503,12 @@ void EditorTerrainState::ApplyBrushAt(const Handle<TerrainWorldGridLayer>& layer
 
     const float brushStrength = m_strength * MathUtil::Clamp(dt, 0.0f, 0.1f);
 
+    if (!m_hasStrokeAnchor)
+    {
+        m_strokeAnchor = worldPos;
+        m_hasStrokeAnchor = true;
+    }
+
     switch (m_mode)
     {
     case TerrainSculptMode::PaintSplat:
@@ -515,6 +536,18 @@ void EditorTerrainState::ApplyBrushAt(const Handle<TerrainWorldGridLayer>& layer
         break;
     case TerrainSculptMode::MarkProcedural:
         layer->MarkProceduralCell(worldPos, /* isProcedural */ !invert);
+        break;
+    case TerrainSculptMode::Flatten:
+        layer->ApplyFlattenBrush(
+            Vec3f(worldPos.x, m_strokeAnchor.y, worldPos.z),
+            m_radius * (1.0f - m_falloff),
+            m_radius * m_falloff,
+            MathUtil::Clamp(brushStrength * 4.0f, 0.0f, 1.0f));
+        break;
+    case TerrainSculptMode::Smooth:
+        layer->ApplySmoothBrush(worldPos, m_radius, MathUtil::Clamp(brushStrength * 8.0f, 0.0f, 1.0f));
+        break;
+    case TerrainSculptMode::Ramp:
         break;
     case TerrainSculptMode::Raise:
     default:
@@ -583,6 +616,7 @@ void EditorTerrainState::BeginStroke(const Vec2f& relativePos, bool invert)
     m_strokeInvert = invert;
     m_strokeScreenPos = relativePos;
     m_strokeNeedsPick = true;
+    m_hasStrokeAnchor = false;
 
     m_strokeTimer.Reset();
     m_strokeTimer.NextTick();
@@ -621,6 +655,18 @@ void EditorTerrainState::EndStroke()
     }
 
     m_isStroking = false;
+
+    if (m_mode == TerrainSculptMode::Ramp && m_hasStrokeAnchor && m_hasHover)
+    {
+        const Handle<TerrainWorldGridLayer> rampLayer = m_strokeLayer.Lock();
+
+        if (rampLayer.IsValid() && (Vec2f(m_hoverWorldPos.x, m_hoverWorldPos.z) - Vec2f(m_strokeAnchor.x, m_strokeAnchor.z)).Length() > 0.5f)
+        {
+            rampLayer->Ramp(m_strokeAnchor, m_hoverWorldPos, 2.0f * m_radius * (1.0f - m_falloff), m_radius * m_falloff);
+        }
+    }
+
+    m_hasStrokeAnchor = false;
     m_strokeLayer.Reset();
 
     Handle<Scene> activeScene = m_subsystem->GetActiveScene();
@@ -997,6 +1043,42 @@ void EditorTerrainState::DebugDrawProceduralCells(DebugDrawCommandList& debugDra
     DrawCellOutline(debugDrawCommandList, attributes, layer, hoveredCoord, hoveredColor);
 }
 
+void EditorTerrainState::DebugDrawRamp(DebugDrawCommandList& debugDrawCommandList, const Color& color, float ribbonWidth)
+{
+    const Vec2f fromXZ(m_strokeAnchor.x, m_strokeAnchor.z);
+    const Vec2f toXZ(m_hoverWorldPos.x, m_hoverWorldPos.z);
+    const Vec2f along = toXZ - fromXZ;
+    const float length = along.Length();
+
+    if (length <= 0.5f)
+    {
+        return;
+    }
+
+    const RenderableAttributeSet attributes = TerrainCursorDrawAttributes();
+
+    const Vec2f side(-along.y / length, along.x / length);
+    const float halfWidth = m_radius * (1.0f - m_falloff);
+    const float lift = MathUtil::Max(m_radius * 0.01f, 0.1f);
+
+    for (const float offset : { -halfWidth, 0.0f, halfWidth })
+    {
+        const float lineWidth = ribbonWidth * (offset == 0.0f ? 0.65f : 1.0f);
+
+        const Vec3f edgeA[2] = {
+            Vec3f(fromXZ.x + side.x * (offset - lineWidth * 0.5f), m_strokeAnchor.y + lift, fromXZ.y + side.y * (offset - lineWidth * 0.5f)),
+            Vec3f(toXZ.x + side.x * (offset - lineWidth * 0.5f), m_hoverWorldPos.y + lift, toXZ.y + side.y * (offset - lineWidth * 0.5f))
+        };
+
+        const Vec3f edgeB[2] = {
+            Vec3f(fromXZ.x + side.x * (offset + lineWidth * 0.5f), m_strokeAnchor.y + lift, fromXZ.y + side.y * (offset + lineWidth * 0.5f)),
+            Vec3f(toXZ.x + side.x * (offset + lineWidth * 0.5f), m_hoverWorldPos.y + lift, toXZ.y + side.y * (offset + lineWidth * 0.5f))
+        };
+
+        DrawTerrainRibbon(debugDrawCommandList, attributes, Span<const Vec3f>(edgeA, 2), Span<const Vec3f>(edgeB, 2), /* closed */ false, color);
+    }
+}
+
 void EditorTerrainState::DebugDrawCursor(DebugDrawCommandList& debugDrawCommandList)
 {
     if (!m_enabled || !m_hasHover)
@@ -1028,6 +1110,15 @@ void EditorTerrainState::DebugDrawCursor(DebugDrawCommandList& debugDrawCommandL
     case TerrainSculptMode::PaintGroundCover:
         baseColor = Color(0.95f, 0.5f, 1.0f, 1.0f);
         break;
+    case TerrainSculptMode::Flatten:
+        baseColor = Color(1.0f, 0.65f, 0.35f, 1.0f);
+        break;
+    case TerrainSculptMode::Smooth:
+        baseColor = Color(0.5f, 1.0f, 0.8f, 1.0f);
+        break;
+    case TerrainSculptMode::Ramp:
+        baseColor = Color(1.0f, 0.4f, 0.6f, 1.0f);
+        break;
     case TerrainSculptMode::Raise:
     default:
         baseColor = Color(1.0f, 0.9f, 0.2f, 1.0f);
@@ -1051,6 +1142,11 @@ void EditorTerrainState::DebugDrawCursor(DebugDrawCommandList& debugDrawCommandL
     const float radius = m_radius;
 
     const float ribbonWidth = MathUtil::Clamp(radius * 0.035f, 0.06f, 0.3f);
+
+    if (m_mode == TerrainSculptMode::Ramp && m_isStroking && m_hasStrokeAnchor)
+    {
+        DebugDrawRamp(debugDrawCommandList, color, ribbonWidth);
+    }
 
     // a big brush is usually looked at from farther away, where a fixed lift is below the depth buffer's precision
     // and the ribbon starts breaking up against the terrain

@@ -62,6 +62,31 @@ DECLARE_SAMPLER(Default, SamplerNearest) SamplerState sampler_nearest;
 #include "Include/Noise.hlsli"
 #include "Include/AlphaCutout.hlsli"
 #include "Include/TerrainColor.hlsli"
+#include "Include/TerrainMaterial.hlsli"
+
+#ifndef HYP_FEATURES_BINDLESS_TEXTURES
+DECLARE_SRV(Material, TerrainLayer0) Texture2D TerrainLayer0;
+DECLARE_SRV(Material, TerrainLayer1) Texture2D TerrainLayer1;
+DECLARE_SRV(Material, TerrainNormal0) Texture2D TerrainNormal0;
+DECLARE_SRV(Material, TerrainNormal1) Texture2D TerrainNormal1;
+
+#define DetailMap TerrainLayer0
+#define CoverMap TerrainLayer1
+#define DetailNormalMap TerrainNormal0
+#define CoverNormalMap TerrainNormal1
+#endif // !HYP_FEATURES_BINDLESS_TEXTURES
+
+#define MESH_DETAIL_SCALE 0.2
+#define MESH_DETAIL_FINE_SCALE 1.0
+#define MESH_DETAIL_NORMAL_STRENGTH 1.0
+#define MESH_DETAIL_FINE_NORMAL_STRENGTH 1.0
+#define MESH_DETAIL_ALBEDO_STRENGTH 0.8
+#define MESH_DETAIL_AO_STRENGTH 0.6
+#define MESH_DETAIL_FADE float2(80.0, 250.0)
+#define MESH_DETAIL_FINE_FADE float2(8.0, 35.0)
+
+#define MESH_COVER_SLOPE float2(0.55, 0.85)
+#define MESH_COVER_HEIGHT_BREAKUP 0.8
 
 DECLARE_SRV(Default, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
 #define world_shader_data _worlds_buffer[0]
@@ -251,6 +276,37 @@ bool ComputeUVTangentFrame(float3 N, float3 P, float2 uv, out float3 tangent, ou
     return true;
 }
 
+float3 GetMeshDetailBlending(float3 normal)
+{
+    const float3 blending = pow(abs(normal), 4.0);
+    return blending / max(blending.x + blending.y + blending.z, 0.0001);
+}
+
+float4 SampleMeshTriplanar(Texture2D tex, float3 position, float3 positionDdx, float3 positionDdy, float scale, float3 blending, out float4 packedX, out float4 packedY, out float4 packedZ)
+{
+    packedX = SAMPLE_TEXTURE_2D_GRAD(texture_sampler, tex, position.zy * scale, positionDdx.zy * scale, positionDdy.zy * scale);
+    packedY = SAMPLE_TEXTURE_2D_GRAD(texture_sampler, tex, position.xz * scale, positionDdx.xz * scale, positionDdy.xz * scale);
+    packedZ = SAMPLE_TEXTURE_2D_GRAD(texture_sampler, tex, position.xy * scale, positionDdx.xy * scale, positionDdy.xy * scale);
+
+    return packedX * blending.x + packedY * blending.y + packedZ * blending.z;
+}
+
+/// rg = tangent normal xy
+/// b = ao
+/// a = height (terrain layer packing).
+float3 BlendDetailNormalTriplanar(float4 packedX, float4 packedY, float4 packedZ, float3 baseNormal, float3 blending, float strength)
+{
+    const float2 tangentX = (packedX.rg * 2.0 - 1.0) * strength;
+    const float2 tangentY = (packedY.rg * 2.0 - 1.0) * strength;
+    const float2 tangentZ = (packedZ.rg * 2.0 - 1.0) * strength;
+
+    const float3 whiteoutX = float3(tangentX + baseNormal.zy, baseNormal.x);
+    const float3 whiteoutY = float3(tangentY + baseNormal.xz, baseNormal.y);
+    const float3 whiteoutZ = float3(tangentZ + baseNormal.xy, baseNormal.z);
+
+    return normalize(whiteoutX.zyx * blending.x + whiteoutY.xzy * blending.y + whiteoutZ.xyz * blending.z);
+}
+
 // #define DEBUG_RAW_REFLECTIONS
 
 PSOutput PSMain(PSInput input)
@@ -295,6 +351,10 @@ PSOutput PSMain(PSInput input)
 
     const float3 V = normalize(camera.position.xyz - P);
     float3 N = normalize(input.normal);
+
+    const float3 geometricNormal = N;
+    const float3 positionDdx = ddx(P);
+    const float3 positionDdy = ddy(P);
 
     output.gbuffer_albedo = CURRENT_MATERIAL.albedo;
 
@@ -374,6 +434,84 @@ PSOutput PSMain(PSInput input)
     }
  #endif
 
+    const float viewDistance = length(camera.position.xyz - P);
+    const float3 detailBlending = GetMeshDetailBlending(geometricNormal);
+
+    float detailHeight = 0.5;
+
+    if (HAS_TEXTURE(CURRENT_MATERIAL, DetailNormalMap))
+    {
+        const float coarseFade = 1.0 - smoothstep(MESH_DETAIL_FADE.x, MESH_DETAIL_FADE.y, viewDistance);
+        const float fineFade = 1.0 - smoothstep(MESH_DETAIL_FINE_FADE.x, MESH_DETAIL_FINE_FADE.y, viewDistance);
+
+        float4 packedX;
+        float4 packedY;
+        float4 packedZ;
+
+        const float4 coarseDetail = SampleMeshTriplanar(GET_TEXTURE(CURRENT_MATERIAL, DetailNormalMap), P, positionDdx, positionDdy, MESH_DETAIL_SCALE, detailBlending, packedX, packedY, packedZ);
+        N = BlendDetailNormalTriplanar(packedX, packedY, packedZ, N, detailBlending, MESH_DETAIL_NORMAL_STRENGTH * coarseFade);
+
+        float detailAo = coarseDetail.b;
+        detailHeight = coarseDetail.a;
+
+        if (fineFade > 0.0)
+        {
+            const float4 fineDetail = SampleMeshTriplanar(GET_TEXTURE(CURRENT_MATERIAL, DetailNormalMap), P, positionDdx, positionDdy, MESH_DETAIL_FINE_SCALE, detailBlending, packedX, packedY, packedZ);
+            N = BlendDetailNormalTriplanar(packedX, packedY, packedZ, N, detailBlending, MESH_DETAIL_FINE_NORMAL_STRENGTH * fineFade);
+
+            detailAo *= lerp(1.0, fineDetail.b, fineFade);
+        }
+
+        ao *= lerp(1.0, detailAo, MESH_DETAIL_AO_STRENGTH * coarseFade);
+
+        if (HAS_TEXTURE(CURRENT_MATERIAL, DetailMap))
+        {
+            const float3 detailAlbedo = SampleMeshTriplanar(GET_TEXTURE(CURRENT_MATERIAL, DetailMap), P, positionDdx, positionDdy, MESH_DETAIL_SCALE, detailBlending, packedX, packedY, packedZ).rgb;
+            const float3 meanAlbedo = SAMPLE_TEXTURE_2D_LOD(texture_sampler, GET_TEXTURE(CURRENT_MATERIAL, DetailMap), float2(0.5, 0.5), 12.0).rgb;
+
+            const float albedoRatio = clamp(Luminance(detailAlbedo) / max(Luminance(meanAlbedo), 0.01), 0.3, 2.0);
+
+            output.gbuffer_albedo.rgb = min(output.gbuffer_albedo.rgb * lerp(1.0, albedoRatio, MESH_DETAIL_ALBEDO_STRENGTH * coarseFade), 1.0);
+        }
+    }
+
+    float coverMask = 0.0;
+    float coverRoughness = 1.0;
+
+    if (HAS_TEXTURE(CURRENT_MATERIAL, CoverMap))
+    {
+        const float upMask = smoothstep(MESH_COVER_SLOPE.x, MESH_COVER_SLOPE.y, N.y);
+        coverMask = smoothstep(0.35, 0.65, upMask + (detailHeight - 0.5) * MESH_COVER_HEIGHT_BREAKUP);
+
+        if (coverMask > 0.0)
+        {
+            float4 packedX;
+            float4 packedY;
+            float4 packedZ;
+
+            const float4 coverSample = SampleMeshTriplanar(GET_TEXTURE(CURRENT_MATERIAL, CoverMap), P, positionDdx, positionDdy, TERRAIN_LAYER0_SCALE, detailBlending, packedX, packedY, packedZ);
+
+            const float3 coverAlbedo = min(
+                coverSample.rgb * GetTerrainLayerTintAtDistance(0u, viewDistance) * GetTerrainMacroColorGain(SampleTerrainMacroNoise(P.xz)),
+                TERRAIN_MAX_ALBEDO);
+
+            output.gbuffer_albedo.rgb = lerp(output.gbuffer_albedo.rgb, coverAlbedo, coverMask);
+            coverRoughness = lerp(0.78, 1.0, coverSample.a);
+
+            float3 coverNormal = normalize(N + float3(0.0, 1.0, 0.0));
+
+            if (HAS_TEXTURE(CURRENT_MATERIAL, CoverNormalMap))
+            {
+                const float4 coverNormalSample = SampleMeshTriplanar(GET_TEXTURE(CURRENT_MATERIAL, CoverNormalMap), P, positionDdx, positionDdy, TERRAIN_LAYER0_SCALE, detailBlending, packedX, packedY, packedZ);
+                coverNormal = BlendDetailNormalTriplanar(packedX, packedY, packedZ, coverNormal, detailBlending, 1.0);
+
+                ao *= lerp(1.0, coverNormalSample.b, coverMask);
+            }
+
+            N = normalize(lerp(N, coverNormal, coverMask));
+        }
+    }
+
     // @TODO move grass to custom shader
     
     const float groundNormalBlend = input.ground_normal_blend;
@@ -410,6 +548,8 @@ PSOutput PSMain(PSInput input)
     {
         roughness = lerp(roughness, 1.0, saturate(groundNormalBlend * 1.5));
     }
+
+    roughness = lerp(roughness, coverRoughness, coverMask);
 
     // roughness is authored as perceptual roughness; need to convert to physical roughness for the BRDF calculations
 #if SHADING_TYPE_FORWARD

@@ -24,8 +24,8 @@ namespace Hyperion.Editor.ViewModels
 
     public class BlendFunctionPropertyViewModel : InspectorPropertyViewModelBase
     {
-        public static readonly IReadOnlyList<BlendPreset> Presets = new List<BlendPreset>
-        {
+        public static readonly IReadOnlyList<BlendPreset> Presets =
+        [
             new BlendPreset(
                 "Opaque",
                 "No blending",
@@ -50,7 +50,7 @@ namespace Hyperion.Editor.ViewModels
                 "Screen",
                 "Multiplies the inverse of the pixel values of the source and the destination (lightens)",
                 new BlendFunction(BlendModeFactor.One, BlendModeFactor.OneMinusSrcColor, BlendModeFactor.One, BlendModeFactor.OneMinusSrcAlpha)),
-        };
+        ];
 
         public static readonly IReadOnlyList<BlendModeFactor> FactorOptions = Enum.GetValues<BlendModeFactor>()
             .Where(factor => factor != BlendModeFactor.Max)

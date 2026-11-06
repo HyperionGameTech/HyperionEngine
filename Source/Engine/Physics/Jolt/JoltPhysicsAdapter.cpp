@@ -362,7 +362,6 @@ JPH::RefConst<JPH::Shape> CreatePhysicsShapeHandle(PhysicsShape* physicsShape, c
 
 } // namespace
 
-// steep slopes can't push a character; listeners added to the adapter see each contact after that
 class JoltCharacterContactListenerList final : public JPH::CharacterContactListener
 {
 private:
@@ -652,7 +651,7 @@ void JoltPhysicsAdapter::Init(PhysicsWorldBase* world)
 
             if (inBlock)
             {
-                std::memcpy(newBlock, inBlock, MathUtil::Min(inOldSize, inNewSize));
+                Memory::Copy(newBlock, inBlock, MathUtil::Min(inOldSize, inNewSize));
                 g_physicsPool->Free(inBlock);
             }
 
@@ -1426,15 +1425,13 @@ static JPH::Vec3 SteerCharacterOnGround(JPH::Vec3 horizontalVelocity, const JPH:
     {
         direction = TurnHorizontalDirection(direction, wishDirection, turn);
 
-        // Cornering at a sprint costs the speed above move speed
         if (speed > data.moveSpeed)
         {
-            speed = data.moveSpeed + (speed - data.moveSpeed) * std::exp(-data.turnSpeedLoss * turn * sprintFactor);
+            speed = data.moveSpeed + (speed - data.moveSpeed) * MathUtil::Exp(-data.turnSpeedLoss * turn * sprintFactor);
         }
     }
 
-    // Speed only builds while roughly facing where the input points
-    const float targetSpeed = wishSpeed * MathUtil::Max(std::cos(angle - turn), 0.0f);
+    const float targetSpeed = wishSpeed * MathUtil::Max(MathUtil::Cos(angle - turn), 0.0f);
 
     if (speed < targetSpeed)
     {
@@ -1446,7 +1443,6 @@ static JPH::Vec3 SteerCharacterOnGround(JPH::Vec3 horizontalVelocity, const JPH:
     }
     else if (speed > wishSpeed)
     {
-        // Eased off from a sprint: slow to the new target speed the way friction would
         const float drop = MathUtil::Max(speed, data.stopSpeed) * data.friction * deltaTime;
 
         speed = MathUtil::Max(speed - drop, wishSpeed);
@@ -1565,7 +1561,8 @@ void JoltPhysicsAdapter::StepCharacterController(const SharedPtr<void>& physicsH
 
         const bool isGrounded = groundState == JPH::CharacterVirtual::EGroundState::OnGround;
         const bool isOnSteepGround = groundState == JPH::CharacterVirtual::EGroundState::OnSteepGround
-            && groundNormal.GetY() >= std::cos(CharacterSteepSupportMaxAngle);
+            && groundNormal.GetY() >= MathUtil::Cos(CharacterSteepSupportMaxAngle);
+
         const bool isSupported = isGrounded || isOnSteepGround;
 
         JPH::Vec3 groundVelocity = character->GetGroundVelocity();
@@ -1622,7 +1619,7 @@ void JoltPhysicsAdapter::StepCharacterController(const SharedPtr<void>& physicsH
 
         if (isGrounded)
         {
-            // Friction only brings the character to a stop once input is released; while moving, steering handles speed
+            // Friction only brings the character to a stop once input is released.
             horizontalVelocity = wishSpeed > MathUtil::epsilonF
                 ? SteerCharacterOnGround(horizontalVelocity, wishDirection, wishSpeed, *internalData, substepDelta, internalData->heading)
                 : ApplyCharacterGroundFriction(horizontalVelocity, internalData->friction, internalData->stopSpeed, substepDelta);
@@ -1659,13 +1656,13 @@ void JoltPhysicsAdapter::StepCharacterController(const SharedPtr<void>& physicsH
 
         const bool canJump = internalData->jumpBufferTimeRemaining > 0.0f && (isSupported || internalData->coyoteTimeRemaining > 0.0f);
 
-        bool isTakingOff = false;
+        bool takeOff = false;
 
         if (internalData->jumpWindupRemaining > 0.0f)
         {
             internalData->jumpWindupRemaining = MathUtil::Max(0.0f, internalData->jumpWindupRemaining - substepDelta);
 
-            isTakingOff = internalData->jumpWindupRemaining <= 0.0f && (isSupported || internalData->coyoteTimeRemaining > 0.0f);
+            takeOff = internalData->jumpWindupRemaining <= 0.0f && (isSupported || internalData->coyoteTimeRemaining > 0.0f);
         }
         else if (canJump && movingTowardsGround)
         {
@@ -1677,7 +1674,7 @@ void JoltPhysicsAdapter::StepCharacterController(const SharedPtr<void>& physicsH
             }
             else
             {
-                isTakingOff = true;
+                takeOff = true;
             }
         }
         else
@@ -1685,7 +1682,7 @@ void JoltPhysicsAdapter::StepCharacterController(const SharedPtr<void>& physicsH
             internalData->jumpBufferTimeRemaining = MathUtil::Max(0.0f, internalData->jumpBufferTimeRemaining - substepDelta);
         }
 
-        if (isTakingOff)
+        if (takeOff)
         {
             newVelocity += JPH::Vec3(0.0f, internalData->jumpSpeed, 0.0f);
 
@@ -1723,7 +1720,7 @@ void JoltPhysicsAdapter::StepCharacterController(const SharedPtr<void>& physicsH
             }
         }
 
-        const JPH::Vec3 appliedGravity = isGrounded && !isTakingOff
+        const JPH::Vec3 appliedGravity = isGrounded && !takeOff
             ? groundNormal * groundNormal.Dot(gravity)
             : gravity;
 
@@ -1777,7 +1774,7 @@ void JoltPhysicsAdapter::StepCharacterController(const SharedPtr<void>& physicsH
 
         const JPH::Vec3 achievedHorizontalVelocity = JPH::Vec3(achievedStep.GetX(), 0.0f, achievedStep.GetZ()) / substepDelta - groundHorizontalVelocity;
 
-        const bool isSliding = character->GetGroundState() == JPH::CharacterVirtual::EGroundState::OnSteepGround && !isTakingOff;
+        const bool isSliding = character->GetGroundState() == JPH::CharacterVirtual::EGroundState::OnSteepGround && !takeOff;
 
         internalData->commandedHorizontalVelocity = isSliding
             ? achievedHorizontalVelocity
@@ -1785,7 +1782,7 @@ void JoltPhysicsAdapter::StepCharacterController(const SharedPtr<void>& physicsH
 
         JPH::Vec3 resolvedVelocity = character->GetLinearVelocity();
 
-        if (isGrounded && !isTakingOff && resolvedVelocity.GetY() > groundVelocity.GetY())
+        if (isGrounded && !takeOff && resolvedVelocity.GetY() > groundVelocity.GetY())
         {
             resolvedVelocity.SetY(groundVelocity.GetY());
         }
@@ -1965,7 +1962,6 @@ bool JoltPhysicsAdapter::CastRayStatic(const Vec3f& origin, const Vec3f& directi
     const JPH::SpecifiedObjectLayerFilter objectLayerFilter(JoltLayers::NON_MOVING);
     const JoltNonSensorBodyFilter bodyFilter;
 
-    // a ray starting inside a collider (a foot against a crate) passes out of it and finds the surface below
     JPH::RayCastSettings settings;
     settings.mTreatConvexAsSolid = false;
 

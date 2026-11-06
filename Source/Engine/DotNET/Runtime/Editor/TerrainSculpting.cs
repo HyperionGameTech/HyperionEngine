@@ -9,7 +9,10 @@ namespace Hyperion
         Lower = 1,
         PaintSplat = 2,
         PaintGroundCover = 3,
-        MarkProcedural = 4
+        MarkProcedural = 4,
+        Flatten = 5,
+        Smooth = 6,
+        Ramp = 7
     }
 
     [ClassBinding(Name = "EditorTerrainState")]

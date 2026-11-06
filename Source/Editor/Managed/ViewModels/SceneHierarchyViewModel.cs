@@ -325,6 +325,33 @@ namespace Hyperion.Editor.ViewModels
             SelectionChanged?.Invoke();
         }
 
+        public NodeViewModel? SelectionAnchor { get; set; }
+
+        public List<NodeViewModel> GetVisibleFlattenedNodes()
+        {
+            List<NodeViewModel> result = new List<NodeViewModel>();
+            foreach (NodeViewModel root in RootNodes)
+            {
+                FlattenVisibleRecursive(root, result);
+            }
+            return result;
+        }
+
+        private static void FlattenVisibleRecursive(NodeViewModel node, List<NodeViewModel> result)
+        {
+            result.Add(node);
+
+            if (!node.IsExpanded)
+            {
+                return;
+            }
+
+            foreach (NodeViewModel child in node.Children)
+            {
+                FlattenVisibleRecursive(child, result);
+            }
+        }
+
         public List<NodeViewModel> GetFlattenedNodes()
         {
             List<NodeViewModel> result = new List<NodeViewModel>();
