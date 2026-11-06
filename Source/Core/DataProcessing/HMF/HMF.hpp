@@ -43,7 +43,7 @@ using ErrorList = ::Hyperion::DataProcessing::ErrorList<CompilerError>;
 
 using ParseResult = TResult<BoxedValue>;
 
-using ResolveAssetPathFn = bool (*)(const String& path, const TypeInfo& targetType, BoxedValue& out);
+using ResolveAssetPathFn = bool (*)(UTF8StringView path, const TypeInfo& targetType, BoxedValue& out);
 
 CORE_API extern ResolveAssetPathFn g_resolveAssetPath;
 

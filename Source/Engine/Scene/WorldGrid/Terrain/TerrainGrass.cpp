@@ -20,6 +20,7 @@
 
 #include <Rendering/Mesh.hpp>
 #include <Rendering/Material.hpp>
+#include <Rendering/RenderHelpers.hpp>
 
 #include <Core/Math/MathUtil.hpp>
 
@@ -552,8 +553,15 @@ const TerrainGroundCoverResources::CoverMaterial& TerrainGroundCoverResources::G
     parameters.baseOcclusion = groundCoverParameters.z;
     parameters.baseOcclusionHeight = groundCoverParameters.w;
 
-    // a prefab already authored as ground cover is planted as is
-    if (parameters == source->GetParameters())
+    MaterialAttributes attributes = source->GetAttributes();
+
+    if (RenderHelpers::GetShaderTraits(attributes.shaderName) & ShaderTraits::Foliage)
+    {
+        attributes.shaderName = NAME("FoliageGrass");
+    }
+
+    if (parameters == source->GetParameters()
+        && attributes == source->GetAttributes())
     {
         coverMaterial.material = source;
     }
@@ -562,6 +570,7 @@ const TerrainGroundCoverResources::CoverMaterial& TerrainGroundCoverResources::G
         coverMaterial.material = source->Clone();
         coverMaterial.material->SetName(NAME_FMT("{}_GroundCover", source->GetName()));
         coverMaterial.material->SetParameters(parameters);
+        coverMaterial.material->SetAttributes(attributes);
 
         InitObject(coverMaterial.material);
     }
@@ -569,9 +578,9 @@ const TerrainGroundCoverResources::CoverMaterial& TerrainGroundCoverResources::G
     coverMaterial.materialNoShadows = coverMaterial.material->Clone();
     coverMaterial.materialNoShadows->SetName(NAME_FMT("{}_NoShadows", coverMaterial.material->GetName()));
 
-    MaterialAttributes attributes = coverMaterial.materialNoShadows->GetAttributes();
-    attributes.flags |= MaterialAttributeFlags::DisableShadowCasting;
-    coverMaterial.materialNoShadows->SetAttributes(attributes);
+    MaterialAttributes newAttributes = coverMaterial.materialNoShadows->GetAttributes();
+    newAttributes.flags |= MaterialAttributeFlags::DisableShadowCasting;
+    coverMaterial.materialNoShadows->SetAttributes(newAttributes);
 
     InitObject(coverMaterial.materialNoShadows);
 

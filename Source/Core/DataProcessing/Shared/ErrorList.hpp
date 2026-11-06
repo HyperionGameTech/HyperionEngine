@@ -119,7 +119,7 @@ public:
 
         for (const ErrorType& error : m_errors)
         {
-            const String& path = error.GetLocation().GetFileName();
+            const String& path = error.GetFileName();
 
             if (errorFilenames.Insert(path).second)
             {
@@ -162,11 +162,11 @@ public:
 
             outString += ": " + errorText + '\n';
 
-            if (error.GetLocation().GetLine() > 0
-                && currentFileLines.Size() >= error.GetLocation().GetLine())
+            if (error.GetLocation().GetLine() >= 0
+                && size_t(error.GetLocation().GetLine()) < currentFileLines.Size())
             {
                 // render the line in question
-                outString += "\n\t" + currentFileLines[error.GetLocation().GetLine() - 1] + "\n\t";
+                outString += "\n\t" + currentFileLines[error.GetLocation().GetLine()] + "\n\t";
 
                 for (size_t i = 0; i < error.GetLocation().GetColumn(); i++)
                 {

@@ -19,6 +19,8 @@
 
 #include <Core/Name/Name.hpp> // For StringHash
 
+#include <Rendering/Util/ShaderDefinitions.hpp>
+
 namespace Hyperion {
 
 template <class AllocatorType>
@@ -41,59 +43,9 @@ Vec3u WrapComputeGroupCount(uint32 numGroups);
 ///// Shader Helpers /////
 //////////////////////////
 
-inline constexpr bool IsCubemapShader(StringHash shaderNameHash)
-{
-    constexpr StringHash CubemapShaderNames[] = {
-        "DrawCubemap"_sh,
-        "RenderSky"_sh
-    };
-
-    return shaderNameHash == CubemapShaderNames[0]
-        || shaderNameHash == CubemapShaderNames[1];
-}
-
-inline constexpr bool IsGeometryPassFamily(StringHash shaderNameHash)
-{
-    constexpr StringHash GeometryPassShaderNames[] = {
-        "GeometryPass"_sh,
-        "Terrain"_sh
-    };
-
-    for (StringHash name : GeometryPassShaderNames)
-    {
-        if (shaderNameHash == name)
-        {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-inline constexpr bool IsTerrainShader(StringHash shaderNameHash)
-{
-    return shaderNameHash == "Terrain"_sh;
-}
+ENGINE_API EnumFlags<ShaderTraits> GetShaderTraits(StringHash shaderNameHash);
 
 ENGINE_API bool IsEmissive(const MaterialParameters& materialParameters);
-
-inline constexpr bool ShaderSupportsMorph(StringHash shaderNameHash)
-{
-    constexpr StringHash MorphShaderNames[] = {
-        "Terrain"_sh,
-        "DrawShadowMap"_sh
-    };
-    
-    for (StringHash name : MorphShaderNames)
-    {
-        if (shaderNameHash == name)
-        {
-            return true;
-        }
-    }
-
-    return false;
-}
 
 } // namespace RenderHelpers
 

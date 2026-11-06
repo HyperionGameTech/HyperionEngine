@@ -985,19 +985,14 @@ private:
             targetConfig = std::move(configParseResult.value);
         }
 
-        const FilePath shadersPath = EngineGlobals::GetConfigDirectory() / "Shaders.hmf";
+        const ShaderDefinitions* definitionsPtr = GetShaderDefinitions();
 
-        FileByteReader shadersReader { shadersPath };
-
-        HMF::ErrorList errorList;
-        HMF::ParseResult parseResult = HMF::Parse(shadersPath, shadersReader, &errorList);
-
-        if (parseResult.HasError() || !parseResult.GetValue().Is<ShaderDefinitions>())
+        if (!definitionsPtr)
         {
-            return HYP_MAKE_ERROR(Error, "Failed to read shader definitions from '{}'", shadersPath);
+            return HYP_MAKE_ERROR(Error, "Failed to read shader definitions from '{}'", EngineGlobals::GetConfigDirectory() / "Shaders.hmf");
         }
 
-        const ShaderDefinitions& definitions = parseResult.GetValue().Get<ShaderDefinitions>();
+        const ShaderDefinitions& definitions = *definitionsPtr;
 
         Array<String> passShaderNames;
 
@@ -1147,7 +1142,18 @@ private:
             {
                 const Material* material = static_cast<const Material*>(assetObject.Get());
 
-                materials.PushBack(MaterialInput { material->GetAttributes(), RenderHelpers::IsEmissive(material->GetParameters()) });
+                const MaterialInput materialInput { material->GetAttributes(), RenderHelpers::IsEmissive(material->GetParameters()) };
+
+                materials.PushBack(materialInput);
+
+                // planted ground cover draws its foliage with FoliageGrass, see TerrainGroundCoverResources::GetCoverMaterial
+                if (usesTerrain && (RenderHelpers::GetShaderTraits(materialInput.attributes.shaderName) & ShaderTraits::Foliage))
+                {
+                    MaterialInput groundCoverInput = materialInput;
+                    groundCoverInput.attributes.shaderName = NAME("FoliageGrass");
+
+                    materials.PushBack(std::move(groundCoverInput));
+                }
             }
             else if (bucket == AssetBuckets::InstanceData || bucket == AssetBuckets::Terrain)
             {

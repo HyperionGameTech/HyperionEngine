@@ -2688,40 +2688,14 @@ bool ShaderCompiler::Initialize(bool precompileShaders, const ShaderCompileParam
 
     if (!m_definitions)
     {
-        m_definitions = new ShaderDefinitions;
+        const ShaderDefinitions* definitions = GetShaderDefinitions();
 
-        // parse HMF file into m_definitions:
+        if (!definitions)
         {
-            
-            const FilePath shadersPath = EngineGlobals::GetConfigDirectory() / "Shaders.hmf";
-
-            FileByteReader stream { shadersPath };
-
-            if (stream.Eof())
-            {
-                HYP_LOG(ShaderCompiler, Error, "Failed to open shader definitions file at path: {}", shadersPath);
-
-                return false;
-            }
-
-            HMF::ParseResult parseResult = HMF::Parse(shadersPath, stream);
-
-            if (parseResult.HasError())
-            {
-                HYP_LOG(ShaderCompiler, Error, "Failed to parse shader definitions file: {}", parseResult.GetError().GetMessage());
-
-                return false;
-            }
-
-            if (!parseResult.GetValue().Is<ShaderDefinitions>())
-            {
-                HYP_LOG(ShaderCompiler, Error, "Parsed result is not a ShaderDefinitions instance");
-
-                return false;
-            }
-
-            *m_definitions = parseResult.GetValue().Get<ShaderDefinitions>();
+            return false;
         }
+
+        m_definitions = new ShaderDefinitions(*definitions);
 
         m_shaderBundleDecls.Clear();
         m_shaderBundleDecls.Reserve(m_definitions->definitions.Size());

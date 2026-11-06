@@ -1298,7 +1298,7 @@ ENGINE_API Result ObjectFromJSON(const JSON::Object& jsonObject, const Class* ta
 
 ENGINE_API Result BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, BoxedValue& outBoxed);
 
-bool ResolveAssetPath(const String& path, const TypeInfo& targetType, BoxedValue& out);
+bool ResolveAssetPath(UTF8StringView path, const TypeInfo& targetType, BoxedValue& out);
 
 ENGINE_API Result BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, BoxedValue& outBoxed)
 {
@@ -3696,14 +3696,14 @@ void CopyMembersByName(const Class* sourceClass, const BoxedValue& source, const
     }
 }
 
-bool ResolveAssetPath(const String& path, const TypeInfo& targetType, BoxedValue& out)
+bool ResolveAssetPath(UTF8StringView path, const TypeInfo& targetType, BoxedValue& out)
 {
-    if (!path.Any())
+    if (path.Size() == 0)
     {
         return false;
     }
 
-    AssetPath assetPath { ANSIStringView(*path) };
+    AssetPath assetPath { ANSIStringView(path.Data(), path.Data() + path.Size()) };
 
     if (!assetPath.IsValid())
     {

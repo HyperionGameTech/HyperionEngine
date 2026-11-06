@@ -12,6 +12,7 @@
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/RenderConfig.hpp>
 #include <Rendering/Bindless.hpp>
+#include <Rendering/RenderHelpers.hpp>
 
 #include <Asset/AssetRegistry.hpp>
 
@@ -25,9 +26,29 @@
 
 namespace Hyperion {
 
-static const Name s_defaultShaderName = NAME("GeometryPass");
+namespace {
 
-static HashCode GetMaterialHashCode(
+const Name g_defaultShaderName = NAME("GeometryPass");
+const Name g_foliageShaderName = NAME("Foliage");
+const Name g_foliageGrassShaderName = NAME("FoliageGrass");
+
+Name GetFoliageShaderName(const MaterialParameters& parameters)
+{
+    const bool isGroundCover = parameters.terrainColorMatch
+        || parameters.colorVariation != 0.0f
+        || parameters.groundNormalBlend != 0.0f
+        || parameters.baseOcclusion != 0.0f
+        || parameters.baseOcclusionHeight != 0.0f;
+
+    if (isGroundCover)
+    {
+        return g_foliageGrassShaderName;
+    }
+
+    return g_foliageShaderName;
+}
+
+HashCode GetMaterialHashCode(
     const Material* base,
     const MaterialAttributes& attributes,
     const MaterialParameters& parameters,
@@ -63,6 +84,8 @@ static HashCode GetMaterialHashCode(
     return hc;
 }
 
+} // namespace
+
 #pragma region Material
 
 const StringHash Material::s_textureNames[] = {
@@ -88,13 +111,13 @@ Material::Material()
     : m_isDynamic(false),
       m_renderProxyVersion(0)
 {
-    m_attributes.shaderName = s_defaultShaderName;
+    m_attributes.shaderName = g_defaultShaderName;
 }
 
 Material::Material(Name name, RenderBucket rb)
     : AssetObject(name),
       m_attributes {
-          .shaderName = s_defaultShaderName,
+          .shaderName = g_defaultShaderName,
           .bucket = rb,
           .fillMode = FillMode::Fill,
           .blendFunction = BlendFunction::None(),
@@ -117,7 +140,7 @@ Material::Material(Name name, const Handle<Material>& base)
       m_isDynamic(false),
       m_renderProxyVersion(0)
 {
-    m_attributes.shaderName = s_defaultShaderName;
+    m_attributes.shaderName = g_defaultShaderName;
 
     if (m_base)
     {
@@ -140,7 +163,7 @@ Material::Material(
 {
     if (!m_attributes.shaderName)
     {
-        m_attributes.shaderName = s_defaultShaderName;
+        m_attributes.shaderName = g_defaultShaderName;
     }
 }
 
@@ -160,7 +183,7 @@ Material::Material(
 {
     if (!m_attributes.shaderName)
     {
-        m_attributes.shaderName = s_defaultShaderName;
+        m_attributes.shaderName = g_defaultShaderName;
     }
 }
 
@@ -198,6 +221,16 @@ void Material::Init()
 
             InitObject(m_base);
         }
+    }
+
+    if (m_parameters.foliage)
+    {
+        if (m_attributes.shaderName == g_defaultShaderName)
+        {
+            m_attributes.shaderName = GetFoliageShaderName(m_parameters);
+        }
+
+        m_parameters.foliage = false;
     }
 
     AssetObject::Init();
@@ -246,7 +279,7 @@ void Material::SetAttributes(const MaterialAttributes& attributes)
 
     if (!newAttributes.shaderName)
     {
-        newAttributes.shaderName = s_defaultShaderName;
+        newAttributes.shaderName = g_defaultShaderName;
     }
 
     if (newAttributes == m_attributes)
@@ -434,9 +467,11 @@ void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
     flags.metalnessChannel = uint32(m_parameters.GetMetalnessChannel());
     flags.aoChannel = uint32(m_parameters.GetAmbientOcclusionChannel());
     flags.parallaxInverseHeight = uint32(m_parameters.IsParallaxInverseHeight());
-    flags.foliage = uint32(m_parameters.foliage);
+    const bool isFoliage = bool(RenderHelpers::GetShaderTraits(proxy->attributes.shaderName) & ShaderTraits::Foliage);
+
+    flags.foliage = uint32(isFoliage);
     flags.premultipliedAlpha = uint32(proxy->attributes.blendFunction.ExpectsPremultipliedSource());
-    flags.doubleSided = uint32(proxy->attributes.cullFaces == FaceCullMode::None || m_parameters.foliage);
+    flags.doubleSided = uint32(proxy->attributes.cullFaces == FaceCullMode::None || isFoliage);
     flags.terrainColorMatch = uint32(m_parameters.terrainColorMatch);
     flags.transmissionMask = uint32(m_parameters.transmissionMask);
 
@@ -545,7 +580,7 @@ Handle<Material> MaterialCache::Create(
     if (!attributes.shaderName)
     {
         tmpAttributes = attributes;
-        tmpAttributes.shaderName = s_defaultShaderName;
+        tmpAttributes.shaderName = g_defaultShaderName;
 
         attributesPtr = &tmpAttributes;
     }
@@ -574,7 +609,7 @@ Handle<Material> MaterialCache::GetOrCreate(
     if (!attributes.shaderName)
     {
         tmpAttributes = attributes;
-        tmpAttributes.shaderName = s_defaultShaderName;
+        tmpAttributes.shaderName = g_defaultShaderName;
 
         attributesPtr = &tmpAttributes;
     }

@@ -65,9 +65,9 @@ bool CompilerError::operator<(const CompilerError& other) const
         return m_level < other.m_level;
     }
 
-    if (m_location.GetFileName() != other.m_location.GetFileName())
+    if (m_filename != other.m_filename)
     {
-        return m_location.GetFileName() < other.m_location.GetFileName();
+        return m_filename < other.m_filename;
     }
 
     if (m_location.GetLine() != other.m_location.GetLine())

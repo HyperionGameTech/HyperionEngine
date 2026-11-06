@@ -2,6 +2,8 @@
 
 #include <Core/DataProcessing/Shared/Token.hpp>
 #include <Core/Containers/Array.hpp>
+#include <Core/Containers/List.hpp>
+#include <Core/Memory/ByteBuffer.hpp>
 
 namespace Hyperion::DataProcessing {
 
@@ -25,8 +27,22 @@ class CORE_API TokenStream
 public:
     TokenStream(const TokenStreamInfo& info);
     TokenStream(const TokenStream& other) = delete;
+    TokenStream& operator=(const TokenStream& other) = delete;
 
-    Token Peek(int n = 0) const
+    void SetSource(ByteBuffer&& source);
+
+    const char* GetSourceData() const { return reinterpret_cast<const char*>(m_source.Data()); }
+    size_t GetSourceSize() const { return m_source.Size(); }
+
+    // for token values that differ from the source text, like strings with escapes
+    UTF8StringView Store(String&& value)
+    {
+        const String& stored = m_storedValues.EmplaceBack(std::move(value));
+
+        return stored;
+    }
+
+    const Token& Peek(int n = 0) const
     {
         size_t pos = m_position + n;
 
@@ -42,7 +58,7 @@ public:
 
     bool HasNext() const { return m_position < m_tokens.Size(); }
 
-    Token Next()
+    const Token& Next()
     {
         if (m_position < m_tokens.Size())
         {
@@ -52,7 +68,7 @@ public:
         return Token::empty;
     }
 
-    Token Last() const
+    const Token& Last() const
     {
         if (m_tokens.Any())
         {
@@ -73,6 +89,8 @@ public:
 
 private:
     TokenStreamInfo m_info;
+    ByteBuffer m_source;
+    List<String> m_storedValues;
 };
 
 } // namespace Hyperion::DataProcessing

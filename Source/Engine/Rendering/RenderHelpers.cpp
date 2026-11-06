@@ -28,6 +28,25 @@ Vec3u WrapComputeGroupCount(uint32 numGroups)
     return Vec3u { groupsX, (numGroups + groupsX - 1) / groupsX, 1 };
 }
 
+EnumFlags<ShaderTraits> GetShaderTraits(StringHash shaderNameHash)
+{
+    const ShaderDefinitions* definitions = GetShaderDefinitions();
+
+    if (!definitions)
+    {
+        return ShaderTraits::None;
+    }
+
+    const ShaderDefinition* definition = definitions->FindEntry(shaderNameHash);
+
+    if (!definition)
+    {
+        return ShaderTraits::None;
+    }
+
+    return definition->traits;
+}
+
 bool IsEmissive(const MaterialParameters& materialParameters)
 {
     return materialParameters.emissiveIntensity > 0.0f

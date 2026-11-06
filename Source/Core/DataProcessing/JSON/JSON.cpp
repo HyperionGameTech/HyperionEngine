@@ -804,7 +804,7 @@ private:
     {
         if (Token token = Expect(TokenClass::TK_STRING, true))
         {
-            return token.GetValue();
+            return String(token.GetValue());
         }
 
         return "";
@@ -824,10 +824,8 @@ private:
             return Number(0);
         }
 
-        std::istringstream ss(token.GetValue().Data());
-
-        Number value;
-        ss >> value;
+        Number value = 0;
+        StringUtil::Parse(token.GetValue(), &value);
 
         return value;
     }
@@ -965,7 +963,7 @@ private:
             return Token::empty;
         }
 
-        if (token.GetValue() != value)
+        if (token.GetValue() != UTF8StringView(value))
         {
             return Token::empty;
         }
@@ -1348,7 +1346,9 @@ ParseResult Parse(ByteReader& reader)
         return { false, errorMessage, Value() };
     };
 
-    Lexer lexer(SourceStream(&reader, "<input>"), &tokenStream, &unit.GetErrorList());
+    tokenStream.SetSource(reader.Read());
+
+    Lexer lexer(&tokenStream, &unit.GetErrorList());
     lexer.Analyze();
 
     if (unit.GetErrorList().HasFatalErrors())

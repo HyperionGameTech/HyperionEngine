@@ -1,47 +1,22 @@
 #include <Core/DataProcessing/Shared/SourceStream.hpp>
-#include <Core/IO/ByteReader.hpp>
 #include <Core/Debug/Debug.hpp>
+
+#include <cstring>
 
 namespace Hyperion::DataProcessing {
 
-SourceStream::SourceStream(ByteReader* reader, const String& filepath)
-    : m_reader(reader),
-      m_filepath(filepath)
-{
-    HYP_CORE_ASSERT(m_reader != nullptr);
-}
-
-SourceStream::SourceStream(const SourceStream& other)
-    : m_reader(other.m_reader),
-      m_filepath(other.m_filepath)
+SourceStream::SourceStream(const char* data, size_t size)
+    : m_data(data),
+      m_size(size),
+      m_position(0)
 {
 }
 
-size_t SourceStream::GetPosition() const
+int SourceStream::DecodeAt(size_t position, utf::Char32& outChar) const
 {
-    return m_reader->Position();
-}
+    outChar = 0;
 
-bool SourceStream::HasNext() const
-{
-    return !m_reader->Eof();
-}
-
-utf::Char32 SourceStream::Peek() const
-{
-    const size_t startPos = m_reader->Position();
-
-    if (startPos >= m_reader->Max())
-    {
-        return utf::Char32('\0');
-    }
-
-    ubyte firstByte;
-    m_reader->Read(&firstByte, 1);
-
-    utf::Char32 u32Ch = 0;
-    char* bytes = utf::ToUtf8Chars(u32Ch);
-    bytes[0] = char(firstByte);
+    const ubyte firstByte = ubyte(m_data[position]);
 
     int numContinuationBytes;
 
@@ -63,19 +38,32 @@ utf::Char32 SourceStream::Peek() const
     }
     else
     {
-        m_reader->Seek(startPos);
+        return 1;
+    }
 
+    size_t numBytes = size_t(1 + numContinuationBytes);
+
+    if (numBytes > m_size - position)
+    {
+        numBytes = m_size - position;
+    }
+
+    std::memcpy(utf::ToUtf8Chars(outChar), m_data + position, numBytes);
+
+    return int(numBytes);
+}
+
+utf::Char32 SourceStream::Peek() const
+{
+    if (m_position >= m_size)
+    {
         return utf::Char32('\0');
     }
 
-    if (numContinuationBytes > 0)
-    {
-        m_reader->Read(bytes + 1, size_t(numContinuationBytes));
-    }
+    utf::Char32 ch;
+    DecodeAt(m_position, ch);
 
-    m_reader->Seek(startPos);
-
-    return u32Ch;
+    return ch;
 }
 
 utf::Char32 SourceStream::Next()
@@ -86,66 +74,25 @@ utf::Char32 SourceStream::Next()
 
 utf::Char32 SourceStream::Next(int& posChange)
 {
-    const size_t posBefore = m_reader->Position();
-
-    if (posBefore >= m_reader->Max())
+    if (m_position >= m_size)
     {
+        posChange = 0;
+
         return utf::Char32('\0');
     }
 
-    ubyte firstByte;
-    m_reader->Read(&firstByte, 1);
+    utf::Char32 ch;
+    posChange = DecodeAt(m_position, ch);
+    m_position += size_t(posChange);
 
-    utf::Char32 u32Ch = 0;
-    char* bytes = utf::ToUtf8Chars(u32Ch);
-    bytes[0] = char(firstByte);
-
-    int numContinuationBytes;
-
-    if (firstByte <= 127)
-    {
-        numContinuationBytes = 0;
-    }
-    else if ((firstByte & 0xE0) == 0xC0)
-    {
-        numContinuationBytes = 1;
-    }
-    else if ((firstByte & 0xF0) == 0xE0)
-    {
-        numContinuationBytes = 2;
-    }
-    else if ((firstByte & 0xF8) == 0xF0)
-    {
-        numContinuationBytes = 3;
-    }
-    else
-    {
-        numContinuationBytes = 0;
-        u32Ch = utf::Char32('\0');
-    }
-
-    if (numContinuationBytes > 0)
-    {
-        m_reader->Read(bytes + 1, size_t(numContinuationBytes));
-    }
-
-    posChange = int(m_reader->Position() - posBefore);
-
-    return u32Ch;
+    return ch;
 }
 
 void SourceStream::GoBack(int n)
 {
-    HYP_CORE_ASSERT((int(m_reader->Position()) - n) >= 0, "not large enough to go back");
+    HYP_CORE_ASSERT(int(m_position) - n >= 0, "not large enough to go back");
 
-    m_reader->Rewind(size_t(n));
-}
-
-void SourceStream::Read(char* ptr, size_t numBytes)
-{
-    HYP_CORE_ASSERT(m_reader->Position() + numBytes < m_reader->Max(), "attempted to read past the limit");
-
-    m_reader->Read(static_cast<void*>(ptr), numBytes);
+    m_position -= size_t(n);
 }
 
 } // namespace Hyperion::DataProcessing

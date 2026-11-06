@@ -226,7 +226,7 @@ void BuildMaterialAttributes(const DrawMaterialInputs& inputs, const MaterialAtt
     const MaterialAttributes& sourceMaterialAttributes = inputs.materialAttributes;
 
     // checked before the override is applied so passes like shadow maps still know they're drawing terrain
-    const bool isTerrainMesh = RenderHelpers::IsTerrainShader(sourceMaterialAttributes.shaderName);
+    const bool isTerrainMesh = bool(RenderHelpers::GetShaderTraits(sourceMaterialAttributes.shaderName) & ShaderTraits::Terrain);
 
     outMaterialAttributes = sourceMaterialAttributes;
 
@@ -248,7 +248,7 @@ void BuildMaterialAttributes(const DrawMaterialInputs& inputs, const MaterialAtt
 
     MaterialAttributes& mas = outMaterialAttributes;
 
-    const StringHash shaderNameHash = mas.shaderName;
+    const EnumFlags<ShaderTraits> shaderTraits = RenderHelpers::GetShaderTraits(mas.shaderName);
 
     const RenderBucket bucket = mas.bucket;
 
@@ -264,10 +264,6 @@ void BuildMaterialAttributes(const DrawMaterialInputs& inputs, const MaterialAtt
     const bool hasSkinning = inputs.hasSkinning;
 
     const bool isPathTracer = inputs.pathTracing;
-
-    const bool isCubemap = RenderHelpers::IsCubemapShader(shaderNameHash);
-    const bool isGeometryPassOrSimilar = RenderHelpers::IsGeometryPassFamily(shaderNameHash);
-    const bool shaderSupportsMorph = RenderHelpers::ShaderSupportsMorph(shaderNameHash);
 
     uint8 stencilReferenceValue = 0;
 
@@ -302,9 +298,9 @@ void BuildMaterialAttributes(const DrawMaterialInputs& inputs, const MaterialAtt
     shaderProperties.Set(Props::s_propInstancing, hasInstancing);
     shaderProperties.Set(Props::s_propAlphaDiscard, hasAlphaDiscard);
     shaderProperties.Set(Props::s_propSkinning, hasSkinning);
-    shaderProperties.Set(Props::s_propTerrainMorph, isTerrainMesh && shaderSupportsMorph);
+    shaderProperties.Set(Props::s_propTerrainMorph, isTerrainMesh && (shaderTraits & ShaderTraits::Morph));
 
-    if (isGeometryPassOrSimilar)
+    if (shaderTraits & ShaderTraits::GeometryPass)
     {
         shaderProperties.Set(Props::s_propShadingTypeDeferred, hasDeferredLighting);
         shaderProperties.Set(Props::s_propShadingTypeForward, hasForwardLighting);
@@ -319,7 +315,7 @@ void BuildMaterialAttributes(const DrawMaterialInputs& inputs, const MaterialAtt
 ShaderPropertySet GetDrawShaderProperties(const MaterialAttributes& materialAttributes, bool clusteredForwardLighting, bool forwardDDGI)
 {
     if (!clusteredForwardLighting
-        || materialAttributes.shaderName != "GeometryPass"_sh
+        || !(RenderHelpers::GetShaderTraits(materialAttributes.shaderName) & ShaderTraits::ForwardClustered)
         || !materialAttributes.shaderProperties.Test(s_propShadingTypeForward))
     {
         return materialAttributes.shaderProperties;

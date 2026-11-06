@@ -2,31 +2,11 @@
 
 namespace Hyperion::DataProcessing {
 
-const SourceLocation SourceLocation::eof(-1, -1, "<eof>");
-
-SourceLocation::SourceLocation()
-    : SourceLocation(SourceLocation::eof)
-{
-}
-
-SourceLocation::SourceLocation(int line, int column,
-    const String& filename)
-    : m_line(line),
-      m_column(column),
-      m_filename(filename)
-{
-}
-
-SourceLocation::SourceLocation(const SourceLocation& other)
-    : m_line(other.m_line),
-      m_column(other.m_column),
-      m_filename(other.m_filename)
-{
-}
+const SourceLocation SourceLocation::eof(-1, -1);
 
 bool SourceLocation::operator<(const SourceLocation& other) const
 {
-    if (m_filename == other.m_filename)
+    if (GetFileName() == other.GetFileName())
     {
         if (m_line == other.m_line)
         {
@@ -36,14 +16,14 @@ bool SourceLocation::operator<(const SourceLocation& other) const
         return m_line < other.m_line;
     }
 
-    return m_filename < other.m_filename;
+    return GetFileName() < other.GetFileName();
 }
 
 bool SourceLocation::operator==(const SourceLocation& other) const
 {
     return m_line == other.m_line
         && m_column == other.m_column
-        && m_filename == other.m_filename;
+        && GetFileName() == other.GetFileName();
 }
 
 } // namespace Hyperion::DataProcessing

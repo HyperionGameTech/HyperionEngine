@@ -289,7 +289,7 @@ void CollectGlimmerTerrainPatches(
             continue;
         }
 
-        if (!RenderHelpers::IsTerrainShader(proxy->attributes.GetMaterialAttributes().shaderName))
+        if (!(RenderHelpers::GetShaderTraits(proxy->attributes.GetMaterialAttributes().shaderName) & ShaderTraits::Terrain))
         {
             continue;
         }
