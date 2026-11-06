@@ -2244,6 +2244,14 @@
                                                                         Opacity="0.85"
                                                                         Text="{Binding DisplayName}" />
                                                                 </StackPanel>
+                                                                <controls:Codicon
+                                                                    Margin="0,0,6,0"
+                                                                    HorizontalAlignment="Right"
+                                                                    VerticalAlignment="Center"
+                                                                    Kind="AssetInstancedMesh"
+                                                                    Opacity="0.6"
+                                                                    Size="12"
+                                                                    ToolTip.Tip="{Binding InstanceTooltip}" />
                                                                 <Grid.ContextMenu>
                                                                     <ContextMenu>
                                                                         <MenuItem
@@ -2265,7 +2273,7 @@
                                                         </TreeDataTemplate>
                                                         <TreeDataTemplate x:DataType="vm:NodeViewModel" ItemsSource="{Binding Children}">
                                                             <Grid HorizontalAlignment="Stretch" Background="Transparent">
-                                                                <!--  Drop-target highlight: sits behind the label, shown during drag-over  -->
+                                                                <!--  Drop target highlight  -->
                                                                 <Border
                                                                     Background="{DynamicResource Brush.Accent}"
                                                                     CornerRadius="3"
@@ -2292,11 +2300,6 @@
                                                                         FontStyle="{Binding NameFontStyle}"
                                                                         IsVisible="{Binding !IsEditingName}"
                                                                         Text="{Binding DisplayName}" />
-                                                                    <TextBlock
-                                                                        VerticalAlignment="Center"
-                                                                        IsVisible="{Binding IsInstanceGroup}"
-                                                                        Opacity="0.5"
-                                                                        Text="{Binding InstanceCountText}" />
                                                                     <TextBox
                                                                         Name="NodeRenameTextBox"
                                                                         MinWidth="80"
@@ -2305,19 +2308,31 @@
                                                                         IsVisible="{Binding IsEditingName}"
                                                                         Text="{Binding EditingName, Mode=TwoWay}" />
                                                                 </StackPanel>
-                                                                <!--  Right-hand indicator: this node was spawned from a Prefab  -->
-                                                                <controls:Codicon
+                                                                <!--  this node was spawned from a Prefab  -->
+                                                                <StackPanel
                                                                     Margin="0,0,6,0"
                                                                     HorizontalAlignment="Right"
                                                                     VerticalAlignment="Center"
-                                                                    Kind="AssetPrefab"
-                                                                    Opacity="0.6"
-                                                                    IsVisible="{Binding IsPrefabInstance}"
-                                                                    Size="12"
-                                                                    ToolTip.Tip="{Binding PrefabInstanceTooltip}" />
+                                                                    Orientation="Horizontal"
+                                                                    Spacing="4">
+                                                                    <controls:Codicon
+                                                                        VerticalAlignment="Center"
+                                                                        Kind="AssetInstancedMesh"
+                                                                        Opacity="0.6"
+                                                                        IsVisible="{Binding IsInstanceGroup}"
+                                                                        Size="12"
+                                                                        ToolTip.Tip="Instance group" />
+                                                                    <controls:Codicon
+                                                                        VerticalAlignment="Center"
+                                                                        Kind="AssetPrefab"
+                                                                        Opacity="0.6"
+                                                                        IsVisible="{Binding IsPrefabInstance}"
+                                                                        Size="12"
+                                                                        ToolTip.Tip="{Binding PrefabInstanceTooltip}" />
+                                                                </StackPanel>
                                                                 <Grid.ContextMenu>
                                                                     <ContextMenu Opened="OnNodeContextMenuOpened">
-                                                                        <!--  Submenu populated from MainWindow.BuildAddSceneMenuEntries - the same list the toolbar's Add dropdown uses  -->
+                                                                        <!--  Submenu populated from MainWindow.BuildAddSceneMenuEntries -->
                                                                         <MenuItem
                                                                             Header="Add"
                                                                             IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}"
@@ -4031,13 +4046,14 @@
                             IsVisible="{Binding HasTasks}"
                             ToolTip.Tip="{Binding PrimaryTask.ToolTipText}">
                             <StackPanel Orientation="Horizontal" Spacing="7">
+                                <Path Classes="spinner" IsVisible="{Binding PrimaryTask.IsIndeterminate, FallbackValue=False}" />
                                 <ProgressBar
                                     Width="44"
                                     MinWidth="0"
                                     Height="3"
                                     MinHeight="0"
                                     VerticalAlignment="Center"
-                                    IsIndeterminate="{Binding PrimaryTask.IsIndeterminate}"
+                                    IsVisible="{Binding !PrimaryTask.IsIndeterminate, FallbackValue=False}"
                                     Maximum="1.0"
                                     Minimum="0"
                                     Value="{Binding PrimaryTask.Progress}" />
@@ -4090,12 +4106,16 @@
                                                         Grid.ColumnSpan="2"
                                                         Margin="0,6,0,0"
                                                         ColumnDefinitions="*,Auto">
+                                                        <Path
+                                                            HorizontalAlignment="Left"
+                                                            Classes="spinner"
+                                                            IsVisible="{Binding IsIndeterminate}" />
                                                         <ProgressBar
                                                             MinWidth="0"
                                                             Height="3"
                                                             MinHeight="0"
                                                             VerticalAlignment="Center"
-                                                            IsIndeterminate="{Binding IsIndeterminate}"
+                                                            IsVisible="{Binding !IsIndeterminate}"
                                                             Maximum="1.0"
                                                             Minimum="0"
                                                             Value="{Binding Progress}" />

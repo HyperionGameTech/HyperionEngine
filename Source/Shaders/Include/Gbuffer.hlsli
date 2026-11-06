@@ -29,11 +29,15 @@
 ///     0-3     = foliage transmission
 ///     4       = ground cover
 ///     5-7     = extended object mask
-///     8-27    = emissive
+///     8-27    = emissive. for foliage these bits are recycled: 8-15 = crown extinction, 16-23 = leaf thickness.
 ///     28-31   = object mask
 /////////////////////////////////////////////////////////////
 
 #define GBUFFER_TRANSMISSION_MAX 15u
+#define GBUFFER_EMISSIVE_MASK (0xFFFFFu << GBUFFER_EMISSIVE_SHIFT)
+#define GBUFFER_CROWN_EXTINCTION_MAX 4.0
+#define GBUFFER_LEAF_THICKNESS_SHIFT (GBUFFER_EMISSIVE_SHIFT + 8u)
+#define GBUFFER_LEAF_THICKNESS_MAX 4.0
 #define GBUFFER_GROUND_COVER_BIT (1u << 4u)
 #define GBUFFER_EXTENDED_MASK_SHIFT 5u
 
@@ -88,6 +92,26 @@ uint GBufferPackTransmission(float transmission)
 float GBufferUnpackTransmission(uint materialBits)
 {
     return float(materialBits & GBUFFER_TRANSMISSION_MAX) / float(GBUFFER_TRANSMISSION_MAX);
+}
+
+uint GBufferPackCrownExtinction(float extinction)
+{
+    return uint(round(saturate(extinction / GBUFFER_CROWN_EXTINCTION_MAX) * 255.0)) << GBUFFER_EMISSIVE_SHIFT;
+}
+
+float GBufferUnpackCrownExtinction(uint materialBits)
+{
+    return float((materialBits >> GBUFFER_EMISSIVE_SHIFT) & 0xFFu) / 255.0 * GBUFFER_CROWN_EXTINCTION_MAX;
+}
+
+uint GBufferPackLeafThickness(float leafThickness)
+{
+    return uint(round(saturate(leafThickness / GBUFFER_LEAF_THICKNESS_MAX) * 255.0)) << GBUFFER_LEAF_THICKNESS_SHIFT;
+}
+
+float GBufferUnpackLeafThickness(uint materialBits)
+{
+    return float((materialBits >> GBUFFER_LEAF_THICKNESS_SHIFT) & 0xFFu) / 255.0 * GBUFFER_LEAF_THICKNESS_MAX;
 }
 
 uint GBufferPackEmissive(float3 emissive)

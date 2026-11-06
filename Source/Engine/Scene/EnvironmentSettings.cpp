@@ -26,7 +26,6 @@ constexpr float AutoExposureAdaptation = 0.82f;
 constexpr float AutoExposureMin = 0.05f;
 constexpr float AutoExposureMax = 14.0f;
 
-constexpr float EyeAdaptationMaxStops = 2.5f;
 constexpr float EyeAdaptationLowTarget = 0.18f;
 constexpr float EyeAdaptationHighTarget = 0.37f;
 
@@ -105,7 +104,7 @@ void WriteEnvironmentShaderData(const EnvironmentSettings& settings, WorldShader
 
     outShaderData.eyeAdaptationParams = Vec4f(
         MathUtil::Clamp(exposure.eyeAdaptation, 0.0f, 1.0f),
-        EyeAdaptationMaxStops,
+        MathUtil::Clamp(exposure.maxEyeAdaptationStops, 0.0f, 8.0f),
         EyeAdaptationLowTarget,
         EyeAdaptationHighTarget);
 

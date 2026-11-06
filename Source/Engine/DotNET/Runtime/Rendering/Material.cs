@@ -12,7 +12,7 @@ namespace Hyperion
     }
 
     [ClassBinding(Name = "MaterialParameters")]
-    [StructLayout(LayoutKind.Explicit, Size = 128, Pack = 16)]
+    [StructLayout(LayoutKind.Explicit, Size = 144, Pack = 16)]
     public struct MaterialParameters
     {
         const byte FlagBit_NormalMapFlipY = 0x1;
@@ -74,16 +74,31 @@ namespace Hyperion
         bool foliage = false;
 
         [FieldOffset(98)]
+        [MarshalAs(UnmanagedType.I1)]
+        public bool terrainColorMatch = false;
+
+        [FieldOffset(99)]
         byte flags = 0;
 
         [FieldOffset(100)]
-        public float colorVariation = 0.0f;
+        public byte transmissionMask = 0;
+
         [FieldOffset(104)]
-        public float groundNormalBlend = 0.0f;
+        public float colorVariation = 0.0f;
         [FieldOffset(108)]
-        public float baseOcclusion = 0.0f;
+        public float groundNormalBlend = 0.0f;
         [FieldOffset(112)]
+        public float baseOcclusion = 0.0f;
+        [FieldOffset(116)]
         public float baseOcclusionHeight = 0.0f;
+        [FieldOffset(120)]
+        public float foliageCrownExtinction = 0.5f;
+        [FieldOffset(124)]
+        public float foliageLeafThickness = 1.0f;
+        [FieldOffset(128)]
+        public float foliageBackfaceRoughness = 0.0f;
+        [FieldOffset(132)]
+        public float foliageBackfacePaleness = 0.0f;
 
         public MaterialParameters()
         {

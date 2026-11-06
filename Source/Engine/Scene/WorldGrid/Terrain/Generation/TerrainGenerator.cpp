@@ -23,6 +23,8 @@ namespace /* Helpers */ {
 // ~3 MB per region (heights + erosion masks) - generous budget keeps revisited areas from paying a rebuild
 static constexpr uint32 MaxCachedErosionRegions = 64;
 
+static constexpr uint32 HeightmapSamplingVersion = 2;
+
 struct ErosionLayout
 {
     float spacing = 1.0f;
@@ -321,6 +323,7 @@ uint64 TerrainGenerator::ComputeFingerprint(uint32 cellSize, const Vec2f& scaleX
 
         if (heightSourceDesc.heightmap)
         {
+            hashCode.Add(HeightmapSamplingVersion);
             hashCode.Add(heightSourceDesc.heightmap->contentHash);
             hashCode.Add(heightSourceDesc.heightmap->GetWidth());
             hashCode.Add(heightSourceDesc.heightmap->GetDepth());
@@ -418,18 +421,55 @@ float TerrainGenerator::SampleHeightmap(const Vec2f& worldXZ) const
     const float sampleX = MathUtil::Clamp((worldXZ.x - heightSourceDesc.heightmapMinXZ.x) / MathUtil::Max(extent.x, 1e-3f), 0.0f, 1.0f) * float(width - 1);
     const float sampleZ = MathUtil::Clamp((worldXZ.y - heightSourceDesc.heightmapMinXZ.y) / MathUtil::Max(extent.y, 1e-3f), 0.0f, 1.0f) * float(depth - 1);
 
-    const uint32 x0 = MathUtil::Min(uint32(sampleX), width - 1);
-    const uint32 z0 = MathUtil::Min(uint32(sampleZ), depth - 1);
-    const uint32 x1 = MathUtil::Min(x0 + 1, width - 1);
-    const uint32 z1 = MathUtil::Min(z0 + 1, depth - 1);
+    const uint32 baseX = MathUtil::Min(uint32(sampleX), width - 1);
+    const uint32 baseZ = MathUtil::Min(uint32(sampleZ), depth - 1);
 
-    const float fractionX = sampleX - float(x0);
-    const float fractionZ = sampleZ - float(z0);
+    // cubic B-spline: continuous slope across sample boundaries, and smooths 8-bit steps
+    const auto bSplineWeights = [](float t, float (&outWeights)[4])
+    {
+        const float t2 = t * t;
+        const float t3 = t2 * t;
+        const float oneMinusT = 1.0f - t;
 
-    const float top = MathUtil::Lerp(heightmap.Fetch(x0, z0), heightmap.Fetch(x1, z0), fractionX);
-    const float bottom = MathUtil::Lerp(heightmap.Fetch(x0, z1), heightmap.Fetch(x1, z1), fractionX);
+        outWeights[0] = oneMinusT * oneMinusT * oneMinusT / 6.0f;
+        outWeights[1] = (3.0f * t3 - 6.0f * t2 + 4.0f) / 6.0f;
+        outWeights[2] = (-3.0f * t3 + 3.0f * t2 + 3.0f * t + 1.0f) / 6.0f;
+        outWeights[3] = t3 / 6.0f;
+    };
 
-    float normalized = MathUtil::Lerp(top, bottom, fractionZ) / 65535.0f;
+    const auto tapIndices = [](uint32 base, uint32 count, uint32 (&outIndices)[4])
+    {
+        for (uint32 tap = 0; tap < 4; tap++)
+        {
+            outIndices[tap] = uint32(MathUtil::Clamp(int64(base) + int64(tap) - 1, int64(0), int64(count) - 1));
+        }
+    };
+
+    float weightsX[4];
+    float weightsZ[4];
+    bSplineWeights(sampleX - float(baseX), weightsX);
+    bSplineWeights(sampleZ - float(baseZ), weightsZ);
+
+    uint32 indicesX[4];
+    uint32 indicesZ[4];
+    tapIndices(baseX, width, indicesX);
+    tapIndices(baseZ, depth, indicesZ);
+
+    float filtered = 0.0f;
+
+    for (uint32 tapZ = 0; tapZ < 4; tapZ++)
+    {
+        float row = 0.0f;
+
+        for (uint32 tapX = 0; tapX < 4; tapX++)
+        {
+            row += weightsX[tapX] * heightmap.Fetch(indicesX[tapX], indicesZ[tapZ]);
+        }
+
+        filtered += weightsZ[tapZ] * row;
+    }
+
+    float normalized = filtered / 65535.0f;
 
     // past the border the edge heights are stretched outward, settling to the border's mean height
     const float outsideX = MathUtil::Max(MathUtil::Max(heightSourceDesc.heightmapMinXZ.x - worldXZ.x, worldXZ.x - heightSourceDesc.heightmapMaxXZ.x), 0.0f);

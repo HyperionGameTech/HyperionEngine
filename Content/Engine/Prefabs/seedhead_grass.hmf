@@ -1,6 +1,6 @@
 Prefab seedhead_grass {
     Root = Entity seedhead_grass {
-        UUID = "b92e231f-5493-46b8-87b8-309295fa870e"
+        UUID = "f4609978-7f36-4b45-9ee3-7fbe7fa455cc"
         NodeFlags = MobilityStatic
         LocalBounds = {
             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -18,7 +18,7 @@ Prefab seedhead_grass {
         }
         Children = [
             Entity seedhead_grass {
-                UUID = "810ff05f-5bab-4960-a958-c322bd9ceaaf"
+                UUID = "bc0608f7-0cda-4a40-8eaf-58cfa2b373e5"
                 NodeFlags = MobilityStatic
                 LocalBounds = {
                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -47,7 +47,7 @@ Prefab seedhead_grass {
                                 LodBias = 0
                             }
                         ]
-                        UUID = "431875af-8804-4af3-8c3e-6b95cf1daed3"
+                        UUID = "98b7e4d9-fe4c-4858-a16e-c3006afa4365"
                         NodeFlags = MobilityStatic
                         LocalBounds = {
                             Min = (-1.2015638, 0, -1.2547911)
@@ -90,5 +90,5 @@ Prefab seedhead_grass {
         }
         SourceClip = ""
     }
-    UUID = "48e57e76-0b72-4c3c-a312-37e0b2b3479e"
+    UUID = "bf29b053-ab21-4358-8778-6891cc386b49"
 }

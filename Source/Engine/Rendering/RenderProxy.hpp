@@ -530,10 +530,11 @@ struct MaterialShaderData
     Vec4f averageAlbedo;
 
     // =====
-    // ior, unused, unused, unused
+    // ior, foliage crown extinction, foliage leaf thickness, unused
     Vec4f refraction;
 
-    Vec4f _pad;
+    // foliage back faces: roughness offset, paleness, unused, unused
+    Vec4f foliageBackface;
 };
 
 static_assert(sizeof(MaterialShaderData) % 64 == 0);

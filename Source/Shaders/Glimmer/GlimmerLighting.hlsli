@@ -127,9 +127,12 @@ bool GlimmerShadeRelitHit(float3 P, float3 albedo, float3 N, bool isGroundHit, u
 
 #endif
 
-GlimmerLight GlimmerCanopyRadiance(float3 P, float3 weightedAlbedo)
+GlimmerLight GlimmerCanopyRadiance(float3 P, float3 weightedAlbedo, GlimmerLight skyTransfer)
 {
-    return GlimmerScaleLight(GlimmerIndirectNearest(P, float3(0.0, 1.0, 0.0)), weightedAlbedo);
+    GlimmerLight received = skyTransfer;
+    GlimmerAddLight(received, GlimmerIndirectNearest(P, float3(0.0, -1.0, 0.0)), (float3)1.0);
+
+    return GlimmerScaleLight(received, weightedAlbedo);
 }
 
 #endif

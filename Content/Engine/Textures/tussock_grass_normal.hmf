@@ -32,5 +32,5 @@ Texture tussock_grass_normal {
         Size = 2097148
     }
     Compression = Auto
-    UUID = "36b15419-da5c-4031-b51e-dfda9a7064ae"
+    UUID = "c80ad5be-c939-4843-b08d-c399876c8af2"
 }

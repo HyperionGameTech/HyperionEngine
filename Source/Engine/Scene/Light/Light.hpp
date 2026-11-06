@@ -197,6 +197,21 @@ public:
     HYP_METHOD(Property = "SpotAngles", Serialize, Editor)
     void SetSpotAngles(const Vec2f& spotAngles);
 
+    HYP_METHOD(Property = "SourceAngle", Serialize, Editor, EditCondition = "IsDirectional")
+    float GetSourceAngle() const
+    {
+        return m_sourceAngle;
+    }
+
+    HYP_METHOD(Property = "SourceAngle", Serialize, Editor, EditCondition = "IsDirectional")
+    void SetSourceAngle(float sourceAngle);
+
+    HYP_METHOD()
+    bool IsDirectional() const
+    {
+        return m_type == LightType::Directional;
+    }
+
     /*! \brief Get the material  for the light. Used for area lights.
      *
      *  \return The material handle associated with the Light. */
@@ -292,6 +307,7 @@ protected:
     float m_radius;
     float m_falloff;
     float m_volumetricIntensity = 1.0f;
+    float m_sourceAngle = 0.5357f;
     Vec2f m_spotAngles;
     Handle<Material> m_material;
 

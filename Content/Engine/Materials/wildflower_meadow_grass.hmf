@@ -1,7 +1,7 @@
 Material wildflower_meadow_grass {
     BaseMaterial = null
     Attributes = {
-        ShaderName = GeometryPass
+        ShaderName = FoliageGrass
         ShaderProperties = {
             Chunks = [
                 0
@@ -59,7 +59,7 @@ Material wildflower_meadow_grass {
         FoliageBackfaceVolume = 1
         UVScale = (1, 1)
         Unlit = false
-        Foliage = true
+        Foliage = false
         TerrainColorMatch = true
         Flags = 0
         TransmissionMask = RoughnessMapG
@@ -67,6 +67,7 @@ Material wildflower_meadow_grass {
         GroundNormalBlend = 0
         BaseOcclusion = 0
         BaseOcclusionHeight = 0
+        FoliageCrownExtinction = 0.5
     }
     Textures = {
         Values = [
@@ -89,5 +90,5 @@ Material wildflower_meadow_grass {
         ]
     }
     IsDynamic = false
-    UUID = "fab239d6-598b-4b56-bbbd-b4ce4a8964b8"
+    UUID = "a7e6da42-d51f-4f47-be26-17d3c765f487"
 }

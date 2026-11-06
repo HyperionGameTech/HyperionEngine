@@ -40,10 +40,11 @@ struct Material
     // albedo with the diffuse map's average folded in
     float4 average_albedo;
 
-    // ior, unused, unused, unused
+    // ior, foliage crown extinction, foliage leaf thickness, unused
     float4 refraction;
 
-    float4 _pad0;
+    // foliage back faces: roughness offset, paleness, unused, unused
+    float4 foliage_backface;
 };
 
 // enum for packed params

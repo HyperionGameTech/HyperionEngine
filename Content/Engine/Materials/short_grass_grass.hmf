@@ -1,7 +1,7 @@
 Material short_grass_grass {
     BaseMaterial = null
     Attributes = {
-        ShaderName = GeometryPass
+        ShaderName = FoliageGrass
         ShaderProperties = {
             Chunks = [
                 0
@@ -59,7 +59,7 @@ Material short_grass_grass {
         FoliageBackfaceVolume = 1
         UVScale = (1, 1)
         Unlit = false
-        Foliage = true
+        Foliage = false
         TerrainColorMatch = true
         Flags = 0
         TransmissionMask = RoughnessMapG
@@ -67,6 +67,7 @@ Material short_grass_grass {
         GroundNormalBlend = 0
         BaseOcclusion = 0
         BaseOcclusionHeight = 0
+        FoliageCrownExtinction = 0.5
     }
     Textures = {
         Values = [
@@ -89,5 +90,5 @@ Material short_grass_grass {
         ]
     }
     IsDynamic = false
-    UUID = "d7a00a85-aa96-4549-b11a-bccd6822f7c8"
+    UUID = "554f4a48-fedd-4a12-8a23-618ea2ce24fd"
 }

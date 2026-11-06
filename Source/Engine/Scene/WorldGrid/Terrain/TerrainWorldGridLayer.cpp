@@ -228,6 +228,11 @@ SharedPtr<const TerrainHeightmapTileSamples> MakeHeightmapTileSamples(const Text
     samples->contentHash = contentHash;
     samples->samples.Resize(size_t(width) * size_t(depth));
 
+    if (componentSize == 1)
+    {
+        HYP_LOG(WorldGrid, Warning, "Heightmap '{}' is 8-bit, recommend using a 16-bit greyscale PNG or .r16 to reduce slope stepping artifacts", texture.GetName());
+    }
+
     for (size_t index = 0; index < samples->samples.Size(); index++)
     {
         const ubyte* pixel = imageData.Data() + index * pixelSize;

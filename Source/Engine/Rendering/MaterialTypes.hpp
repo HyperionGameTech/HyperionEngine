@@ -165,6 +165,18 @@ public:
     HYP_FIELD(Property = "BaseOcclusionHeight", Editor, Serialize, EditorOrder = 11)
     float baseOcclusionHeight;
 
+    HYP_FIELD(Property = "FoliageCrownExtinction", Editor, Serialize, EditorOrder = 10)
+    float foliageCrownExtinction;
+
+    HYP_FIELD(Property = "FoliageLeafThickness", Editor, Serialize, EditorOrder = 10)
+    float foliageLeafThickness;
+
+    HYP_FIELD(Property = "FoliageBackfaceRoughness", Editor, Serialize, EditorOrder = 10)
+    float foliageBackfaceRoughness;
+
+    HYP_FIELD(Property = "FoliageBackfacePaleness", Editor, Serialize, EditorOrder = 10)
+    float foliageBackfacePaleness;
+
     enum NoInitTag { NoInit };
 
     MaterialParameters()

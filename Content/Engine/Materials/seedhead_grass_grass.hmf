@@ -1,7 +1,7 @@
 Material seedhead_grass_grass {
     BaseMaterial = null
     Attributes = {
-        ShaderName = GeometryPass
+        ShaderName = FoliageGrass
         ShaderProperties = {
             Chunks = [
                 0
@@ -59,7 +59,7 @@ Material seedhead_grass_grass {
         FoliageBackfaceVolume = 1
         UVScale = (1, 1)
         Unlit = false
-        Foliage = true
+        Foliage = false
         TerrainColorMatch = true
         Flags = 0
         TransmissionMask = RoughnessMapG
@@ -67,6 +67,7 @@ Material seedhead_grass_grass {
         GroundNormalBlend = 0
         BaseOcclusion = 0
         BaseOcclusionHeight = 0
+        FoliageCrownExtinction = 0.5
     }
     Textures = {
         Values = [
@@ -89,5 +90,5 @@ Material seedhead_grass_grass {
         ]
     }
     IsDynamic = false
-    UUID = "47b45c32-86af-4521-b91f-f28e22feedd3"
+    UUID = "7b6cc2c9-eaea-4076-9ae7-ca5c6c79a4b2"
 }

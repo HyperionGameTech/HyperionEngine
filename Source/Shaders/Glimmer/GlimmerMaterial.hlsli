@@ -30,6 +30,16 @@ float3 GlimmerGetMaterialAverageAlbedo(uint materialIndex)
     return GlimmerGetMaterialAverageAlbedoAlpha(materialIndex).rgb;
 }
 
+float GlimmerGetMaterialTransmission(uint materialIndex)
+{
+    if (materialIndex == 0xFFFFFFFFu)
+    {
+        return 0.0;
+    }
+
+    return saturate(GET_MATERIAL_PARAM(materials[materialIndex], MATERIAL_PARAM_TRANSMISSION));
+}
+
 float3 GlimmerGetMaterialEmissive(uint materialIndex)
 {
     if (materialIndex == 0xFFFFFFFFu)

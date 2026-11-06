@@ -171,6 +171,40 @@ struct GlimmerHeightfieldHit
 
 #define GLIMMER_HEIGHTFIELD_LEVEL_TEXELS 24.0
 
+#define GLIMMER_CANOPY_SKY_SAMPLES 8
+
+float3 GlimmerCanopySkyZonal(float opticalDepthAbove, float opticalDepthColumn)
+{
+    const float pathCap = max(opticalDepthColumn, opticalDepthAbove);
+
+    float3 zonal = (float3)0.0;
+
+    [unroll]
+    for (uint sampleIndex = 0; sampleIndex < GLIMMER_CANOPY_SKY_SAMPLES; sampleIndex++)
+    {
+        const float mu = (float(sampleIndex) + 0.5) / float(GLIMMER_CANOPY_SKY_SAMPLES);
+        const float transmittance = exp(-min(opticalDepthAbove / mu, pathCap)) / float(GLIMMER_CANOPY_SKY_SAMPLES);
+
+        zonal += transmittance * float3(0.282095, 0.488603 * mu, 0.315392 * (3.0 * mu * mu - 1.0));
+    }
+
+    return zonal;
+}
+
+GlimmerLight GlimmerCanopySkyTransfer(float3 zonal)
+{
+    GlimmerLight light = GlimmerNoLight();
+    light.parts[0] = (float3)zonal.x;
+    light.parts[1] = (float3)zonal.y;
+
+#if GLIMMER_LIGHT_TERMS > 4
+    light.parts[6] = (float3)(-0.5 * zonal.z);
+    light.parts[8] = (float3)(-0.866025 * zonal.z);
+#endif
+
+    return light;
+}
+
 float GlimmerHeightfieldEscapeHeight(uint level)
 {
     float height = -GLIMMER_HEIGHT_UNBOUNDED;
@@ -239,6 +273,8 @@ bool GlimmerTraceHeightfield(
 
     float3 canopyPoint = (float3)0.0;
     float3 canopyAlbedo = (float3)0.0;
+    float3 canopyZonal = (float3)0.0;
+    float canopyWeight = 0.0;
     bool hasCanopy = false;
 
     [loop]
@@ -326,7 +362,34 @@ bool GlimmerTraceHeightfield(
                         hasCanopy = true;
                     }
 
-                    canopyAlbedo += min(spanSample.canopyAlbedo, (float3) GLIMMER_CANOPY_MAX_ALBEDO) * (hit.transmittance * (1.0 - segmentTransmittance));
+                    const float scattered = hit.transmittance * (1.0 - segmentTransmittance);
+
+                    canopyAlbedo += min(spanSample.canopyAlbedo, (float3) GLIMMER_CANOPY_MAX_ALBEDO) * scattered;
+
+                    const float y = 0.5 * (previousPosition.y + position.y);
+                    
+                    const float canopyTop = spanSample.canopyMin + GlimmerSpanHeight(spanSample.canopyMin, spanSample.canopyMax);
+                    const float solidTop = spanSample.solidMin + GlimmerSpanHeight(spanSample.solidMin, spanSample.solidMax);
+
+                    const float odA = GlimmerCrossSpan(
+                            y, canopyTop, max(canopyTop - y, 0.0),
+                            spanSample.canopyMin, spanSample.canopyMax, spanSample.canopyBins, spanSample.canopyBands,
+                            GLIMMER_LEAF_PROJECTION * foliageExtinction, 0.5, GLIMMER_HEIGHT_UNBOUNDED).opticalDepth;
+                    
+                    const float odB = GlimmerCrossSpan(
+                            y, solidTop, max(solidTop - y, 0.0),
+                            spanSample.solidMin, spanSample.solidMax, spanSample.solidBins, spanSample.solidBands,
+                            HYP_FMATH_ONE_OVER_PI, texelSize, GLIMMER_HEIGHT_UNBOUNDED).opticalDepth;
+                    
+                    const float depthAbove = odA + odB;
+
+                    const float depthColumn = GlimmerCrossSpan(
+                        spanSample.canopyMin, canopyTop, canopyTop - spanSample.canopyMin,
+                        spanSample.canopyMin, spanSample.canopyMax, spanSample.canopyBins, spanSample.canopyBands,
+                        GLIMMER_LEAF_PROJECTION * foliageExtinction, 0.5, GLIMMER_HEIGHT_UNBOUNDED).opticalDepth;
+
+                    canopyZonal += GlimmerCanopySkyZonal(depthAbove, depthColumn) * scattered;
+                    canopyWeight += scattered;
                 }
 
                 hit.transmittance *= segmentTransmittance;
@@ -422,7 +485,7 @@ bool GlimmerTraceHeightfield(
 
     if (hasCanopy)
     {
-        hit.inscatter = GlimmerCanopyRadiance(canopyPoint, canopyAlbedo);
+        hit.inscatter = GlimmerCanopyRadiance(canopyPoint, canopyAlbedo, GlimmerCanopySkyTransfer(canopyZonal / max(canopyWeight, 1e-6)));
     }
 
     return isHit;

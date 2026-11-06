@@ -13,7 +13,7 @@ namespace Hyperion {
 CVar<bool> g_cvGlimmerEnabled("Rendering.Glimmer.Enabled", true);
 
 CVar<float> g_cvGlimmerSpansRadius("Rendering.Glimmer.Spans.Radius", 384.0f);
-CVar<float> g_cvGlimmerFoliageExtinction("Rendering.Glimmer.Foliage.Extinction", 1.0f);
+CVar<float> g_cvGlimmerFoliageExtinction("Rendering.Glimmer.Foliage.Extinction", 0.3f);
 
 CVar<float> g_cvGlimmerIntensity("Rendering.Glimmer.Intensity", 1.0f);
 CVar<int> g_cvGlimmerDebugView("Rendering.Glimmer.DebugView", 0);

@@ -57,14 +57,17 @@ namespace Hyperion {
 EDITOR_API HYP_DECLARE_LOG_CHANNEL(Editor);
 #endif // HYP_EDITOR
 
-static constexpr Vec2u DefaultShadowMapDimensions[NumLightTypes] = {
+namespace {
+constexpr Vec2u DefaultShadowMapDimensions[NumLightTypes] = {
     Vec2u(1024, 1024), // LightType::Directional
     Vec2u(256, 256),   // LightType::Point
     Vec2u(256, 256),   // LightType::Spot
     Vec2u(256, 256)    // LightType::AreaRect
 };
 
-static Quat4f SpotRotationFromDirection(const Vec3f& direction)
+constexpr float SourceAngleMax = 20.0f;
+
+Quat4f SpotRotationFromDirection(const Vec3f& direction)
 {
     const Vec3f forward = direction.Normalized();
 
@@ -74,6 +77,7 @@ static Quat4f SpotRotationFromDirection(const Vec3f& direction)
 
     return Quat4f::LookAt(forward, up).Inverse();
 }
+} // namespace
 
 #pragma region Light
 
@@ -392,6 +396,21 @@ void Light::SetSpotAngles(const Vec2f& spotAngles)
     MarkDirty();
 }
 
+void Light::SetSourceAngle(float sourceAngle)
+{
+    sourceAngle = MathUtil::Clamp(sourceAngle, 0.0f, SourceAngleMax);
+
+    if (m_sourceAngle == sourceAngle)
+    {
+        return;
+    }
+
+    m_sourceAngle = sourceAngle;
+
+    SetNeedsRenderProxyUpdate();
+    MarkDirty();
+}
+
 void Light::SetMaterial(Handle<Material> material)
 {
     if (material == m_material)
@@ -588,6 +607,10 @@ void Light::UpdateRenderProxy(RenderProxyLight* proxy)
 
     switch (GetLightType())
     {
+    case LightType::Directional:
+        // penumbra width per metre between occluder and receiver
+        bufferData.areaSize = Vec2f(2.0f * MathUtil::Tan(MathUtil::DegToRad(m_sourceAngle) * 0.5f), 0.0f);
+        break;
     case LightType::AreaRect:
         bufferData.areaSize = m_areaSize;
         bufferData.areaNormal = GetWorldNormal();

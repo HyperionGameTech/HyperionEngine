@@ -1,7 +1,7 @@
 Material tussock_grass {
     BaseMaterial = null
     Attributes = {
-        ShaderName = GeometryPass
+        ShaderName = FoliageGrass
         ShaderProperties = {
             Chunks = [
                 0
@@ -59,7 +59,7 @@ Material tussock_grass {
         FoliageBackfaceVolume = 1
         UVScale = (1, 1)
         Unlit = false
-        Foliage = true
+        Foliage = false
         TerrainColorMatch = true
         Flags = 0
         TransmissionMask = RoughnessMapG
@@ -67,6 +67,7 @@ Material tussock_grass {
         GroundNormalBlend = 0
         BaseOcclusion = 0
         BaseOcclusionHeight = 0
+        FoliageCrownExtinction = 0.5
     }
     Textures = {
         Values = [
@@ -89,5 +90,5 @@ Material tussock_grass {
         ]
     }
     IsDynamic = false
-    UUID = "52b673b9-1eb6-4ce8-8700-bedb1deebcc1"
+    UUID = "f0b0b58a-0373-4038-9f31-04d5091cac79"
 }

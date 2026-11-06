@@ -157,7 +157,72 @@ DECLARE_SRV(DeferredPass, EnvProbesDepthTexture) TextureCubeArray<float2> envPro
 
 #ifdef LIGHT_TYPE_DIRECTIONAL
 
-float GetCascadeShadow(int cascadeIndex, float3 position, float3 N, float2 texcoord, float NdotL)
+float4 GatherCascadeDepths(float2 coord, float4 shadowMapCoord, float2 atlasUV, float2 atlasScale)
+{
+    const float2 sampleCoord = clamp(coord, HYP_SHADOW_ATLAS_EDGE_BIAS, 1.0 - HYP_SHADOW_ATLAS_EDGE_BIAS);
+    const float3 uv = float3(sampleCoord * atlasScale + atlasUV, shadowMapCoord.w);
+
+#if defined(BACKEND_WEBGPU) && defined(HYP_SAMPLER_NEAREST)
+    return shadow_maps.GatherRed(HYP_SAMPLER_NEAREST, uv);
+#else
+    return shadow_maps.GatherRed(HYP_SAMPLER_LINEAR, uv);
+#endif
+}
+
+float GetCascadeSoftFilterSize(int cascadeIndex, float4 shadowMapCoord, float2 atlasUV, float2 atlasScale, float noise, float penumbraSlope)
+{
+    const float uvPerMetre = abs(cascadeScaleX[cascadeIndex]);
+    const float depthPerMetre = max(abs(cascadeScaleZ[cascadeIndex]), 0.000001);
+    const float searchRadius = min(0.5 * penumbraSlope * HYP_SHADOW_SUN_SEARCH_DISTANCE * uvPerMetre, HYP_SHADOW_SUN_FILTER_SIZE_MAX);
+
+    [branch]
+    if (searchRadius <= HYP_SHADOW_FILTER_SIZE)
+    {
+        return HYP_SHADOW_FILTER_SIZE;
+    }
+
+    const float blockerDepth = shadowMapCoord.z - HYP_SHADOW_SUN_MIN_OCCLUDER_DISTANCE * depthPerMetre;
+
+    float blockerDepthSum = 0.0;
+    float blockerCount = 0.0;
+
+    [unroll]
+    for (int i = 0; i < 4; i++)
+    {
+        const float4 depths = GatherCascadeDepths(shadowMapCoord.xy + VogelDisk(i, 4, noise) * searchRadius, shadowMapCoord, atlasUV, atlasScale);
+        const float4 blocking = (float4)(depths < blockerDepth.xxxx);
+
+        blockerDepthSum += dot(depths, blocking);
+        blockerCount += dot(blocking, (float4)1.0);
+    }
+
+    if (blockerCount < 0.5)
+    {
+        return HYP_SHADOW_FILTER_SIZE;
+    }
+
+    const float occluderDistance = (shadowMapCoord.z - blockerDepthSum / blockerCount) / depthPerMetre;
+    const float penumbraRadius = 0.5 * penumbraSlope * occluderDistance * uvPerMetre;
+
+    return clamp(penumbraRadius, HYP_SHADOW_FILTER_SIZE, HYP_SHADOW_SUN_FILTER_SIZE_MAX);
+}
+
+float GetCascadeShadowWide(float4 shadowMapCoord, float2 atlasUV, float2 atlasScale, float noise, float filterSize)
+{
+    float lit = 0.0;
+
+    [unroll]
+    for (int i = 0; i < HYP_SHADOW_SUN_WIDE_TAPS; i++)
+    {
+        const float4 depths = GatherCascadeDepths(shadowMapCoord.xy + VogelDisk(i, HYP_SHADOW_SUN_WIDE_TAPS, noise) * filterSize, shadowMapCoord, atlasUV, atlasScale);
+
+        lit += dot(step(shadowMapCoord.zzzz, depths), (float4)0.25);
+    }
+
+    return lit / float(HYP_SHADOW_SUN_WIDE_TAPS);
+}
+
+float GetCascadeShadow(int cascadeIndex, float3 position, float3 N, float2 texcoord, float NdotL, float penumbraSlope)
 {
     // push the lookup out along the normal by the cascade's PCF footprint, so kernel taps on slopes don't
     // land on the receiver's own surface. The cascade is picked from the unmoved position so this can't cross a split
@@ -176,12 +241,29 @@ float GetCascadeShadow(int cascadeIndex, float3 position, float3 N, float2 texco
     const float2 atlasUV = float2(atlasU[cascadeIndex], atlasV[cascadeIndex]);
     const float2 atlasScale = float2(atlasScaleX[cascadeIndex], atlasScaleY[cascadeIndex]);
 
+    float filterSize = HYP_SHADOW_FILTER_SIZE;
+
+    [branch]
+    if (penumbraSlope > 0.0)
+    {
+        const float noise = InterleavedGradientNoise(texcoord * camera.dimensions.xy - 0.5) * HYP_FMATH_TWO_PI;
+
+        filterSize = GetCascadeSoftFilterSize(cascadeIndex, shadowMapCoord, atlasUV, atlasScale, noise, penumbraSlope);
+
+        [branch]
+        if (filterSize > 2.0 * HYP_SHADOW_FILTER_SIZE)
+        {
+            return GetCascadeShadowWide(shadowMapCoord, atlasUV, atlasScale, noise, filterSize);
+        }
+    }
+
     return GetShadowPCF(shadowMapCoord,
         atlasUV, atlasScale,
-        position, texcoord, camera.dimensions.xy);
+        position, texcoord, camera.dimensions.xy,
+        filterSize);
 }
 
-float GetCascadeCrownTransmittance(int cascadeIndex, float3 position)
+float GetCascadeCrownTransmittance(int cascadeIndex, float3 position, float extinction)
 {
     float4 positionLS = mul(shadowViewMat, float4(position, 1.0));
     positionLS /= positionLS.w;
@@ -203,7 +285,7 @@ float GetCascadeCrownTransmittance(int cascadeIndex, float3 position)
 
     const float4 thickness = max(depth - occluderDepths, 0.0) / max(abs(cascadeScaleZ[cascadeIndex]), 0.000001);
 
-    return dot(exp(-FOLIAGE_CROWN_EXTINCTION * thickness), (float4)0.25);
+    return dot(exp(-extinction * thickness), (float4)0.25);
 }
 
 #endif // LIGHT_TYPE_DIRECTIONAL
@@ -276,7 +358,8 @@ PSOutput PSMain(PSInput input)
 
     const bool isFoliage = (materialParams.mask & OBJECT_MASK_FOLIAGE) != 0;
     const float transmission = (float) isFoliage * GBufferUnpackTransmission(materialBits);
-    
+    const float3 transmissionTint = FoliageTransmissionTint(albedo.rgb, GBufferUnpackLeafThickness(materialBits));
+
     const bool isGroundCover = isFoliage
         && (materialParams.mask & OBJECT_MASK_LIGHTMAPPED) == 0
         && (materialBits & GBUFFER_GROUND_COVER_BIT) != 0;
@@ -410,7 +493,7 @@ PSOutput PSMain(PSInput input)
 
         if (isFoliage)
         {
-            direct_component += diffuse * FoliageTransmission(N, V, L, transmission);
+            direct_component.rgb += diffuse.rgb * transmissionTint * FoliageTransmission(N, V, L, transmission);
         }
 
         result += float4((direct_component * (light_color * shadow * currentLight.position_intensity.w * attenuation)).rgb, attenuation);
@@ -558,7 +641,7 @@ PSOutput PSMain(PSInput input)
 
             const float3 shadowPosition = select(isFoliage, position.xyz + L * 0.15, position.xyz);
 
-            shadow = GetCascadeShadow(cascadeIndex, shadowPosition, N, texcoord, NdotL);
+            shadow = GetCascadeShadow(cascadeIndex, shadowPosition, N, texcoord, NdotL, currentLight.area_size.x);
 
             // bias, normal offset and PCF footprint all scale with cascade width, so fade into the next cascade before the split
             // rather than stepping at it (most visible on large receivers like terrain)
@@ -568,13 +651,13 @@ PSOutput PSMain(PSInput input)
             [branch]
             if (nextCascadeIndex < 4 && nextCascadeWeight > 0.0)
             {
-                shadow = lerp(shadow, GetCascadeShadow(nextCascadeIndex, shadowPosition, N, texcoord, NdotL), nextCascadeWeight);
+                shadow = lerp(shadow, GetCascadeShadow(nextCascadeIndex, shadowPosition, N, texcoord, NdotL, currentLight.area_size.x), nextCascadeWeight);
             }
 
             [branch]
             if (transmission > 0.0)
             {
-                crownTransmittance = GetCascadeCrownTransmittance(cascadeIndex, shadowPosition);
+                crownTransmittance = GetCascadeCrownTransmittance(cascadeIndex, shadowPosition, GBufferUnpackCrownExtinction(materialBits));
             }
         }
     }
@@ -640,7 +723,7 @@ PSOutput PSMain(PSInput input)
 
     if (isFoliage)
     {
-        direct_component += diffuse * FoliageTransmission(N, V, L, transmission, shadow, crownTransmittance);
+        direct_component.rgb += diffuse.rgb * transmissionTint * FoliageTransmission(N, V, L, transmission, shadow, crownTransmittance);
     }
 
     result += direct_component * (light_color * currentLight.position_intensity.w * attenuation);
