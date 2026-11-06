@@ -429,7 +429,13 @@ namespace Hyperion.Editor.Services
                 // a C# game's executable is linked by NativeAOT, so it links the engine's archives too (a C++ launcher gets them from CMake)
                 // and the project's enabled built-in plugins, which Package Game listed beside the game module
                 string? pluginModulesFile = NativeGameBuild.GetPluginModulesFile(binariesDirectory);
-                string[] pluginModules = pluginModulesFile != null ? File.ReadAllLines(pluginModulesFile).Where(line => line.Trim().Length > 0).ToArray() : Array.Empty<string>();
+                
+                string[] pluginModules = pluginModulesFile != null
+                    ? File.ReadAllLines(pluginModulesFile)
+                        .Where(line => line.Trim().Length > 0)
+                        .ToArray()
+                    : Array.Empty<string>();
+
                 List<string> missingPluginModules = new List<string>();
 
                 arguments.AddRange(shippingSdk.GetStaticEnginePublishProperties(intermediateDirectory, linksExecutable: !isScriptsLibrary, pluginModules, missingPluginModules));

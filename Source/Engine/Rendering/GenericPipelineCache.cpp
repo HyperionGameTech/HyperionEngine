@@ -212,6 +212,8 @@ void GenericPipelineCache<PipelineType>::OnFrameEnd(uint32 prevFrameIndex)
 
         if (cached.pipeline->lastFrame == uint32(-1))
         {
+            ++m_cleanupIterator;
+
             continue;
         }
 
