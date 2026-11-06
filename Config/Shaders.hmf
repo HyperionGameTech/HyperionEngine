@@ -110,8 +110,21 @@ ShaderDefinitions "ShaderDefinitions" {
         }
         ShaderDefinition "GeometryPass" {
             Cook = Material
+            Traits = GeometryPass|ForwardClustered
             VS = "DefaultVertex.hlsl"
             PS = "GeometryPass.hlsl"
+        }
+        ShaderDefinition "Foliage" {
+            Cook = Material
+            Traits = GeometryPass|ForwardClustered|Foliage
+            VS = "DefaultVertex.hlsl"
+            PS = "Foliage.hlsl"
+        }
+        ShaderDefinition "FoliageGrass" {
+            Cook = Material
+            Traits = GeometryPass|ForwardClustered|Foliage
+            VS = "DefaultVertex.hlsl"
+            PS = "FoliageGrass.hlsl"
         }
         ShaderDefinition "Skybox" {
             VS = "Skybox.hlsl"
@@ -119,6 +132,7 @@ ShaderDefinitions "ShaderDefinitions" {
         }
         ShaderDefinition "Terrain" {
             Cook = Material
+            Traits = GeometryPass|Terrain|Morph
             VS = "DefaultVertex.hlsl"
             PS = "Terrain.hlsl"
         }
@@ -147,6 +161,7 @@ ShaderDefinitions "ShaderDefinitions" {
         }
         ShaderDefinition "DrawShadowMap" {
             Cook = Material
+            Traits = Morph
             VS = "DrawShadowMap.hlsl"
             PS = "DrawShadowMap.hlsl"
         }

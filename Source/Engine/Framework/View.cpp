@@ -123,7 +123,7 @@ bool IsMaterialExcludedFromView(EnumFlags<ViewFlags> viewFlags, const Material* 
         return false;
     }
 
-    return RenderHelpers::IsTerrainShader(material->GetAttributes().shaderName);
+    return bool(RenderHelpers::GetShaderTraits(material->GetAttributes().shaderName) & ShaderTraits::Terrain);
 }
 
 bool IsWindAnimatedMesh(const Mesh* mesh)

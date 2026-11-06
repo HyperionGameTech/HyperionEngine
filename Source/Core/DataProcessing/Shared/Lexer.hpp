@@ -13,8 +13,8 @@ namespace Hyperion::DataProcessing {
 class Lexer
 {
 public:
+    // lexes the source set on tokenStream (TokenStream::SetSource)
     Lexer(
-        const SourceStream& sourceStream,
         TokenStream* tokenStream,
         ErrorList<CompilerError>* errorList);
     Lexer(const Lexer& other);
@@ -39,6 +39,9 @@ private:
 
     bool HasNext();
     bool SkipWhitespace();
+
+    Token ReadPunctuation(TokenClass tokenClass);
+    UTF8StringView Slice(size_t start, size_t end) const;
 };
 
 } // namespace Hyperion::DataProcessing

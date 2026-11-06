@@ -77,18 +77,18 @@ private:
     void SkipBracketedBlock();
 
     /*! \brief Consumes the rest of an object value (after its class name) and renders it back to HMF source text. */
-    String CaptureObjectSource(const String& className);
+    String CaptureObjectSource(UTF8StringView className);
 
     /*! \brief Consumes the next value and renders it back to HMF source text. */
     String CaptureValueSource();
 
     bool IsClassNamedObject() const;
 
-    bool ResolveEnumName(const Class* enumClass, const String& name, BoxedValue& outValue);
+    bool ResolveEnumName(const Class* enumClass, UTF8StringView name, BoxedValue& outValue);
 
     bool Match(TokenClass tokenClass);
     bool Expect(TokenClass tokenClass, const char* what);
-    bool ExpectIdentifier(String& outName);
+    bool ExpectIdentifier(UTF8StringView& outName);
     bool IsIdentKeyword(const Token& token, const char* keyword) const;
 
     void Error(ErrorMessage msg, const SourceLocation& loc);
@@ -98,12 +98,12 @@ private:
     void Warning(ErrorMessage msg, const SourceLocation& loc, const String& arg1);
     void Warning(ErrorMessage msg, const SourceLocation& loc, const String& arg1, const String& arg2);
 
-    HYP_FORCE_INLINE Token Peek(int n = 0) const
+    HYP_FORCE_INLINE const Token& Peek(int n = 0) const
     {
         return m_tokenStream->Peek(n);
     }
 
-    HYP_FORCE_INLINE Token Next()
+    HYP_FORCE_INLINE const Token& Next()
     {
         return m_tokenStream->Next();
     }

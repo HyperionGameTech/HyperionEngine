@@ -36,7 +36,32 @@ namespace Hyperion::DataProcessing::HMF {
 
 namespace /* Helpers */ {
 
-bool TryResolveEnumMemberName(const Class* enumClass, const String& name, BoxedValue& outValue)
+Name MakeName(UTF8StringView text)
+{
+    if (utf::IsAscii(text.Data(), text.Size()))
+    {
+        return Name(ANSIStringView(text.Data(), text.Data() + text.Size()));
+    }
+
+    return Name(String(text).ToAnsi());
+}
+
+template <class T>
+bool ParseNumberInto(UTF8StringView text, BoxedValue& out)
+{
+    T value {};
+
+    if (!StringUtil::Parse(text, &value))
+    {
+        return false;
+    }
+
+    out = BoxedValue(value);
+
+    return true;
+}
+
+bool TryResolveEnumMemberName(const Class* enumClass, UTF8StringView name, BoxedValue& outValue)
 {
     if (StaticField* staticField = enumClass->GetStaticField(StringHash(name)))
     {
@@ -77,7 +102,7 @@ String LegacyEnumNameToTitleCase(const String& name, size_t start)
 }
 
 // Looks up a class by the name written in the file, following a redirect if the class has since been renamed
-const Class* FindClass(const String& className)
+const Class* FindClass(UTF8StringView className)
 {
     const StringHash classNameHash = StringHash(className);
 
@@ -96,7 +121,7 @@ const Class* FindClass(const String& className)
 
 // Looks up the field or property named in the file, following a redirect if the member has since been renamed.
 // A field declared with `Property = ...` resolves to the synthetic Property created for it.
-const IMember* FindMember(const Class* cls, const String& fieldName)
+const IMember* FindMember(const Class* cls, UTF8StringView fieldName)
 {
     StringHash memberName = StringHash(fieldName);
 
@@ -193,7 +218,7 @@ bool Parser::Parse(BoxedValue& out, bool moveResult)
 
 bool Parser::Parse()
 {
-    String className;
+    UTF8StringView className;
 
     if (!ExpectIdentifier(className))
     {
@@ -214,7 +239,7 @@ bool Parser::Parse()
         return false;
     }
 
-    String objectName;
+    UTF8StringView objectName;
 
     if (Peek().GetTokenClass() == TK_STRING || Peek().GetTokenClass() == TK_IDENT)
     {
@@ -317,7 +342,7 @@ bool Parser::ParseObjectBody(const Class* cls, BoxedValue& target, const UTF8Str
         }
 
         // Field name
-        String fieldName;
+        UTF8StringView fieldName;
         if (!ExpectIdentifier(fieldName))
         {
             return false;
@@ -352,9 +377,9 @@ bool Parser::ParseObjectBody(const Class* cls, BoxedValue& target, const UTF8Str
             }
         }
 
-        if (fieldName.Any() && fieldName[0] == '$')
+        if (fieldName.Size() != 0 && fieldName.Data()[0] == '$')
         {
-            if (!ParseSchemaSection(cls, target, fieldName.ToAnsi().Substr(1)))
+            if (!ParseSchemaSection(cls, target, String(fieldName).ToAnsi().Substr(1)))
             {
                 return false;
             }
@@ -450,7 +475,7 @@ bool Parser::ParseObjectBody(const Class* cls, BoxedValue& target, const UTF8Str
         switch (member->GetMemberType())
         {
         case MemberType::Field:
-            static_cast<const Field*>(member)->Set(target, BoxedValue(Name(ANSIString(objectName))));
+            static_cast<const Field*>(member)->Set(target, BoxedValue(MakeName(objectName)));
             break;
         case MemberType::Property:
             if (!static_cast<const Property*>(member)->CanSet())
@@ -459,7 +484,7 @@ bool Parser::ParseObjectBody(const Class* cls, BoxedValue& target, const UTF8Str
                 break;
             }
 
-            static_cast<const Property*>(member)->Set(target, BoxedValue(Name(ANSIString(objectName))));
+            static_cast<const Property*>(member)->Set(target, BoxedValue(MakeName(objectName)));
             break;
         default:
             break;
@@ -509,7 +534,7 @@ bool Parser::ParseSchemaSection(const Class* cls, BoxedValue& target, const ANSI
         }
 
         SchemaSectionEntry entry;
-        entry.key = Name(ANSIString(keyToken.GetValue().ToAnsi()));
+        entry.key = MakeName(keyToken.GetValue());
 
         // Parse the entry body against the owner class' schema, collecting typed values
         if (!Expect(TK_OPEN_BRACE, "{"))
@@ -530,13 +555,13 @@ bool Parser::ParseSchemaSection(const Class* cls, BoxedValue& target, const ANSI
                 }
             }
 
-            String fieldName;
+            UTF8StringView fieldName;
             if (!ExpectIdentifier(fieldName))
             {
                 return false;
             }
 
-            if (fieldName.Any() && fieldName[0] == '$')
+            if (fieldName.Size() != 0 && fieldName.Data()[0] == '$')
             {
                 Error(MSG_UNEXPECTED_TOKEN, Peek().GetLocation(), "$-sections cannot be nested");
                 return false;
@@ -588,7 +613,7 @@ bool Parser::ParseSchemaSection(const Class* cls, BoxedValue& target, const ANSI
                 continue;
             }
 
-            entry.values.PushBack({ Name(ANSIString(fieldName.ToAnsi())), std::move(fieldValue) });
+            entry.values.PushBack({ MakeName(fieldName), std::move(fieldValue) });
         }
 
         if (!Expect(TK_CLOSE_BRACE, "}"))
@@ -677,8 +702,8 @@ bool Parser::ParseValue(const TypeInfo& typeInfo, BoxedValue& out)
             // try reading IDENT first
             if (Peek().GetTokenClass() == TK_IDENT)
             {
-                Token ident = Next();
-                out = BoxedValue(Name(ident.GetValue().ToAnsi()));
+                const Token& ident = Next();
+                out = BoxedValue(MakeName(ident.GetValue()));
                 return true;
             }
 
@@ -795,50 +820,55 @@ bool Parser::ParseIntegralValue(const TypeInfo& typeInfo, BoxedValue& out)
 
     Next();
 
-    const String& text = token.GetValue();
-
-    const bool isHex = text.Size() >= 2 && text[0] == '0' && (text[1] == 'x' || text[1] == 'X');
-    const int base = isHex ? 16 : 10;
-
+    const UTF8StringView text = token.GetValue();
     const TypeId& id = typeInfo.id;
+
+    bool parsed = false;
 
     if (id == TypeId::ForType<int8>())
     {
-        out = BoxedValue(int8(std::strtoll(text.Data(), nullptr, base)));
+        parsed = ParseNumberInto<int8>(text, out);
     }
     else if (id == TypeId::ForType<int16>())
     {
-        out = BoxedValue(int16(std::strtoll(text.Data(), nullptr, base)));
+        parsed = ParseNumberInto<int16>(text, out);
     }
     else if (id == TypeId::ForType<int32>())
     {
-        out = BoxedValue(int32(std::strtoll(text.Data(), nullptr, base)));
+        parsed = ParseNumberInto<int32>(text, out);
     }
     else if (id == TypeId::ForType<int64>())
     {
-        out = BoxedValue(int64(std::strtoll(text.Data(), nullptr, base)));
+        parsed = ParseNumberInto<int64>(text, out);
     }
     else if (id == TypeId::ForType<uint8>())
     {
-        out = BoxedValue(uint8(std::strtoull(text.Data(), nullptr, base)));
+        parsed = ParseNumberInto<uint8>(text, out);
     }
     else if (id == TypeId::ForType<uint16>())
     {
-        out = BoxedValue(uint16(std::strtoull(text.Data(), nullptr, base)));
+        parsed = ParseNumberInto<uint16>(text, out);
     }
     else if (id == TypeId::ForType<uint32>())
     {
-        out = BoxedValue(uint32(std::strtoull(text.Data(), nullptr, base)));
+        parsed = ParseNumberInto<uint32>(text, out);
     }
     else if (id == TypeId::ForType<uint64>())
     {
-        out = BoxedValue(uint64(std::strtoull(text.Data(), nullptr, base)));
+        parsed = ParseNumberInto<uint64>(text, out);
     }
     else if (id == TypeId::ForType<char>())
     {
-        out = BoxedValue(static_cast<char>(std::strtoll(text.Data(), nullptr, base)));
+        int8 value = 0;
+        parsed = StringUtil::Parse(text, &value);
+
+        if (parsed)
+        {
+            out = BoxedValue(static_cast<char>(value));
+        }
     }
-    else
+
+    if (!parsed)
     {
         Error(MSG_INVALID_LITERAL_FOR_TYPE, token.GetLocation(), text, typeInfo.name.LookupString());
 
@@ -861,18 +891,20 @@ bool Parser::ParseFloatValue(const TypeInfo& typeInfo, BoxedValue& out)
 
     Next();
 
-    const String& text = token.GetValue();
-    const double parsed = std::strtod(text.Data(), nullptr);
+    const UTF8StringView text = token.GetValue();
+
+    bool parsed = false;
 
     if (typeInfo.id == TypeId::ForType<float>())
     {
-        out = BoxedValue(static_cast<float>(parsed));
+        parsed = ParseNumberInto<float>(text, out);
     }
     else if (typeInfo.id == TypeId::ForType<double>())
     {
-        out = BoxedValue(parsed);
+        parsed = ParseNumberInto<double>(text, out);
     }
-    else
+
+    if (!parsed)
     {
         Error(MSG_INVALID_LITERAL_FOR_TYPE, token.GetLocation(), text, typeInfo.name.LookupString());
 
@@ -895,7 +927,7 @@ bool Parser::ParseStringValue(const TypeInfo& typeInfo, BoxedValue& out)
 
     Next();
 
-    const String& text = token.GetValue();
+    const UTF8StringView text = token.GetValue();
 
     // Name / StringHash are stored as Name internally
     if (typeInfo.id == TypeId::ForType<Name>()
@@ -903,13 +935,13 @@ bool Parser::ParseStringValue(const TypeInfo& typeInfo, BoxedValue& out)
     {
         // an unset Name is written as an empty string, and has to read back as unset
 
-        if (text.Empty())
+        if (text.Size() == 0)
         {
             out = BoxedValue(Name());
         }
         else
         {
-            out = BoxedValue(Name(text.ToAnsi()));
+            out = BoxedValue(MakeName(text));
         }
     }
     else if (typeInfo.id == TypeId::ForType<UUID>())
@@ -921,27 +953,29 @@ bool Parser::ParseStringValue(const TypeInfo& typeInfo, BoxedValue& out)
             return false;
         }
 
-        out = BoxedValue(UUID(text.Data()));
+        out = BoxedValue(UUID(ANSIStringView(text.Data(), text.Data() + text.Size())));
     }
     else
     {
-        out = BoxedValue(text);
+        out = BoxedValue(String(text));
     }
 
     return true;
 }
 
-bool Parser::ResolveEnumName(const Class* enumClass, const String& name, BoxedValue& outValue)
+bool Parser::ResolveEnumName(const Class* enumClass, UTF8StringView nameView, BoxedValue& outValue)
 {
     if (!enumClass || !enumClass->IsEnumType())
     {
         return false;
     }
 
-    if (TryResolveEnumMemberName(enumClass, name, outValue))
+    if (TryResolveEnumMemberName(enumClass, nameView, outValue))
     {
         return true;
     }
+
+    const String name(nameView);
 
     // Backward compatibility:
     // HMF files written before enum members were renamed to TitleCase use SCREAMING_SNAKE_CASE names
@@ -983,8 +1017,14 @@ bool Parser::ParseEnumValue(const TypeInfo& typeInfo, BoxedValue& out)
 
         if (!ResolveEnumName(enumClass, token.GetValue(), out))
         {
-            Error(MSG_UNRESOLVED_ENUM_NAME, token.GetLocation(),
-                    enumClass ? enumClass->GetName().ToString() + "::" + token.GetValue() : token.GetValue());
+            String enumName(token.GetValue());
+
+            if (enumClass)
+            {
+                enumName = enumClass->GetName().ToString() + "::" + enumName;
+            }
+
+            Error(MSG_UNRESOLVED_ENUM_NAME, token.GetLocation(), enumName);
 
             return false;
         }
@@ -1053,9 +1093,9 @@ bool Parser::ParseEnumFlagsValue(const TypeInfo& typeInfo, BoxedValue& out)
         else
         {
             // Check for numeric
-            const String& s = nameToken.GetValue();
+            const UTF8StringView s = nameToken.GetValue();
 
-            if (!s.Empty() && std::isdigit(s.GetChar(0)))
+            if (s.Size() != 0 && std::isdigit((unsigned char)s.Data()[0]))
             {
                 uint64 uValue;
                 if (StringUtil::Parse(s, &uValue))
@@ -1070,8 +1110,14 @@ bool Parser::ParseEnumFlagsValue(const TypeInfo& typeInfo, BoxedValue& out)
             }
             else
             {
-                Warning(MSG_UNRESOLVED_ENUM_NAME, nameToken.GetLocation(),
-                        enumClass ? enumClass->GetName().ToString() + "::" + s : s);
+                String enumName(s);
+
+                if (enumClass)
+                {
+                    enumName = enumClass->GetName().ToString() + "::" + enumName;
+                }
+
+                Warning(MSG_UNRESOLVED_ENUM_NAME, nameToken.GetLocation(), enumName);
             }
         }
     };
@@ -1487,7 +1533,7 @@ bool Parser::ParseObjectValue(const TypeInfo& typeInfo, BoxedValue& out)
     if (IsClassNamedObject())
     {
         Token classToken = Next(); // consume IDENT
-        const String& runtimeClassName = classToken.GetValue();
+        const UTF8StringView runtimeClassName = classToken.GetValue();
 
         actualClass = FindClass(runtimeClassName);
 
@@ -1500,7 +1546,7 @@ bool Parser::ParseObjectValue(const TypeInfo& typeInfo, BoxedValue& out)
                 Warning(MSG_CLASS_NOT_FOUND, classToken.GetLocation(), runtimeClassName);
 
                 UnresolvedObject unresolvedObject;
-                unresolvedObject.className = Name(runtimeClassName.ToAnsi());
+                unresolvedObject.className = MakeName(runtimeClassName);
                 unresolvedObject.source = CaptureObjectSource(runtimeClassName);
 
                 out = BoxedValue(std::move(unresolvedObject));
@@ -1545,12 +1591,12 @@ bool Parser::ParseObjectValue(const TypeInfo& typeInfo, BoxedValue& out)
         return false;
     }
 
-    String objectName;
+    UTF8StringView objectName;
 
     if (Peek().GetTokenClass() == TK_STRING || Peek().GetTokenClass() == TK_IDENT)
     {
         // Read objects' name if there is a string/ident following after the class name.
-        objectName = Next().GetValue().ToAnsi();
+        objectName = Next().GetValue();
     }
 
     if (!Expect(TK_OPEN_BRACE, "{"))
@@ -1842,7 +1888,7 @@ bool Parser::ParseAssetPathLiteral(const TypeInfo& typeInfo, BoxedValue& out)
 
     // Fallback: store as String; the Engine-side Property::Set handles conversion to
     // AssetPath/AssetReference via their "Value"/"AssetPath" properties.
-    out = BoxedValue(strToken.GetValue());
+    out = BoxedValue(String(strToken.GetValue()));
 
     return true;
 }
@@ -1908,13 +1954,13 @@ void Parser::SkipValue()
     }
 }
 
-static void AppendQuotedString(String& outSource, const String& value)
+static void AppendQuotedString(String& outSource, UTF8StringView value)
 {
     outSource += "\"";
 
     for (size_t i = 0; i < value.Size(); i++)
     {
-        const char c = value[i];
+        const char c = value.Data()[i];
 
         switch (c)
         {
@@ -1978,9 +2024,9 @@ static void AppendTokenSource(String& outSource, const Token& token)
     }
 }
 
-String Parser::CaptureObjectSource(const String& className)
+String Parser::CaptureObjectSource(UTF8StringView className)
 {
-    String source = className;
+    String source(className);
 
     // optional object name before the body
     if (Peek().GetTokenClass() == TK_STRING || Peek().GetTokenClass() == TK_IDENT)
@@ -2122,7 +2168,7 @@ bool Parser::Expect(TokenClass tokenClass, const char* what)
     return false;
 }
 
-bool Parser::ExpectIdentifier(String& outName)
+bool Parser::ExpectIdentifier(UTF8StringView& outName)
 {
     Token token = Peek();
 

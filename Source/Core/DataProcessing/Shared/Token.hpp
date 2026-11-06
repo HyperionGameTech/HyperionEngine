@@ -2,6 +2,7 @@
 
 #include <Core/DataProcessing/Shared/SourceLocation.hpp>
 #include <Core/Containers/String.hpp>
+#include <Core/Utilities/StringView.hpp>
 
 namespace Hyperion::DataProcessing {
 
@@ -37,18 +38,18 @@ public:
     using Flags = char[4];
 
     Token();
-    Token(TokenClass tokenClass, const String& value, const SourceLocation& location);
-    Token(TokenClass tokenClass, const String& value, Flags flags, const SourceLocation& location);
-    Token(const Token& other);
+    Token(TokenClass tokenClass, UTF8StringView value, const SourceLocation& location);
+    Token(TokenClass tokenClass, UTF8StringView value, const Flags flags, const SourceLocation& location);
+
+    Token(const Token& other) = default;
+    Token& operator=(const Token& other) = default;
 
     TokenClass GetTokenClass() const { return m_tokenClass; }
-    const String& GetValue() const { return m_value; }
+    UTF8StringView GetValue() const { return m_value; }
     const Flags& GetFlags() const { return m_flags; }
     const SourceLocation& GetLocation() const { return m_location; }
 
     bool Empty() const { return m_tokenClass == TK_EMPTY; }
-
-    Token& operator=(const Token& other);
 
     explicit operator bool() const { return m_tokenClass != TK_EMPTY; }
 
@@ -56,7 +57,7 @@ public:
 
 private:
     TokenClass m_tokenClass;
-    String m_value;
+    UTF8StringView m_value;
     Flags m_flags;
     SourceLocation m_location;
 };

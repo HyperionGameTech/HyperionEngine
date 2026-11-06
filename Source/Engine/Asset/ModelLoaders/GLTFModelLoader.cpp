@@ -1697,7 +1697,17 @@ GltfMaterialEntry BuildMaterialEntry(LoaderState& state, GltfLoadContext& ctx, c
 
 void ApplyPrimitiveMaterialSettings(const PrimitiveBuildOutput& primitive, const GltfMaterialEntry& entry, MaterialAttributes& attributes, MaterialParameters& parameters)
 {
-    parameters.foliage = primitive.foliage;
+    if (primitive.foliage)
+    {
+        if (primitive.groundCover)
+        {
+            attributes.shaderName = NAME("FoliageGrass");
+        }
+        else
+        {
+            attributes.shaderName = NAME("Foliage");
+        }
+    }
 
     if (primitive.foliage && entry.diffuseTransmission > 0.0f)
     {

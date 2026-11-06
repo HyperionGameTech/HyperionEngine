@@ -42,8 +42,13 @@ UUID::UUID()
 }
 
 UUID::UUID(const char* str)
+    : UUID(ANSIStringView(str, str + Memory::StrLen(str)))
 {
-    size_t len = Memory::StrLen(str);
+}
+
+UUID::UUID(const ANSIStringView& str)
+{
+    size_t len = str.Size();
 
     if (!len) // null or zero length
     {
@@ -64,7 +69,7 @@ UUID::UUID(const char* str)
     };
 
     char buffer[37] {};
-    Memory::Copy(buffer, str, len < 36 ? len : 36);
+    Memory::Copy(buffer, str.Data(), len);
     buffer[36] = '\0';
 
     unsigned int uints[16];

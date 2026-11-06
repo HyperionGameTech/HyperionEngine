@@ -139,8 +139,8 @@ public:
     HYP_FIELD(Property = "Unlit", Editor, Serialize, EditorOrder = 11)
     bool unlit;
 
-    // two sided, wrapped lighting with light coming through from behind - leaves, grass, cloth
-    HYP_FIELD(Property = "Foliage", Editor, Serialize, EditorOrder = 10)
+    // legacy: foliage is the Foliage / FoliageGrass shader now. Material::Init moves old assets over
+    HYP_FIELD(Property = "Foliage", Serialize, Editor = false)
     bool foliage;
 
     HYP_FIELD(Property = "TerrainColorMatch", Editor, Serialize)

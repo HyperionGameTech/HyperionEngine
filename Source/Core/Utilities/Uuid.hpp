@@ -36,6 +36,7 @@ struct CORE_API UUID
 
     UUID();
     explicit UUID(const char* str);
+    explicit UUID(const ANSIStringView& str);
 
     static UUID FromName(const char* name);
 

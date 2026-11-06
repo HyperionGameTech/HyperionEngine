@@ -84,7 +84,8 @@ public:
     CompilerError(ErrorLevel level, ErrorMessage msg, const SourceLocation& location, const Args&... args)
         : m_level(level),
           m_msg(msg),
-          m_location(location)
+          m_location(location.GetLine(), location.GetColumn()),
+          m_filename(location.GetFileName())
     {
         const String& msgStr = s_errorMessageStrings.At(m_msg);
         MakeMessage(msgStr.Data(), args...);
@@ -98,6 +99,7 @@ public:
     HYP_NODISCARD HYP_FORCE_INLINE ErrorLevel GetLevel() const { return m_level; }
     HYP_NODISCARD HYP_FORCE_INLINE ErrorMessage GetMessage() const { return m_msg; }
     HYP_NODISCARD HYP_FORCE_INLINE const SourceLocation& GetLocation() const { return m_location; }
+    HYP_NODISCARD HYP_FORCE_INLINE const String& GetFileName() const { return m_filename; }
     HYP_NODISCARD HYP_FORCE_INLINE const String& GetText() const { return m_text; }
 
     HYP_NODISCARD HYP_FORCE_INLINE bool operator==(const CompilerError& other) const
@@ -105,6 +107,7 @@ public:
         return m_level == other.m_level
             && m_msg == other.m_msg
             && m_location == other.m_location
+            && m_filename == other.m_filename
             && m_text == other.m_text;
     }
 
@@ -140,6 +143,7 @@ private:
     ErrorLevel m_level;
     ErrorMessage m_msg;
     SourceLocation m_location;
+    String m_filename;
     String m_text;
 };
 

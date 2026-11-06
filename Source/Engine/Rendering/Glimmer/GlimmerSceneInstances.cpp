@@ -561,12 +561,14 @@ void GlimmerSceneInstances::Gather(RenderProxyList& rpl, const BoundingBox& regi
 
         // terrain comes from the terrain itself, and foliage only goes into the heightfield, as canopy
 
-        if (RenderHelpers::IsTerrainShader(materialAttributes.shaderName))
+        const EnumFlags<ShaderTraits> shaderTraits = RenderHelpers::GetShaderTraits(materialAttributes.shaderName);
+
+        if (shaderTraits & ShaderTraits::Terrain)
         {
             continue;
         }
 
-        uint32 flags = proxy->material->GetParameters().foliage ? GIF_FOLIAGE : GIF_NONE;
+        uint32 flags = (shaderTraits & ShaderTraits::Foliage) ? GIF_FOLIAGE : GIF_NONE;
 
         if (materialAttributes.cullFaces == FaceCullMode::None)
         {

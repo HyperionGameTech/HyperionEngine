@@ -14,6 +14,8 @@
 
 #include <Core/Containers/String.hpp>
 
+#include <Core/Utilities/EnumFlags.hpp>
+
 namespace Hyperion {
 
 HYP_ENUM()
@@ -23,6 +25,19 @@ enum class ShaderCookKind : uint8
     Material,
     EditorOnly
 };
+
+HYP_ENUM()
+enum class ShaderTraits : uint32
+{
+    None = 0x0,
+    GeometryPass = 0x1,
+    ForwardClustered = 0x2,
+    Terrain = 0x4,
+    Morph = 0x8,
+    Foliage = 0x10
+};
+
+HYP_MAKE_ENUM_FLAGS(ShaderTraits);
 
 HYP_STRUCT()
 struct ShaderDefinition
@@ -34,6 +49,9 @@ struct ShaderDefinition
 
     HYP_FIELD(Property = "Cook", Serialize)
     ShaderCookKind cookKind = ShaderCookKind::Pass;
+
+    HYP_FIELD(Property = "Traits", Serialize)
+    EnumFlags<ShaderTraits> traits = ShaderTraits::None;
 
     HYP_FIELD(Property = "Condition", Serialize)
     String condition; // a cvar to check
@@ -90,5 +108,7 @@ struct ShaderDefinitions
         return it;
     }
 };
+
+ENGINE_API const ShaderDefinitions* GetShaderDefinitions();
 
 } // namespace Hyperion

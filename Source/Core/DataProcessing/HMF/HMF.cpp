@@ -53,13 +53,10 @@ ParseResult RunParse(
 {
     ErrorList errorList;
 
-    const ByteBuffer source = reader.Read();
-    MemoryByteReader sourceReader(source.ToByteView());
-
-    SourceStream sourceStream { &sourceReader, filePath };
     TokenStream tokenStream { TokenStreamInfo(filePath) };
+    tokenStream.SetSource(reader.Read());
 
-    Lexer lexer(sourceStream, &tokenStream, &errorList);
+    Lexer lexer(&tokenStream, &errorList);
     lexer.Analyze();
 
     Parser parser(&tokenStream, &errorList, target, options);
@@ -243,12 +240,10 @@ ParseResult ParseValue(
 {
     ErrorList errorList;
 
-    MemoryByteReader sourceReader(ConstByteView(reinterpret_cast<const ubyte*>(source.Data()), source.Size()));
-
-    SourceStream sourceStream { &sourceReader, g_inMemoryFilePath };
     TokenStream tokenStream { TokenStreamInfo(g_inMemoryFilePath) };
+    tokenStream.SetSource(ByteBuffer(source.Size(), source.Data()));
 
-    Lexer lexer(sourceStream, &tokenStream, &errorList);
+    Lexer lexer(&tokenStream, &errorList);
     lexer.Analyze();
 
     Parser parser(&tokenStream, &errorList);

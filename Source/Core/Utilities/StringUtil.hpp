@@ -373,92 +373,31 @@ static inline bool IsDigits(const containers::String<StringType, AllocatorType>&
     return true;
 }
 
-template <int StringType, class AllocatorType>
-static inline bool Parse(const containers::String<StringType, AllocatorType>& str, int8* outValue)
-{
-    *outValue = int8(strtol(str.Data(), nullptr, 0));
+CORE_API bool ParseNumber(const char* begin, const char* end, int8* outValue);
+CORE_API bool ParseNumber(const char* begin, const char* end, int16* outValue);
+CORE_API bool ParseNumber(const char* begin, const char* end, int32* outValue);
+CORE_API bool ParseNumber(const char* begin, const char* end, int64* outValue);
+CORE_API bool ParseNumber(const char* begin, const char* end, uint8* outValue);
+CORE_API bool ParseNumber(const char* begin, const char* end, uint16* outValue);
+CORE_API bool ParseNumber(const char* begin, const char* end, uint32* outValue);
+CORE_API bool ParseNumber(const char* begin, const char* end, uint64* outValue);
+CORE_API bool ParseNumber(const char* begin, const char* end, float* outValue);
+CORE_API bool ParseNumber(const char* begin, const char* end, double* outValue);
 
-    return true;
-}
-
-template <int StringType, class AllocatorType>
-static inline bool Parse(const containers::String<StringType, AllocatorType>& str, int16* outValue)
-{
-    *outValue = int16(strtol(str.Data(), nullptr, 0));
-
-    return true;
-}
-
-template <int StringType, class AllocatorType>
-static inline bool Parse(const containers::String<StringType, AllocatorType>& str, int32* outValue)
-{
-    *outValue = int32(strtol(str.Data(), nullptr, 0));
-
-    return true;
-}
-
-template <int StringType, class AllocatorType>
-static inline bool Parse(const containers::String<StringType, AllocatorType>& str, int64* outValue)
-{
-    *outValue = int64(strtoll(str.Data(), nullptr, 0));
-
-    return true;
-}
-
-template <int StringType, class AllocatorType>
-static inline bool Parse(const containers::String<StringType, AllocatorType>& str, uint8* outValue)
-{
-    *outValue = uint8(strtoul(str.Data(), nullptr, 0));
-
-    return true;
-}
-
-template <int StringType, class AllocatorType>
-static inline bool Parse(const containers::String<StringType, AllocatorType>& str, uint16* outValue)
-{
-    *outValue = uint16(strtoul(str.Data(), nullptr, 0));
-
-    return true;
-}
-
-template <int StringType, class AllocatorType>
-static inline bool Parse(const containers::String<StringType, AllocatorType>& str, uint32* outValue)
-{
-    *outValue = uint32(strtoul(str.Data(), nullptr, 0));
-
-    return true;
-}
-
-template <int StringType, class AllocatorType>
-static inline bool Parse(const containers::String<StringType, AllocatorType>& str, uint64* outValue)
-{
-    *outValue = uint64(strtoull(str.Data(), nullptr, 0));
-
-    return true;
-}
-
-template <int StringType, class AllocatorType>
-static inline bool Parse(const containers::String<StringType, AllocatorType>& str, float* outValue)
-{
-    *outValue = strtof(str.Data(), nullptr);
-
-    return true;
-}
-
-template <int StringType, class AllocatorType>
-static inline bool Parse(const containers::String<StringType, AllocatorType>& str, double* outValue)
-{
-    *outValue = strtod(str.Data(), nullptr);
-
-    return true;
-}
-
-/// StringView overload. Delegates to the String overload (Parse relies on the string being
-/// null-terminated, which a view is not guaranteed to be).
 template <int StringType, class T>
 static inline bool Parse(const utilities::StringView<StringType>& str, T* outValue)
 {
-    return Parse(containers::String<StringType>(str), outValue);
+    static_assert(sizeof(typename utilities::StringView<StringType>::CharType) == 1, "Parse needs a char string");
+
+    return ParseNumber(reinterpret_cast<const char*>(str.Data()), reinterpret_cast<const char*>(str.Data()) + str.Size(), outValue);
+}
+
+template <int StringType, class AllocatorType, class T>
+static inline bool Parse(const containers::String<StringType, AllocatorType>& str, T* outValue)
+{
+    static_assert(sizeof(typename containers::String<StringType, AllocatorType>::CharType) == 1, "Parse needs a char string");
+
+    return ParseNumber(reinterpret_cast<const char*>(str.Data()), reinterpret_cast<const char*>(str.Data()) + str.Size(), outValue);
 }
 
 template <class T, int StringType, class AllocatorType>

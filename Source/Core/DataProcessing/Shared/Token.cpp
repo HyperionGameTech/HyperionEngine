@@ -3,12 +3,14 @@
 
 namespace Hyperion::DataProcessing {
 
-const Token Token::empty = Token(TK_EMPTY, "", SourceLocation::eof);
+const Token Token::empty = Token();
 
 Token::Token()
-    : m_tokenClass(TK_EMPTY)
+    : m_tokenClass(TK_EMPTY),
+      m_value(),
+      m_flags {},
+      m_location(SourceLocation::eof)
 {
-    std::memset(m_flags, 0, sizeof(m_flags));
 }
 
 String Token::TokenTypeToString(TokenClass tokenClass)
@@ -38,37 +40,20 @@ String Token::TokenTypeToString(TokenClass tokenClass)
     }
 }
 
-Token::Token(TokenClass tokenClass, const String& value, const SourceLocation& location)
+Token::Token(TokenClass tokenClass, UTF8StringView value, const SourceLocation& location)
     : m_tokenClass(tokenClass),
       m_value(value),
+      m_flags {},
       m_location(location)
 {
-    std::memset(m_flags, 0, sizeof(m_flags));
 }
 
-Token::Token(TokenClass tokenClass, const String& value, Flags flags, const SourceLocation& location)
+Token::Token(TokenClass tokenClass, UTF8StringView value, const Flags flags, const SourceLocation& location)
     : m_tokenClass(tokenClass),
       m_value(value),
       m_location(location)
 {
     std::memcpy(m_flags, flags, sizeof(m_flags));
-}
-
-Token::Token(const Token& other)
-    : m_tokenClass(other.m_tokenClass),
-      m_value(other.m_value),
-      m_location(other.m_location)
-{
-    std::memcpy(m_flags, other.m_flags, sizeof(m_flags));
-}
-
-Token& Token::operator=(const Token& other)
-{
-    m_tokenClass = other.m_tokenClass;
-    m_value = other.m_value;
-    m_location = other.m_location;
-    std::memcpy(m_flags, other.m_flags, sizeof(m_flags));
-    return *this;
 }
 
 bool Token::IsContinuationToken() const
