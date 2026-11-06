@@ -14,6 +14,7 @@ namespace TerrainGenerationEditorTask {
 
 void OnGenerationQueued();
 void OnGenerationFinished();
+void Shutdown();
 
 } // namespace TerrainGenerationEditorTask
 
