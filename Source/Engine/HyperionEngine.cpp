@@ -73,7 +73,9 @@
 #include <Rendering/Util/ShaderPropertyDictionary.hpp>
 
 #include <Rendering/Glimmer/GlimmerMemory.hpp>
+
 #include <Scene/WorldGrid/Terrain/TerrainMemory.hpp>
+#include <Scene/WorldGrid/Terrain/TerrainGenerationEditorTask.hpp>
 
 #include <Scene/ComponentInterface.hpp>
 #include <Scene/DetachedScene.hpp>
@@ -914,6 +916,8 @@ extern "C"
 
 #ifdef HYP_EDITOR
         g_editorState.Reset();
+
+        TerrainGenerationEditorTask::Shutdown();
 #endif // HYP_EDITOR
 
         if (g_appContext.IsValid())

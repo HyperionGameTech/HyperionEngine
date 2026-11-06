@@ -140,6 +140,14 @@ void OnGenerationFinished()
     s_state.OnGenerationFinished();
 }
 
+void Shutdown()
+{
+    s_state.editorTask.Access([](Handle<TickableEditorTask>& task)
+    {
+        task.Reset();
+    });
+}
+
 } // namespace TerrainGenerationEditorTask
 
 } // namespace Hyperion

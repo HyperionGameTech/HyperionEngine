@@ -164,7 +164,10 @@ TerrainStreamingCell::TerrainStreamingCell(
     }
 }
 
-TerrainStreamingCell::~TerrainStreamingCell() = default;
+TerrainStreamingCell::~TerrainStreamingCell()
+{
+    EndPendingGeneration();
+}
 
 bool TerrainStreamingCell::IsStale() const
 {
