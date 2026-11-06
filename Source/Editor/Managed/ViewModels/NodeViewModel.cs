@@ -708,6 +708,8 @@ namespace Hyperion.Editor.ViewModels
             : base(instanceHandle, group, onChildrenChanged, index)
         {
         }
+
+        public string InstanceTooltip => $"Instance of {Parent?.DisplayName}";
     }
 
     /// <summary>

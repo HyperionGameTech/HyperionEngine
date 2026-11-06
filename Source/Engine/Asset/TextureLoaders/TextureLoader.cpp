@@ -87,6 +87,26 @@ Handle<Texture> MakeSingleChannelFloatTexture(uint32 width, uint32 height, const
     return MakeHandle<Texture>(textureDesc, baseMipData.ToByteView());
 }
 
+bool IsGreyscaleRGB(const uint16* samples, size_t numPixels, uint32 numComponents)
+{
+    if (numComponents != STBI_rgb && numComponents != STBI_rgb_alpha)
+    {
+        return false;
+    }
+
+    for (size_t index = 0; index < numPixels; index++)
+    {
+        const uint16* pixel = samples + index * numComponents;
+
+        if (pixel[0] != pixel[1] || pixel[0] != pixel[2])
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 AssetLoadResult FinishLoadedTexture(LoaderState& state, Handle<Texture>&& texture)
 {
     texture->SetName(CreateNameFromDynamicString(ANSIString(StringUtil::StripExtension(state.filepath.Basename()))));
@@ -136,7 +156,7 @@ AssetLoadResult TextureLoader::LoadAsset(LoaderState& state) const
 
         stbi_us* samples = stbi_load_16_from_callbacks(&g_callbacks, (void*)&state, &width, &height, &numComponents, 0);
 
-        if (samples != nullptr && (numComponents == STBI_grey || numComponents == STBI_grey_alpha))
+        if (samples != nullptr && (numComponents == STBI_grey || numComponents == STBI_grey_alpha || IsGreyscaleRGB(samples, size_t(width) * size_t(height), uint32(numComponents))))
         {
             Handle<Texture> texture = MakeSingleChannelFloatTexture(uint32(width), uint32(height), samples, uint32(numComponents));
 

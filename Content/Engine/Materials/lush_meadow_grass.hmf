@@ -1,7 +1,7 @@
 Material lush_meadow_grass {
     BaseMaterial = null
     Attributes = {
-        ShaderName = GeometryPass
+        ShaderName = FoliageGrass
         ShaderProperties = {
             Chunks = [
                 0
@@ -59,7 +59,7 @@ Material lush_meadow_grass {
         FoliageBackfaceVolume = 1
         UVScale = (1, 1)
         Unlit = false
-        Foliage = true
+        Foliage = false
         TerrainColorMatch = true
         Flags = 0
         TransmissionMask = RoughnessMapG
@@ -67,6 +67,7 @@ Material lush_meadow_grass {
         GroundNormalBlend = 0
         BaseOcclusion = 0
         BaseOcclusionHeight = 0
+        FoliageCrownExtinction = 0.5
     }
     Textures = {
         Values = [
@@ -89,5 +90,5 @@ Material lush_meadow_grass {
         ]
     }
     IsDynamic = false
-    UUID = "8d61be9d-d02b-43d5-8a6e-e0ce1f610ea1"
+    UUID = "9190cca2-53bc-424c-b7d2-ba3e50ab524a"
 }

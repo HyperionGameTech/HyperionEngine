@@ -32,5 +32,5 @@ Texture short_grass_grass_albedo {
         Size = 4194304
     }
     Compression = Auto
-    UUID = "eef8ab44-4e32-44bd-80b2-5c8a1fb3adc5"
+    UUID = "d6847a56-5e0b-49a9-9ab9-342d8c46fcac"
 }

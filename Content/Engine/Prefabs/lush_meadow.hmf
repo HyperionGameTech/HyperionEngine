@@ -1,6 +1,6 @@
 Prefab lush_meadow {
     Root = Entity lush_meadow {
-        UUID = "87414815-f2ba-401f-9868-6156b737ddba"
+        UUID = "f8be618c-e504-42e1-8c20-07df5d7a0b62"
         NodeFlags = MobilityStatic
         LocalBounds = {
             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -18,7 +18,7 @@ Prefab lush_meadow {
         }
         Children = [
             Entity lush_meadow {
-                UUID = "472e16fc-6995-4672-a7ed-e2d56bbea1a9"
+                UUID = "702cca44-340e-423f-bc5f-a7639b942bd0"
                 NodeFlags = MobilityStatic
                 LocalBounds = {
                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -47,7 +47,7 @@ Prefab lush_meadow {
                                 LodBias = 0
                             }
                         ]
-                        UUID = "3c626d5e-dba7-4f1d-b976-fb2e8af10775"
+                        UUID = "5fa95f85-50dd-4960-8faa-bebd2a08f705"
                         NodeFlags = MobilityStatic
                         LocalBounds = {
                             Min = (-1.2431444, 0, -1.3887281)
@@ -90,5 +90,5 @@ Prefab lush_meadow {
         }
         SourceClip = ""
     }
-    UUID = "8f656341-c7a6-4859-b9d1-bd7a5190d70e"
+    UUID = "6f9a1f3d-fe2b-4e78-bca2-42473dc1fab0"
 }

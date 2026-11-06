@@ -495,7 +495,17 @@ void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
         MathUtil::Clamp(m_parameters.baseOcclusion, 0.0f, 1.0f),
         MathUtil::Max(m_parameters.baseOcclusionHeight, 0.0f));
 
-    bufferData.refraction = Vec4f(MathUtil::Max(m_parameters.ior, 1.0f), 0.0f, 0.0f, 0.0f);
+    bufferData.refraction = Vec4f(
+        MathUtil::Max(m_parameters.ior, 1.0f),
+        MathUtil::Max(m_parameters.foliageCrownExtinction, 0.0f),
+        MathUtil::Clamp(m_parameters.foliageLeafThickness, 0.0f, 4.0f),
+        0.0f);
+
+    bufferData.foliageBackface = Vec4f(
+        MathUtil::Clamp(m_parameters.foliageBackfaceRoughness, -1.0f, 1.0f),
+        MathUtil::Clamp(m_parameters.foliageBackfacePaleness, 0.0f, 1.0f),
+        0.0f,
+        0.0f);
 
     bufferData.textureUsage = 0;
 

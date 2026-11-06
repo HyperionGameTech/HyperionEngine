@@ -26,6 +26,8 @@ const MaterialParameters& MaterialParameters::Defaults()
                         s_defaults.parallaxHeightScale = 0.02f;
                         s_defaults.ior = 1.5f;
                         s_defaults.uvScale = Vec2f::One();
+                        s_defaults.foliageCrownExtinction = 0.5f;
+                        s_defaults.foliageLeafThickness = 1.0f;
                     });
 
     return s_defaults;

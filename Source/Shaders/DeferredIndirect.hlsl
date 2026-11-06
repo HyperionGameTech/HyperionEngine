@@ -195,8 +195,8 @@ PSOutput PSMain(PSInput input)
     const float metalness = materialParams.metalness;
     const uint mask = materialParams.mask;
 
-    // lightmapped pixels hold their atlas UV in these bits
-    const float3 emissive = select((mask & OBJECT_MASK_LIGHTMAPPED) != 0, (float3) 0.0, GBufferUnpackEmissive(materialBits));
+    // lightmapped pixels hold their atlas UV in these bits (foliage recycles them for crown extinction)
+    const float3 emissive = select((mask & (OBJECT_MASK_LIGHTMAPPED | OBJECT_MASK_FOLIAGE)) != 0, (float3) 0.0, GBufferUnpackEmissive(materialBits));
 
     if ((mask & OBJECT_MASK_UNLIT) != 0)
     {

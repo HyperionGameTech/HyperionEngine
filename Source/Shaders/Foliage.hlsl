@@ -22,6 +22,7 @@ PSOutput PSMain(PSInput input)
     ApplyFoliageBackFace(input);
 
     GeometrySurface surface = SampleGeometrySurface(input, GetFoliageBackFaceSign(input));
+    ApplyFoliageBackFaceMaterial(input, surface);
     FinishGeometrySurface(surface);
 
     PSOutput output = WriteGeometryOutput(input, surface);

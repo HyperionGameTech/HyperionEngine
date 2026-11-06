@@ -33,6 +33,7 @@ PSOutput PSMain(PSInput input)
     ApplyFoliageBackFace(input);
 
     GeometrySurface surface = SampleGeometrySurface(input, GetFoliageBackFaceSign(input));
+    ApplyFoliageBackFaceMaterial(input, surface);
     ApplyGroundNormal(input, surface);
     FinishGeometrySurface(surface);
 

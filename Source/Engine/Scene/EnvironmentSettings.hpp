@@ -181,6 +181,9 @@ struct ExposureSettings
     HYP_FIELD(Property = "EyeAdaptation", Serialize, Label = "Eye Adaptation")
     float eyeAdaptation = 0.6f;
 
+    HYP_FIELD(Property = "MaxEyeAdaptation", Serialize, Label = "Max Eye Adaptation (stops)")
+    float maxEyeAdaptationStops = 4.5f;
+
     HYP_FIELD(Property = "MaxAutoExposure", Serialize, Label = "Max Auto Exposure (stops)")
     float maxAutoExposureStops = 3.8f;
 

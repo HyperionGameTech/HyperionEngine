@@ -263,6 +263,7 @@ void GlimmerProbeVolume::ReleaseResources()
     }
 
     m_seenInstancesGeneration = ~0u;
+    m_seenFoliageExtinction = -1.0f;
     m_seenEmitters.Clear();
     m_shaderData.info.w = 0;
     m_hasComposedLight = false;
@@ -674,6 +675,14 @@ void GlimmerProbeVolume::Update(Frame* frame, const GlimmerProbeUpdateInputs& in
             }
 
             m_seenLightsGeneration = inputs.localLights->GetGeneration();
+        }
+
+        const float foliageExtinction = GlimmerHelpers::GetGlimmerFoliageExtinction();
+
+        if (foliageExtinction != m_seenFoliageExtinction)
+        {
+            shouldAwaken = true;
+            m_seenFoliageExtinction = foliageExtinction;
         }
 
         if (hasBVH)

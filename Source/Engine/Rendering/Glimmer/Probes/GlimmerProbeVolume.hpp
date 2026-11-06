@@ -174,6 +174,7 @@ private:
     uint32 m_frameIndex;
     uint32 m_seenInstancesGeneration;
     uint32 m_seenLightsGeneration = 0;
+    float m_seenFoliageExtinction = -1.0f;
     uint32 m_nearTracer = 0;
     uint32 m_poolBlocks;
     uint32 m_maxProbesPerFrame;

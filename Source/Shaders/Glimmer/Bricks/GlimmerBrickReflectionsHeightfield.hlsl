@@ -80,11 +80,9 @@ DECLARE_BUFFER_DYNAMIC(DeferredPass, CBuffer) cbuffer CBuffer
 #define MAX_ALBEDO 0.9
 #define GROUND_ALBEDO 0.3
 #define LEAST_MISSING 0.01
-// the spans' solids start no nearer than this many texels, so a ray doesn't hit the column it starts in
 #define SOLIDS_SLACK_TEXELS 1.5
 
-// the canopy is lit by what reaches the first of it the ray comes to
-GlimmerLight GlimmerCanopyRadiance(float3 P, float3 weightedAlbedo)
+GlimmerLight GlimmerCanopyRadiance(float3 P, float3 weightedAlbedo, GlimmerLight skyTransfer)
 {
     return GlimmerRestLight(weightedAlbedo * max(EvaluateGlimmer(glimmer, P, float3(0.0, 1.0, 0.0)).rgb, (float3)0.0));
 }
@@ -133,7 +131,6 @@ float4 TraceHeightfield(float3 origin, float3 direction, out float outT, out uin
     return float4(max(radiance, (float3)0.0), coverage);
 }
 
-// adds the heightfield's light for what of the pixel's reflection is uncovered; returns how far its ray went, or 0 where it added nothing
 float AddHeightfield(int2 pixel, inout float4 color)
 {
     const ReflectionSurface surface = LoadSurface(pixel);

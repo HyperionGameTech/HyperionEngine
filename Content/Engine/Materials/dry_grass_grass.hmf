@@ -1,7 +1,7 @@
 Material dry_grass_grass {
     BaseMaterial = null
     Attributes = {
-        ShaderName = GeometryPass
+        ShaderName = FoliageGrass
         ShaderProperties = {
             Chunks = [
                 0
@@ -59,7 +59,7 @@ Material dry_grass_grass {
         FoliageBackfaceVolume = 1
         UVScale = (1, 1)
         Unlit = false
-        Foliage = true
+        Foliage = false
         TerrainColorMatch = true
         Flags = 0
         TransmissionMask = RoughnessMapG
@@ -67,6 +67,7 @@ Material dry_grass_grass {
         GroundNormalBlend = 0
         BaseOcclusion = 0
         BaseOcclusionHeight = 0
+        FoliageCrownExtinction = 0.5
     }
     Textures = {
         Values = [
@@ -89,5 +90,5 @@ Material dry_grass_grass {
         ]
     }
     IsDynamic = false
-    UUID = "56a6d044-4513-443e-be19-e3b144b9c2d8"
+    UUID = "b1b59f27-c7fa-49b1-ad5a-33a139441be1"
 }

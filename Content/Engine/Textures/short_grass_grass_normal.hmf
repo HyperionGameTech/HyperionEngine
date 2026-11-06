@@ -32,5 +32,5 @@ Texture short_grass_grass_normal {
         Size = 4194304
     }
     Compression = Auto
-    UUID = "339ccb86-4f5f-4bbc-aa07-1fea51e9dd51"
+    UUID = "2e804c60-0f5e-4999-814f-188764dfe115"
 }

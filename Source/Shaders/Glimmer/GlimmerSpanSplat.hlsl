@@ -208,7 +208,8 @@ void SplatTriangle(GlimmerSpanInstance instance, uint localTriangle, uint level)
         return;
     }
 
-    const uint3 albedoFixed = uint3(saturate(albedoAlpha.rgb) * float(areaFixed) + 0.5);
+    const float3 scatterAlbedo = albedoAlpha.rgb * select(isFoliage, 1.0 + GlimmerGetMaterialTransmission(instance.data.z), 1.0);
+    const uint3 albedoFixed = uint3(saturate(scatterAlbedo) * float(areaFixed) + 0.5);
 #endif
 
     const uint spanMinSlot = select(isFoliage, GLIMMER_SPAN_CANOPY_MIN, GLIMMER_SPAN_SOLID_MIN);

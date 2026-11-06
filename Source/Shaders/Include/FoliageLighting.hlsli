@@ -5,7 +5,6 @@
 #define FOLIAGE_TRANSMISSION_POWER 4.0
 #define FOLIAGE_MIN_ROUGHNESS 0.6
 #define FOLIAGE_SPECULAR_FADE_NDOTV 0.5
-#define FOLIAGE_CROWN_EXTINCTION 0.15
 
 float FoliageWrapDiffuse(float NdotL)
 {
@@ -15,6 +14,12 @@ float FoliageWrapDiffuse(float NdotL)
 float FoliageSpecularWeight(float3 N, float3 V)
 {
     return smoothstep(0.0, FOLIAGE_SPECULAR_FADE_NDOTV, dot(N, V));
+}
+
+// Beer's law treating albedo as one thickness' transmittance; 1 keeps the albedo colour
+float3 FoliageTransmissionTint(float3 albedo, float leafThickness)
+{
+    return pow(max(albedo, (float3)0.001), leafThickness - 1.0);
 }
 
 float FoliageTransmission(float3 N, float3 V, float3 L, float transmission, float shadow, float crownTransmittance)

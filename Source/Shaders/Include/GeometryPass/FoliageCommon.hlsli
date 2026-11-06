@@ -52,13 +52,37 @@ float3 EvaluateDirectLight(GeometrySurface surface, float3 N, float3 V, float3 L
 {
     return diffuseLobe * FoliageWrapDiffuse(dot(N, L))
         + specularLobe * energyCompensation * NdotL * FoliageSpecularWeight(N, V)
-        + diffuseLobe * FoliageTransmission(N, V, L, surface.transmission);
+        + diffuseLobe * FoliageTransmissionTint(surface.albedo.rgb, CURRENT_MATERIAL.refraction.z) * FoliageTransmission(N, V, L, surface.transmission);
+}
+
+void ApplyFoliageBackFaceMaterial(PSInput input, inout GeometrySurface surface)
+{
+    if (input.is_front_face)
+    {
+        return;
+    }
+
+    const float roughnessOffset = CURRENT_MATERIAL.foliage_backface.x;
+    const float paleness = CURRENT_MATERIAL.foliage_backface.y;
+
+    surface.perceptualRoughness = saturate(surface.perceptualRoughness + roughnessOffset);
+
+    if (paleness > 0.0)
+    {
+        const float3 lighter = sqrt(surface.albedo.rgb);
+        const float3 pale = lerp((float3)Luminance(lighter), lighter, 0.5);
+
+        surface.albedo.rgb = lerp(surface.albedo.rgb, pale, paleness);
+    }
 }
 
 void WriteFoliageOutput(GeometrySurface surface, inout PSOutput output)
 {
 #ifndef SHADING_TYPE_LIGHTMAPPED
-    output.gbuffer_material |= GBufferPackTransmission(surface.transmission);
+    output.gbuffer_material = (output.gbuffer_material & ~GBUFFER_EMISSIVE_MASK)
+        | GBufferPackTransmission(surface.transmission)
+        | GBufferPackCrownExtinction(CURRENT_MATERIAL.refraction.y)
+        | GBufferPackLeafThickness(CURRENT_MATERIAL.refraction.z);
 #endif // !SHADING_TYPE_LIGHTMAPPED
 }
 

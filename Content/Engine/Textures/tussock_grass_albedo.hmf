@@ -32,5 +32,5 @@ Texture tussock_grass_albedo {
         Size = 2097148
     }
     Compression = Auto
-    UUID = "a8018cf2-837a-4e47-9e3b-76339300ebe7"
+    UUID = "aa58d064-7c93-44f0-9d9b-6a049fe86405"
 }

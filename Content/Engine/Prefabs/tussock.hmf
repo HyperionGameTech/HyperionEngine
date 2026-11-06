@@ -1,6 +1,6 @@
 Prefab tussock {
     Root = Entity tussock {
-        UUID = "1c49ca4c-15a2-4135-9639-0df4cfa4bbf1"
+        UUID = "4627fbdd-1b6f-4451-9fc0-b72589c445ef"
         NodeFlags = MobilityStatic
         LocalBounds = {
             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -18,7 +18,7 @@ Prefab tussock {
         }
         Children = [
             Entity tussock {
-                UUID = "cbce6164-b92c-4655-bab0-2e704da6761d"
+                UUID = "96cd7446-9083-402a-bc13-f408f3ae033e"
                 NodeFlags = MobilityStatic
                 LocalBounds = {
                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -47,7 +47,7 @@ Prefab tussock {
                                 LodBias = 0
                             }
                         ]
-                        UUID = "b08310d9-dd59-4ba8-916c-8a6f07974bd1"
+                        UUID = "144bc133-599e-45f4-a6df-afe97a08019c"
                         NodeFlags = MobilityStatic
                         LocalBounds = {
                             Min = (-1.0343755, 0, -0.8507391)
@@ -90,5 +90,5 @@ Prefab tussock {
         }
         SourceClip = ""
     }
-    UUID = "294e1beb-e17a-4b8d-9ecf-2c3d566bfb03"
+    UUID = "060d2bca-c087-4ba7-9b1b-f3ce4926841a"
 }

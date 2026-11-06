@@ -496,6 +496,32 @@
             <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
         </Style>
 
+        <Style Selector="Path.spinner">
+            <Setter Property="Width" Value="11" />
+            <Setter Property="Height" Value="11" />
+            <Setter Property="Data" Value="M 5.5,1 A 4.5,4.5 0 1 1 1,5.5" />
+            <Setter Property="Stroke" Value="{StaticResource Brush.Accent}" />
+            <Setter Property="StrokeThickness" Value="1.5" />
+            <Setter Property="StrokeLineCap" Value="Round" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="RenderTransformOrigin" Value="50%,50%" />
+            <Setter Property="RenderTransform">
+                <RotateTransform />
+            </Setter>
+        </Style>
+        <Style Selector="Path.spinner[IsVisible=True]">
+            <Style.Animations>
+                <Animation Duration="0:0:0.9" IterationCount="Infinite">
+                    <KeyFrame Cue="0%">
+                        <Setter Property="RotateTransform.Angle" Value="0" />
+                    </KeyFrame>
+                    <KeyFrame Cue="100%">
+                        <Setter Property="RotateTransform.Angle" Value="360" />
+                    </KeyFrame>
+                </Animation>
+            </Style.Animations>
+        </Style>
+
         <Style Selector="TextBlock.status-task-title">
             <Setter Property="FontSize" Value="11.5" />
             <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />

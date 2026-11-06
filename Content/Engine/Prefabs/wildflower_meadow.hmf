@@ -1,6 +1,6 @@
 Prefab wildflower_meadow {
     Root = Entity wildflower_meadow {
-        UUID = "a61afa3b-f636-4cb0-8342-c259ec99ca48"
+        UUID = "481c8384-7e01-44c4-85e0-5ed4b87e5f45"
         NodeFlags = MobilityStatic
         LocalBounds = {
             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -18,7 +18,7 @@ Prefab wildflower_meadow {
         }
         Children = [
             Entity wildflower_meadow {
-                UUID = "fd68dc33-955b-401b-a857-7acd0a9fbdb7"
+                UUID = "19e33c4e-27ac-4688-819d-8c61c94787de"
                 NodeFlags = MobilityStatic
                 LocalBounds = {
                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -47,7 +47,7 @@ Prefab wildflower_meadow {
                                 LodBias = 0
                             }
                         ]
-                        UUID = "86551704-d5b1-4b1c-b065-4fb84850d11a"
+                        UUID = "f3d63bbe-cbd8-419f-af8a-7797c8eade37"
                         NodeFlags = MobilityStatic
                         LocalBounds = {
                             Min = (-1.2253104, 0, -1.2511611)
@@ -90,5 +90,5 @@ Prefab wildflower_meadow {
         }
         SourceClip = ""
     }
-    UUID = "17f8cb61-749b-450d-8917-749bdcf29dba"
+    UUID = "8864f5e6-476f-4d37-86b9-bc747fb1c0c0"
 }
