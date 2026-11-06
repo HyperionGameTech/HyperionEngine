@@ -381,6 +381,19 @@ namespace Hyperion.Editor.ViewModels
             }
         }
 
+        private bool _onlyOnGround;
+        public bool OnlyOnGround
+        {
+            get => _onlyOnGround;
+            set
+            {
+                if (SetProperty(ref _onlyOnGround, value))
+                {
+                    _instancePainterState.SetOnlyOnGround(value);
+                }
+            }
+        }
+
         private double _scaleMin;
         public double ScaleMin
         {
@@ -414,6 +427,7 @@ namespace Hyperion.Editor.ViewModels
 
             _footprintRadius = painterState!.FootprintRadius;
             _sinkDepth = painterState.SinkDepth;
+            _onlyOnGround = painterState.OnlyOnGround;
             _scaleMin = painterState.ScaleMin;
             _scaleMax = painterState.ScaleMax;
 

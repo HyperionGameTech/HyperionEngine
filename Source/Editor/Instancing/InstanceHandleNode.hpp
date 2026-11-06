@@ -14,7 +14,8 @@ namespace Hyperion {
 
 class InstanceGroup;
 
-/// Stand-in node for editing an instance itself. EditorSubsystem::GetOrCreateInstanceHandle makes and tracks these.
+/// Stand-in node for editing an instance itself
+/// Used by EditorSubsystem::GetOrCreateInstanceHandle()
 HYP_CLASS(Serialize = false)
 class EDITOR_API InstanceHandleNode final : public Node
 {
@@ -30,6 +31,9 @@ public:
     {
         return m_group;
     }
+
+    HYP_METHOD()
+    Handle<InstanceGroup> GetInstanceGroup() const;
 
     HYP_FORCE_INLINE InstanceId GetInstanceId() const
     {

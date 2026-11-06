@@ -107,6 +107,7 @@ protected:
         Handle<Scene> scene;
         Vec3f position;
         Vec3f normal;
+        bool isGround = false;
     };
 
     static const RenderableAttributeSet& GetCursorDrawAttributes();
@@ -138,15 +139,18 @@ protected:
         return hit.position;
     }
 
+    virtual bool CanPaintSurface(const SurfaceHit& hit) const
+    {
+        return true;
+    }
+
     /// Closest surface along \p ray in any scene of the world, skipping approximate and ignored hits
     bool RaycastSurface(const Ray& ray, SurfaceHit& outHit) const;
 
-    virtual void StampAt(const SurfaceHit& hit) = 0;
+    virtual void PaintAt(const SurfaceHit& hit) = 0;
     virtual void EraseAt(const SurfaceHit& hit) = 0;
 
     virtual void ResetStrokeEdits() = 0;
-
-    /// Pushes one undo entry for everything the stroke changed in \p strokeScene
     virtual void CommitStrokeEdits(const WeakHandle<Scene>& strokeScene) = 0;
 
     Transform MakePlacementTransform(const SurfaceHit& hit) const;
@@ -171,7 +175,9 @@ protected:
     bool m_alignToSurface = true;
 
 private:
-    bool TryGetSurfaceHit(const Vec2f& relativePos, SurfaceHit& outHit) const;
+    bool TryGetSurfaceHit(
+        const Vec2f& relativePos,
+        SurfaceHit& outHit) const;
 
     bool RedirectFromTransientScene(SurfaceHit& hit) const;
 

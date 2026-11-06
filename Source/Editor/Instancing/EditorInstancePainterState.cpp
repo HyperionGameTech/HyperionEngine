@@ -361,6 +361,24 @@ void EditorInstancePainterState::SetSinkDepth(float sinkDepth)
         });
 }
 
+bool EditorInstancePainterState::GetOnlyOnGround() const
+{
+    return m_onlyOnGround;
+}
+
+void EditorInstancePainterState::SetOnlyOnGround(bool onlyOnGround)
+{
+    DispatchToSimThread([this, onlyOnGround]()
+        {
+            m_onlyOnGround = onlyOnGround;
+        });
+}
+
+bool EditorInstancePainterState::CanPaintSurface(const SurfaceHit& hit) const
+{
+    return !m_onlyOnGround || hit.isGround;
+}
+
 bool EditorInstancePainterState::HasActiveAsset() const
 {
     for (const PrefabSetEntry& entry : GetPalette())
@@ -475,7 +493,7 @@ Handle<InstanceGroup> EditorInstancePainterState::FindOrCreateInstanceGroup(cons
     return group;
 }
 
-void EditorInstancePainterState::StampAt(const SurfaceHit& hit)
+void EditorInstancePainterState::PaintAt(const SurfaceHit& hit)
 {
     AssertOnThread(g_simThread);
 
@@ -484,7 +502,7 @@ void EditorInstancePainterState::StampAt(const SurfaceHit& hit)
         DrawNextStamp();
     }
 
-    if (!m_nextPrefab.IsValid() || !AcceptStrokeScene(hit.scene))
+    if (!m_nextPrefab.IsValid() || !CanPaintSurface(hit) || !AcceptStrokeScene(hit.scene))
     {
         return;
     }

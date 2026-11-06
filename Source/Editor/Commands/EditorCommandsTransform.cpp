@@ -354,7 +354,7 @@ public:
 
     virtual String GetText() const override
     {
-        return "Move to Camera";
+        return "Move to Editor Camera Position";
     }
 
     virtual void Execute(EditorSubsystem* subsystem) override

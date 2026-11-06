@@ -207,6 +207,8 @@
                     <Slider Grid.Column="1" Maximum="2" Minimum="0" Value="{ReflectionBinding SinkDepth}" />
                     <NumericUpDown Grid.Column="2" Classes="setting-box" Increment="0.05" Minimum="0" Value="{ReflectionBinding SinkDepth}" />
                 </Grid>
+
+                <CheckBox Content="Only on ground" IsChecked="{ReflectionBinding OnlyOnGround}" ToolTip.Tip="Paint on terrain only" />
             </StackPanel>
 
             <StackPanel Spacing="6">

@@ -121,6 +121,12 @@ public:
     HYP_METHOD()
     void SetSinkDepth(float sinkDepth);
 
+    HYP_METHOD()
+    bool GetOnlyOnGround() const;
+
+    HYP_METHOD()
+    void SetOnlyOnGround(bool onlyOnGround);
+
 protected:
     const char* GetToolName() const override
     {
@@ -137,8 +143,9 @@ protected:
     Transform GetCursorTransform(const SurfaceHit& hit) const override;
     bool ShouldIgnoreHit(const RayHit& hit) const override;
     Vec3f GetPlacementPosition(const SurfaceHit& hit) const override;
+    bool CanPaintSurface(const SurfaceHit& hit) const override;
 
-    void StampAt(const SurfaceHit& hit) override;
+    void PaintAt(const SurfaceHit& hit) override;
     void EraseAt(const SurfaceHit& hit) override;
 
     void ResetStrokeEdits() override;
@@ -167,6 +174,8 @@ private:
 
     float m_footprintRadius = 0.5f;
     float m_sinkDepth = 0.1f;
+
+    bool m_onlyOnGround = false;
 
     SurfacePainterStroke<InstanceStrokeTraits> m_stroke;
 };

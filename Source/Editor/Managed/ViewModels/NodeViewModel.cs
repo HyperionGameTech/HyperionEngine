@@ -22,6 +22,9 @@ namespace Hyperion.Editor.ViewModels
 
         public bool IsRootNode => _parent == null;
 
+        public bool IsInstance => this is InstanceNodeViewModel;
+        public bool IsInstanceGroup => _node is InstanceGroup;
+
         public bool CanMoveToGrandparent => _parent?.Parent != null;
 
         public string MoveToGrandparentHeader => _parent?.Parent != null
@@ -95,6 +98,7 @@ namespace Hyperion.Editor.ViewModels
             FogVolume           => "FogVolume",
             DecalProxy          => "Decal",
             Bone                => "AssetSkeleton",
+            InstanceHandleNode  => "AssetPrefab",
             VolumeBase          => "Package",
             TextSprite          => "TextSprite",
             Sprite              => "Sprite",
@@ -367,7 +371,136 @@ namespace Hyperion.Editor.ViewModels
         public bool IsExpanded
         {
             get => _isExpanded;
-            set => SetProperty(ref _isExpanded, value);
+            set
+            {
+                if (SetProperty(ref _isExpanded, value) && value && _node is InstanceGroup && !_listAllInstances)
+                {
+                    _listAllInstances = true;
+                    ScheduleInstanceRefresh();
+                }
+            }
+        }
+
+        private const uint MaxListedInstances = 100;
+
+        private readonly List<NodeViewModel> _instanceRows = new();
+        private DelegateHandler? _onInstanceListChanged;
+        private int _isInstanceRefreshPending;
+
+        private volatile bool _listAllInstances;
+
+        private string _instanceCountText = string.Empty;
+        public string InstanceCountText
+        {
+            get => _instanceCountText;
+            private set => SetProperty(ref _instanceCountText, value);
+        }
+
+        public void ScheduleInstanceRefresh()
+        {
+            if (_node is not InstanceGroup instanceGroup || Interlocked.Exchange(ref _isInstanceRefreshPending, 1) != 0)
+            {
+                return;
+            }
+
+            WeakReference<NodeViewModel> weakThis = new(this);
+
+            _ = EngineManager.PostToSimThread(() =>
+            {
+                if (!weakThis.TryGetTarget(out NodeViewModel? target))
+                {
+                    return;
+                }
+
+                Interlocked.Exchange(ref target._isInstanceRefreshPending, 0);
+
+                EditorSubsystem? editorSubsystem = EngineManager.EditorGame?.EditorSubsystem;
+
+                if (editorSubsystem == null || !instanceGroup.IsValid)
+                {
+                    return;
+                }
+
+                uint maxCount = target._listAllInstances ? MaxListedInstances : 1;
+
+                List<Node> handles = editorSubsystem.GetInstanceHandles(instanceGroup, maxCount).Cast<Node>().ToList();
+                uint numInstances = instanceGroup.NumInstances();
+
+                Dispatcher.UIThread.Post(() => target.ApplyInstanceRows(handles, numInstances));
+            });
+        }
+
+        private void ApplyInstanceRows(List<Node> handles, uint numInstances)
+        {
+            Dispatcher.UIThread.VerifyAccess();
+
+            InstanceCountText = numInstances.ToString("N0") + " Instances";
+
+            Dictionary<UUID, NodeViewModel> previousRows = [];
+            foreach (NodeViewModel row in _instanceRows)
+            {
+                previousRows[row.UUID] = row;
+            }
+
+            List<NodeViewModel> rows = new List<NodeViewModel>(handles.Count);
+
+            foreach (Node handle in handles)
+            {
+                if (handle == null || !handle.IsValid)
+                {
+                    continue;
+                }
+
+                if (!previousRows.Remove(handle.UUID, out NodeViewModel? row))
+                {
+                    row = new InstanceNodeViewModel(handle, this, _onChildrenChanged, _index);
+                    _index?.Add(row);
+                }
+
+                rows.Add(row);
+            }
+
+            if (previousRows.Count == 0 && rows.SequenceEqual(_instanceRows))
+            {
+                return;
+            }
+
+            foreach (NodeViewModel staleRow in previousRows.Values)
+            {
+                _index?.Remove(staleRow);
+                Children.Remove(staleRow);
+            }
+
+            _allChildren.RemoveAll(child => child.IsInstance);
+            _allChildren.AddRange(rows);
+
+            int firstRowIndex = Children.Count - (_instanceRows.Count - previousRows.Count);
+
+            for (int i = 0; i < rows.Count; i++)
+            {
+                int targetIndex = firstRowIndex + i;
+
+                if (targetIndex < Children.Count && ReferenceEquals(Children[targetIndex], rows[i]))
+                {
+                    continue;
+                }
+
+                int currentIndex = Children.IndexOf(rows[i]);
+
+                if (currentIndex == -1)
+                {
+                    Children.Insert(targetIndex, rows[i]);
+                }
+                else
+                {
+                    Children.Move(currentIndex, targetIndex);
+                }
+            }
+
+            _instanceRows.Clear();
+            _instanceRows.AddRange(rows);
+
+            _index?.NotifyInstanceRowsChanged();
         }
 
         private bool _isDropTarget;
@@ -384,8 +517,9 @@ namespace Hyperion.Editor.ViewModels
             private set => SetProperty(ref _isFilteredOut, value);
         }
 
-        // @TODO
-        public bool IsDirty => false;//_node.Dirty;
+        // @NOTE this remains for future extension,
+        // but Nodes are no longer an AssetObject subclass, thus they have no Dirty
+        public bool IsDirty => false;
 
         private DelegateHandler? _onChildAdded;
         private DelegateHandler? _onChildRemoved;
@@ -402,10 +536,17 @@ namespace Hyperion.Editor.ViewModels
             _uuid = node.UUID;
             _name = node.Name.ToString();
 
-            _sourcePrefabName = EngineManager.EditorGame?.EditorSubsystem?.GetSourcePrefabName(node) ?? string.Empty;
-
             // Root nodes are expanded by default
             _isExpanded = parent == null;
+
+            if (IsInstance)
+            {
+                _sourcePrefabName = string.Empty;
+
+                return;
+            }
+
+            _sourcePrefabName = EngineManager.EditorGame?.EditorSubsystem?.GetSourcePrefabName(node) ?? string.Empty;
 
             // Initialize existing children
             for (uint i = 0; i < node.NumChildren(); i++)
@@ -442,9 +583,11 @@ namespace Hyperion.Editor.ViewModels
 
                 Dispatcher.UIThread.Post(() =>
                 {
+                    int numInstanceRows = target!._instanceRows.Count;
+
                     target!._index?.Add(childViewModel);
-                    target!._allChildren.Add(childViewModel);
-                    target!.Children.Add(childViewModel);
+                    target!._allChildren.Insert(target!._allChildren.Count - numInstanceRows, childViewModel);
+                    target!.Children.Insert(target!.Children.Count - numInstanceRows, childViewModel);
 
                     target!._onChildrenChanged?.Invoke();
                 });
@@ -488,6 +631,19 @@ namespace Hyperion.Editor.ViewModels
                     target!._onChildrenChanged?.Invoke();
                 });
             });
+
+            if (node is InstanceGroup instanceGroup)
+            {
+                _onInstanceListChanged = instanceGroup.GetOnInstanceListChangedDelegate().Bind(() =>
+                {
+                    if (weakThis.TryGetTarget(out NodeViewModel? target))
+                    {
+                        target.ScheduleInstanceRefresh();
+                    }
+                });
+
+                ScheduleInstanceRefresh();
+            }
         }
 
         /// <summary>
@@ -542,6 +698,18 @@ namespace Hyperion.Editor.ViewModels
         }
     }
 
+    public sealed class InstanceNodeViewModel : NodeViewModel
+    {
+        public InstanceNodeViewModel(
+            Node instanceHandle,
+            NodeViewModel group,
+            Action? onChildrenChanged,
+            NodeViewModelIndex? index)
+            : base(instanceHandle, group, onChildrenChanged, index)
+        {
+        }
+    }
+
     /// <summary>
     /// Maps engine-side node identities onto the hierarchy's view models so a node coming back from
     /// the engine (a selection change, a focus change) can be resolved without walking the tree.
@@ -549,6 +717,13 @@ namespace Hyperion.Editor.ViewModels
     public sealed class NodeViewModelIndex
     {
         private readonly Dictionary<UUID, NodeViewModel> _nodeViewModelsByUUID = new();
+
+        public event Action? InstanceRowsChanged;
+
+        public void NotifyInstanceRowsChanged()
+        {
+            InstanceRowsChanged?.Invoke();
+        }
 
         public void Add(NodeViewModel nodeViewModel)
         {

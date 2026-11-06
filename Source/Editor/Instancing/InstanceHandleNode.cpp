@@ -30,6 +30,11 @@ InstanceHandleNode::InstanceHandleNode(const WeakHandle<InstanceGroup>& group, I
 
 InstanceHandleNode::~InstanceHandleNode() = default;
 
+Handle<InstanceGroup> InstanceHandleNode::GetInstanceGroup() const
+{
+    return m_group.Lock();
+}
+
 void InstanceHandleNode::SyncFromInstance()
 {
     Handle<InstanceGroup> group = m_group.Lock();
