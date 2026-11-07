@@ -60,12 +60,6 @@ public:
     AnimationTrack();
     AnimationTrack(Name name, Name boneName);
 
-    AnimationTrack(const AnimationTrack& other) = delete;
-    AnimationTrack& operator=(const AnimationTrack& other) = delete;
-
-    AnimationTrack(AnimationTrack&& other) noexcept = default;
-    AnimationTrack& operator=(AnimationTrack&& other) noexcept = default;
-
     ~AnimationTrack() override;
 
     HYP_METHOD()

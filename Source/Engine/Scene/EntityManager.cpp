@@ -593,7 +593,7 @@ Handle<Entity> EntityManager::AddBasicEntity()
 {
     Assert(!IsLocked() && (IsOnThread(m_ownerThreadId) || IsDetachedScene()));
 
-    TLockGuard<AtomicFlag> lock;
+    TUniqueLock<AtomicFlag> lock;
 
     if (IsDetachedScene())
     {
@@ -640,7 +640,7 @@ Handle<Entity> EntityManager::AddTypedEntity(const Class* cls)
 {
     Assert(!IsLocked() && (IsOnThread(m_ownerThreadId) || IsDetachedScene()));
 
-    TLockGuard<AtomicFlag> lock;
+    TUniqueLock<AtomicFlag> lock;
 
     if (IsDetachedScene())
     {
@@ -732,8 +732,7 @@ void EntityManager::AddExistingEntity_Internal(const Handle<Entity>& entity)
 
     Assert(!IsLocked() && (IsOnThread(m_ownerThreadId) || IsDetachedScene()));
 
-    TLockGuard<AtomicFlag> lock;
-
+    TUniqueLock<AtomicFlag> lock;
     if (IsDetachedScene())
     {
         lock.Reset(m_detachedSceneLocked);
@@ -829,7 +828,7 @@ bool EntityManager::RemoveEntity(Entity* entity, bool calledFromEntityDestructor
         return false;
     }
 
-    TLockGuard<AtomicFlag> lock;
+    TUniqueLock<AtomicFlag> lock;
 
     if (IsDetachedScene())
     {
@@ -942,7 +941,7 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
 
     Assert(!IsLocked() && (IsOnThread(m_ownerThreadId) || IsDetachedScene()));
 
-    TLockGuard<AtomicFlag> lock;
+    TUniqueLock<AtomicFlag> lock;
 
     if (IsDetachedScene())
     {
@@ -1045,7 +1044,7 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
     {
         Assert(!other->IsLocked() && (IsOnThread(other->m_ownerThreadId) || other->IsDetachedScene()));
 
-        TLockGuard<AtomicFlag> lock;
+        TUniqueLock<AtomicFlag> lock;
 
         if (other->IsDetachedScene())
         {

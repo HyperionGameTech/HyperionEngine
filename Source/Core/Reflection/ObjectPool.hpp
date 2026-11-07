@@ -74,7 +74,7 @@ public:
 
     virtual void Initialize() = 0;
 
-    virtual ObjectHeader* GetObjectHeader(uint32 index, TLockGuard<AtomicFlag>& outGuard);
+    virtual ObjectHeader* GetObjectHeader(uint32 index, TUniqueLock<AtomicFlag>& outGuard);
 
     virtual void Release(ObjectHeader* header);
 
@@ -107,7 +107,7 @@ protected:
     /*! \brief Checks that the current thread is the pool's owning thread, or locks the global pool lock if this is the global pool.
      *  \param outGuard If this is the global pool, the lock state will be stored here so it can be released later.
      */
-    void LockIfNeeded(TLockGuard<AtomicFlag>& outGuard, int flags);
+    void LockIfNeeded(TUniqueLock<AtomicFlag>& outGuard, int flags);
 
     HYP_FORCE_INLINE AtomicIndexAllocator& GetIndexAllocator()
     {

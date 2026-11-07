@@ -54,8 +54,6 @@ class ThreadPoolBase;
 class TaskThreadPool;
 class TaskSystem;
 
-using OnTaskBatchCompletedCallback = Proc<void()>;
-
 class TaskBatch
 {
 public:

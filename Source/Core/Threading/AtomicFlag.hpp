@@ -21,13 +21,11 @@ class AtomicFlag final
 {
     static constexpr uint32 MaxSpinsBeforeYield = 16; // spin until we yield
 
-    friend class TLockGuard<AtomicFlag>;
-
     friend class TUniqueLock<AtomicFlag>;
     friend class TSharedLock<AtomicFlag>;
 
 public:
-    using Guard = TLockGuard<AtomicFlag>;
+    using Guard = TUniqueLock<AtomicFlag>;
 
     HYP_FORCE_INLINE AtomicFlag()
         : m_value(0)

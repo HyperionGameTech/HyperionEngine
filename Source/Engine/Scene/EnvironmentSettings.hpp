@@ -179,31 +179,31 @@ struct ExposureSettings
     bool autoExposure = true;
 
     HYP_FIELD(Property = "EyeAdaptation", Serialize, Label = "Eye Adaptation")
-    float eyeAdaptation = 0.6f;
+    float eyeAdaptation = 0.8f;
 
     HYP_FIELD(Property = "MaxEyeAdaptation", Serialize, Label = "Max Eye Adaptation (stops)")
     float maxEyeAdaptationStops = 4.5f;
 
     HYP_FIELD(Property = "MaxAutoExposure", Serialize, Label = "Max Auto Exposure (stops)")
-    float maxAutoExposureStops = 3.8f;
+    float maxAutoExposureStops = 10.0f;
 
     HYP_FIELD(Property = "ExposureCompensation", Serialize, Label = "Exposure Compensation (stops)")
-    float exposureCompensation = 0.0f;
+    float exposureCompensation = 0.4f;
 
     HYP_FIELD(Property = "TonemapOperator", Serialize, Label = "Tonemapper")
-    TonemapOperator tonemapOperator = TonemapOperator::AgXPunchy;
+    TonemapOperator tonemapOperator = TonemapOperator::AgX;
 
     HYP_FIELD(Property = "WhiteBalanceTemperature", Serialize, Label = "Temperature")
-    float whiteBalanceTemperature = 0.15f;
+    float whiteBalanceTemperature = 0.1f;
 
     HYP_FIELD(Property = "WhiteBalanceTint", Serialize, Label = "Tint")
     float whiteBalanceTint = 0.0f;
 
     HYP_FIELD(Property = "Saturation", Serialize, Label = "Saturation")
-    float saturation = 0.95f;
+    float saturation = 1.1f;
 
     HYP_FIELD(Property = "Contrast", Serialize, Label = "Contrast")
-    float contrast = 0.92f;
+    float contrast = 1.2f;
 
     HYP_FIELD(Property = "Vignette", Serialize, Label = "Vignette")
     float vignette = 0.25f;

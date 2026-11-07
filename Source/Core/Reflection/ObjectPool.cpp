@@ -298,7 +298,7 @@ ObjectContainerBase::~ObjectContainerBase()
 #if HYP_DEBUG_MODE
     if (m_pool != nullptr)
     {
-        TLockGuard<AtomicFlag> guard;
+        TUniqueLock<AtomicFlag> guard;
         LockIfNeeded(guard, PF_WRITER | PF_ALLOCATE);
 
         for (ObjectHeader* header : m_headers)
@@ -321,7 +321,7 @@ ObjectContainerBase::~ObjectContainerBase()
 #endif
 }
 
-void ObjectContainerBase::LockIfNeeded(TLockGuard<AtomicFlag>& outGuard, int flags)
+void ObjectContainerBase::LockIfNeeded(TUniqueLock<AtomicFlag>& outGuard, int flags)
 {
     AssertDebug(m_pool != nullptr);
 
@@ -342,7 +342,7 @@ ObjectHeader* ObjectContainerBase::AllocateObjectHeader(size_t size)
     // allocation would be the header size + object size, aligned to the object alignment
     const size_t totalSize = ByteUtil::AlignAs(ByteUtil::AlignAs(sizeof(ObjectHeader), MaxObjectAlignment) + size, MaxObjectAlignment);
 
-    TLockGuard<AtomicFlag> guard;
+    TUniqueLock<AtomicFlag> guard;
     LockIfNeeded(guard, PF_WRITER | PF_ALLOCATE);
 
     void* mem = m_pool->Allocate(totalSize, MaxObjectAlignment);
@@ -369,7 +369,7 @@ ObjectHeader* ObjectContainerBase::AllocateObjectHeader(size_t size)
     return header;
 }
 
-ObjectHeader* ObjectContainerBase::GetObjectHeader(uint32 index, TLockGuard<AtomicFlag>& outGuard)
+ObjectHeader* ObjectContainerBase::GetObjectHeader(uint32 index, TUniqueLock<AtomicFlag>& outGuard)
 {
     if (index == AtomicIndexAllocator::InvalidIndex)
     {
@@ -390,7 +390,7 @@ void ObjectContainerBase::Release(ObjectHeader* header)
 {
     HYP_CORE_ASSERT(header != nullptr);
 
-    TLockGuard<AtomicFlag> guard;
+    TUniqueLock<AtomicFlag> guard;
     LockIfNeeded(guard, PF_WRITER | PF_FREE);
 
     const uint32 index = header->index;
@@ -411,7 +411,7 @@ void ObjectContainerBase::Release(ObjectHeader* header)
 
 void ObjectContainerBase::ForEachHeader(const ProcRef<void(const ObjectHeader*)>& callback)
 {
-    TLockGuard<AtomicFlag> guard;
+    TUniqueLock<AtomicFlag> guard;
     LockIfNeeded(guard, PF_NONE);
 
     for (auto& header_ptr : m_headers)
@@ -425,7 +425,7 @@ void ObjectContainerBase::ForEachHeader(const ProcRef<void(const ObjectHeader*)>
 
 bool ObjectContainerBase::HasObjects()
 {
-    TLockGuard<AtomicFlag> guard;
+    TUniqueLock<AtomicFlag> guard;
     LockIfNeeded(guard, PF_NONE);
 
     for (ObjectHeader* header : m_headers)

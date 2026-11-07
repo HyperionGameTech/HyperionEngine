@@ -12,17 +12,17 @@
 
 ## About
 
-Hyperion is a full-featured, general-purpose game engine built from the ground up in C++. It has been developed continuously since 2016, with a focus on high-fidelity rendering and scalable worlds without requiring high-end hardware.
+Hyperion is a full-featured modular game engine built from the ground up in C++ and C#, with a focus on high-fidelity atmospheric environments and scalable worlds, without requiring high-end hardware.
 
-The engine is built around a set of tightly integrated subsystems that share common reflection, resource, serialization, tooling, and runtime infrastructure.
+It has been developed continuously since 2016, and is largely built around a custom reflection system that allows for serialization, editor integration, network replication, and scripting to be generated automatically from the same source code.
 
 
 ## Why Hyperion?
 
-- **Dynamic GI without RT hardware.** Glimmer uses a custom data structure ('bricks') for providing realtime reflections and GI of static geometry in the scene.
-- **Reflection gives you functionality for free.** Mark a class, struct, or field for reflection and our build tools will allow it to be used in serialization, editing, network replication, and script bindings
+- **Dynamic GI without RT hardware.** Glimmer, our GI system, uses a hybrid of voxel-based GI and software traced probes to provide dynamic global illumination without requiring ray tracing hardware.
+- **Reflection gives you functionality for free.** Mark a class, struct, or field for reflection and our build tools will allow it to be used in serialization, editing, network replication, and script bindings.
 - **Multiplayer you can test in the editor.** play-in-editor can run as a client, by starting a server others can connect to - or connect to another running server altogether
-- **Write the entire game in C# or C++** Use C# for scripting or write the entire game in it (see CSharpGame sample). Or generate a C++ project that links to Hyperion, then build and package it from the editor.
+- **Write the entire game in C# or C++** Use C# for scripting or write the entire game in it. Or generate a C++ project that links to Hyperion, then build and package it from the editor.
 
 ## Screenshots
 <table>
@@ -49,17 +49,17 @@ Click a section header below to expand it:
 <details>
 <summary><b>Rendering</b></summary>
 
-- **Glimmer** - realtime global illumination and reflections, no RT hardware required. Static geometry is stored in 'bricks', a sparse structure with good data locality that replaces the usual triangle BVH for software tracing. Diffuse lighting uses precomputed radiance transfer, so the sun and sky can change freely (for dynamic ToD) without re-tracing. Glossy reflections are traced through the same bricks structure.
+- **Glimmer** - As described above - a hybrid voxel-based + software ray traced probe GI system provides dynamic global illumination without requiring ray tracing hardware
 - **Clustered deferred shading** supporting a large number of dynamic lights while maintaining good frame times, with forward clustered shading for translucent materials.
 - **Offline lightmapper** integrated into the editor. Bakes lightmaps into the scene, reflection/irradiance probes supported for dynamic objects, fog volumes, and other static lighting data such as shadow maps.
 - Real time reflections via ray tracing on RT capable hardware, with screen-space reflections everywhere else.
 - **Automatic instancing.** Entities sharing a mesh, material, and LOD can be batched into instanced draw calls automatically
 - Indirect draws, Hi-Z occlusion culling, bindless textures, mesh LODs
-- Lights: directional, point, spot, and textured rectangular area lights. Cascaded and omnidirectional shadow maps with static/dynamic caching.
+- Lights: directional, point, spot, and textured rectangular area lights. Shadow maps for static lights can cache static geometry shadows to improve performance.
 - PBR materials with parallax mapping, transmission, emissives, and foliage shading.
 - Post: TAA, GTAO, bloom, AgX / ACES / PBR Neutral tonemapping, color grading.
 - GPU particles, simulated in compute with depth-buffer collision.
-- Backends: DirectX 12 (the default on Windows) and Vulkan (Linux, Android, macOS, iOS via MoltenVK). DirectX 12 is a fully supported, mainline backend.
+- Backends: DirectX 12 (the default on Windows), Vulkan (Linux, Android, macOS, iOS via MoltenVK), WebGPU.
 - Shader compiler system with built in permutations support, and live reload in editor to see changes as you make them.
 
 </details>

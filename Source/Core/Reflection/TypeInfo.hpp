@@ -808,7 +808,7 @@ struct CORE_API TypeInfo
 
             new (pTypeInfo) TypeInfo(std::move(result));
 
-            guardStorage.GetPointer()->~TLockGuard();
+            guardStorage.Destruct();
 
             return *pTypeInfo;
         }

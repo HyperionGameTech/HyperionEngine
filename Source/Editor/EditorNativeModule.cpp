@@ -189,6 +189,7 @@ NativeModuleState& GetNativeModuleState()
 void EvictModuleTypeInfos(const RetiredNativeModule& retiredModule)
 {
     Array<TypeId> typeIds;
+    typeIds.Reserve(retiredModule.classes.Size());
 
     for (const Class* cls : retiredModule.classes)
     {
@@ -337,7 +338,7 @@ void UpdateRetiredModules()
 
     const Time now = Time::Now();
 
-    for (size_t index = state.retiredModules.Size(); index-- > 0;)
+    for (size_t index = state.retiredModules.Size(); index --> 0;)
     {
         RetiredNativeModule& retiredModule = state.retiredModules[index];
 

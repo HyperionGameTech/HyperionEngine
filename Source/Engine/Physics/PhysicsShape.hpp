@@ -128,7 +128,7 @@ public:
     }
 
 protected:
-    const PhysicsShapeType m_type;
+    PhysicsShapeType m_type;
 
     SharedPtr<void> m_internalData;
 };

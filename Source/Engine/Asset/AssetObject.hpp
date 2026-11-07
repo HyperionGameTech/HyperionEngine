@@ -64,12 +64,6 @@ public:
     AssetObject();
     explicit AssetObject(Name name);
 
-    AssetObject(const AssetObject& other) = delete;
-    AssetObject& operator=(const AssetObject& other) = delete;
-
-    AssetObject(AssetObject&& other) noexcept = delete;
-    AssetObject& operator=(AssetObject&& other) noexcept = delete;
-
     virtual ~AssetObject();
 
     HYP_METHOD(Property = "UUID")
