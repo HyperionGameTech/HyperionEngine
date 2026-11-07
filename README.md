@@ -81,7 +81,7 @@ Click a section header below to expand it:
 <summary><b>Editor</b></summary>
 
 - Runs on Windows and macOS, built with Avalonia.
-- **Play-in-editor**, including multiplayer: standalone, as client, or against a dedicated server.
+- **Play-in-editor**, Standalone, as client, or against a dedicated server.
 - **World building tools:** terrain sculpting and layer painting, ground cover painting, prefab instance painter, decal painter.
 - **CSG booleans** (union/subtract/intersect), basic mesh edits, convex collision generation via V-HACD.
 - Bake lightmaps, probes, static shadows, and fog volumes
@@ -91,11 +91,10 @@ Click a section header below to expand it:
 <details>
 <summary><b>World</b></summary>
 
-- **Terrain:** streamed cells with geomorphic lod (CDLOD). Splat painting supported, as well as auto splats based on the shape of the terrain. Collision is supported
+- **Terrain:** streamed cells with geomorphic lod (CDLOD). Can be sculpted in the editor. Splat painting supported, as well as procedural splat generation based on the shape of the terrain. Collision is supported via Jolt heightfield shapes.
 - **Ground cover and grass:** ground cover is automatically planted onto the terrain on load, can be painted as well.
 - **Level streaming:** grid-based world layers streamed around streaming volumes on a dedicated thread
 - Procedural atmosphere sky, volumetric clouds with cloud shadows, height fog, and baked fog volumes (baking draws static lights' scattering into a 3D texture)
-- Deferred decals and clustered instance groups
 
 </details>
 
@@ -137,8 +136,7 @@ Click a section header below to expand it:
 <details>
 <summary><b>Audio</b></summary>
 
-- 3D positional audio via OpenAL, with the listener following the active camera
-- Audio sources are components on entities: position, velocity, pitch, gain, and looping
+- 3D positional audio via OpenAL, with the listener following the active camera (note: this will soon be replaced with miniaudio + Steam Audio)
 
 </details>
 
@@ -152,26 +150,14 @@ Click a section header below to expand it:
 - UUID-based asset registry with redirects, so renaming and moving assets doesn't break references.
 - Async batch loading, with memory-mapped blob storage paged in on demand.
 - Content cooking, plus a cache server so a team (or your devices) can pull cooked content over HTTP instead of cooking locally.
-- Automatic mesh LOD generation.
+- Automatic mesh LOD generation, using [meshoptimizer](http://github.com/zeux/meshoptimizer).
+- Automatic convex decomposition for physics collision meshes, using [V-HACD](https://github.com/kmammou/v-hacd)
 
 </details>
 
-<details>
-<summary><b>Core & tooling</b></summary>
-
-- Our own containers, strings, smart pointers, allocators, and pools.
-- Task system and scheduler on top of a thread pool, with a built in data race detector.
-- Scoped profiling, sockets, HTTP and WebSocket, compression.
-- **Commandlets:** isolated tasks (cooking textures, precompiling shaders, ...) that run from the editor console, from the CLI with `--exec`, or as their own executable.
-- **CVars** for tweaking engine behavior at runtime, loaded from config and settable from the console.
-
-</details>
 
 ## Platforms
 Currently, we are focusing our efforts on developing the engine for *Windows*,  *Linux*, *macOS*, *Android*, *iOS*, *Web* (WebAssembly + WebGPU), and Steam Deck (via Proton). The editor is supported on all desktop platforms. (Windows, Linux, macOS)
-
-## Status
-Hyperion is in active development. Project and asset formats will remain backward compatible with today's state.
 
 ## Getting started
 Clone with `--recursive` to pull in submodules, then run `build.bat Release` on Windows or `./build.sh Release` on macOS. You'll need CMake and the .NET 10 SDK, plus vcpkg (`VCPKG_ROOT` set) on Windows or the Vulkan SDK on macOS and Android. See [Compiling the Engine](Documentation/CompilingTheEngine.md) for the full list and per-platform notes.
