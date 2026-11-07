@@ -26,6 +26,8 @@ namespace Hyperion.Editor.ViewModels
         private string _loadStatusText = string.Empty;
         private bool _awaitingProjectOpen;
         private bool _awaitingNewProject;
+        private bool _isCreatingProject;
+        private bool _isBrowsing;
         private bool _isFinished;
 
         public ObservableCollection<RecentProjectItemViewModel> RecentProjects { get; } = new();
@@ -70,6 +72,32 @@ namespace Hyperion.Editor.ViewModels
             private set => SetProperty(ref _isBusy, value);
         }
 
+        public bool IsCreatingProject
+        {
+            get => _isCreatingProject;
+            private set
+            {
+                if (SetProperty(ref _isCreatingProject, value))
+                {
+                    RaiseCanExecuteChanged();
+                }
+            }
+        }
+
+        public bool IsBrowsing
+        {
+            get => _isBrowsing;
+            private set
+            {
+                if (SetProperty(ref _isBrowsing, value))
+                {
+                    RaiseCanExecuteChanged();
+                }
+            }
+        }
+
+        private bool CanStartAction => !IsBusy && !IsCreatingProject && !IsBrowsing;
+
         public string BusyText
         {
             get => _busyText;
@@ -94,9 +122,9 @@ namespace Hyperion.Editor.ViewModels
 
         public StartScreenViewModel()
         {
-            NewProjectCommand = new RelayCommand(NewProject, () => !IsBusy);
-            BrowseCommand = new RelayCommand(Browse, () => !IsBusy);
-            OpenRecentProjectCommand = new RelayCommand<RecentProjectItemViewModel>(OpenProject, _ => !IsBusy);
+            NewProjectCommand = new RelayCommand(NewProject, () => CanStartAction);
+            BrowseCommand = new RelayCommand(Browse, () => CanStartAction);
+            OpenRecentProjectCommand = new RelayCommand<RecentProjectItemViewModel>(OpenProject, _ => CanStartAction);
             RemoveRecentProjectCommand = new RelayCommand<RecentProjectItemViewModel>(item =>
             {
                 if (item != null)
@@ -183,22 +211,38 @@ namespace Hyperion.Editor.ViewModels
 
         private void NewProject()
         {
-            _awaitingNewProject = true;
+            if (!CanStartAction)
+            {
+                return;
+            }
 
-            RecentProjectsService.Instance.NewProject();
+            _awaitingNewProject = true;
+            IsCreatingProject = true;
+
+            RecentProjectsService.Instance.NewProject(() =>
+            {
+                _awaitingNewProject = false;
+                IsCreatingProject = false;
+            });
         }
 
         private void Browse()
         {
             // The dialog's result arrives through the current project changing; cancelling it leaves the start screen up
-            _awaitingProjectOpen = true;
+            if (!CanStartAction)
+            {
+                return;
+            }
 
-            RecentProjectsService.Instance.BrowseForProject();
+            _awaitingProjectOpen = true;
+            IsBrowsing = true;
+
+            RecentProjectsService.Instance.BrowseForProject(() => IsBrowsing = false);
         }
 
         private void OpenProject(RecentProjectItemViewModel? item)
         {
-            if (item == null || IsBusy)
+            if (item == null || !CanStartAction)
             {
                 return;
             }

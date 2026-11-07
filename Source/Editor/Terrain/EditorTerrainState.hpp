@@ -108,6 +108,12 @@ public:
     void SetPaintLayer(int paintLayer);
 
     HYP_METHOD()
+    bool GetEraseMode() const;
+
+    HYP_METHOD()
+    void SetEraseMode(bool eraseMode);
+
+    HYP_METHOD()
     Name GetPaintGroundCoverLayer() const;
 
     HYP_METHOD()
@@ -150,6 +156,7 @@ private:
     void ActivateMode(TerrainSculptMode mode, bool isActive);
     void ApplyBrushAt(const Handle<TerrainWorldGridLayer>& layer, const Vec3f& worldPos, bool invert, float dt);
     bool TryApplyAtScreenPos(const Vec2f& relativePos, bool invert, float dt);
+    bool ResolveStrokeInvert(bool invert) const;
 
     ///one dab of the held stroke, at the anchored position unless the cursor has moved since the last one
     bool ApplyStroke(float dt);
@@ -174,6 +181,7 @@ private:
     float m_strength = 2.0f;
     float m_falloff = 0.5f;
     uint32 m_paintLayer = 0;
+    bool m_eraseMode = false;
     Name m_paintGroundCoverLayer;
     Handle<Prefab> m_groundCoverPrefab;
 

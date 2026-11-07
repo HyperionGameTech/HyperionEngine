@@ -18,6 +18,8 @@ namespace Hyperion
         public float EraseRadius => this.GetEraseRadius();
 
         public bool AlignToSurface => this.GetAlignToSurface();
+
+        public bool EraseMode => this.GetEraseMode();
     }
 
     [ClassBinding(Name = "EditorDecalPainterState")]

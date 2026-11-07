@@ -18,13 +18,22 @@ if(ARBOR_SUPPORTED AND NOT ARBOR_PROBLEM AND NOT COMMAND corrosion_import_crate)
   if(NOT EXISTS "${SUBMODULES_DIR}/corrosion/CMakeLists.txt")
     set(ARBOR_PROBLEM "the corrosion submodule is missing. Run: git submodule update --init External/Submodules/corrosion")
   else()
-    # the engine builds against the MSVC ABI on Windows, so a GNU toolchain (rustup's default on some machines, and what
-    # Corrosion caches when it's the default) can't build for it: use an MSVC toolchain beside it, or add the MSVC target
-    if(WIN32 AND (NOT DEFINED Rust_TOOLCHAIN OR Rust_TOOLCHAIN MATCHES "-windows-gnu$"))
+    # the Rust toolchain has to match the engine's Windows ABI (MSVC, or GNU under MinGW), whichever one rustup defaults
+    # to and Corrosion caches: use a matching toolchain beside it, or add the missing target
+    if(MINGW)
+      set(ARBOR_RUST_ABI gnu)
+    else()
+      set(ARBOR_RUST_ABI msvc)
+    endif()
+
+    if(WIN32 AND (NOT DEFINED Rust_TOOLCHAIN OR NOT Rust_TOOLCHAIN MATCHES "-windows-${ARBOR_RUST_ABI}$"))
       execute_process(COMMAND rustup toolchain list OUTPUT_VARIABLE ARBOR_RUST_TOOLCHAINS ERROR_QUIET RESULT_VARIABLE ARBOR_RUSTUP_RESULT)
 
-      if(ARBOR_RUSTUP_RESULT EQUAL 0 AND ARBOR_RUST_TOOLCHAINS MATCHES "(^|\n)(stable-x86_64-pc-windows-msvc)")
+      if(ARBOR_RUSTUP_RESULT EQUAL 0 AND ARBOR_RUST_TOOLCHAINS MATCHES "(^|\n)(stable-x86_64-pc-windows-${ARBOR_RUST_ABI})")
         set(Rust_TOOLCHAIN "${CMAKE_MATCH_2}" CACHE STRING "The rustup toolchain to use" FORCE)
+        unset(Rust_COMPILER_CACHED CACHE)
+        unset(Rust_CARGO_CACHED CACHE)
+        unset(Rust_CARGO_HOST_TARGET_CACHED CACHE)
       else()
         set(Rust_RUSTUP_INSTALL_MISSING_TARGET ON CACHE BOOL "Install the Rust target the build needs when rustup lacks it" FORCE)
       endif()

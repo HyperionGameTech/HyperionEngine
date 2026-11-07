@@ -4919,7 +4919,14 @@ void EditorSubsystem::InitViewport()
             //     return UIEventHandlerResult::STOP_BUBBLING;
             // }
 
-            if (GetTerrainState()->IsEnabled() || GetActiveSurfacePainter() != nullptr)
+            if (EditorSurfacePainterState* painter = GetActiveSurfacePainter())
+            {
+                painter->StampAt(event.relativePos);
+
+                return UIEventHandlerResult::STOP_BUBBLING;
+            }
+
+            if (GetTerrainState()->IsEnabled())
             {
                 // Strokes are applied from OnMouseDown / OnMouseDrag / the per-frame update;
                 // clicking just shouldn't fall through to scene picking.
@@ -5106,11 +5113,9 @@ void EditorSubsystem::InitViewport()
                 return UIEventHandlerResult::STOP_BUBBLING;
             }
 
-            if (EditorSurfacePainterState* painter = GetActiveSurfacePainter(); painter && event.mouseButtons[MouseButtonState::LEFT])
+            if (EditorSurfacePainterState* painter = GetActiveSurfacePainter(); painter && painter->IsStroking() && event.mouseButtons[MouseButtonState::LEFT])
             {
-                InputManager* inputManager = GetActiveInputManager();
-
-                painter->UpdateStroke(event.relativePos, /* erase */ inputManager->IsShiftDown());
+                painter->UpdateStroke(event.relativePos);
 
                 return UIEventHandlerResult::STOP_BUBBLING;
             }
@@ -5189,9 +5194,7 @@ void EditorSubsystem::InitViewport()
 
                 if (painter->IsStroking() && event.mouseButtons[MouseButtonState::LEFT])
                 {
-                    InputManager* inputManager = GetActiveInputManager();
-
-                    painter->UpdateStroke(event.relativePos, /* erase */ inputManager->IsShiftDown());
+                    painter->UpdateStroke(event.relativePos);
 
                     return UIEventHandlerResult::STOP_BUBBLING;
                 }
@@ -5311,13 +5314,29 @@ void EditorSubsystem::InitViewport()
                 return UIEventHandlerResult::STOP_BUBBLING;
             }
 
+            // shift+LMB strokes; a plain click stamps once (OnClick), and LMB drag / LMB+RMB fly the camera
             if (EditorSurfacePainterState* painter = GetActiveSurfacePainter(); painter && event.mouseButtons[MouseButtonState::LEFT])
             {
                 InputManager* inputManager = GetActiveInputManager();
 
-                painter->BeginStroke(event.relativePos, /* erase */ inputManager->IsShiftDown());
+                if (!event.mouseButtons[MouseButtonState::RIGHT] && inputManager->IsShiftDown())
+                {
+                    painter->BeginStroke(event.relativePos);
 
-                return UIEventHandlerResult::STOP_BUBBLING;
+                    return UIEventHandlerResult::STOP_BUBBLING;
+                }
+
+                painter->EndStroke();
+
+                CameraController* controller = activeViewport->GetCamera()->GetCameraController();
+                InputHandlerBase* inputHandler = controller != nullptr ? controller->GetInputHandler() : nullptr;
+
+                if (inputHandler != nullptr && inputHandler->OnMouseDown(event))
+                {
+                    return UIEventHandlerResult::STOP_BUBBLING;
+                }
+
+                return UIEventHandlerResult::OK;
             }
 
             if (m_meshEditState.enabled && m_meshEditState.selectedFace)
@@ -5739,6 +5758,7 @@ bool EditorSubsystem::ExecuteCommand(const Handle<EditorCommandBase>& command)
     if (IsOnThread(g_simThread))
     {
         command->Execute(this);
+        OnCommandExecuted(command->InstanceClass()->GetName());
     }
     else
     {
@@ -5753,6 +5773,7 @@ bool EditorSubsystem::ExecuteCommand(const Handle<EditorCommandBase>& command)
                 }
 
                 command->Execute(this);
+                OnCommandExecuted(command->InstanceClass()->GetName());
             },
             TaskEnqueueFlags::FIRE_AND_FORGET);
     }

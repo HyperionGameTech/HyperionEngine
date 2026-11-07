@@ -34,6 +34,8 @@ namespace Hyperion
 
         public int PaintLayer => this.GetPaintLayer();
 
+        public bool EraseMode => this.GetEraseMode();
+
         public Prefab? ActiveGroundCoverPrefab => this.GetActiveGroundCoverPrefab();
     }
 }

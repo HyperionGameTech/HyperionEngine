@@ -246,6 +246,21 @@ void EditorTerrainState::SetPaintLayer(int paintLayer)
     });
 }
 
+bool EditorTerrainState::GetEraseMode() const
+{
+    return m_eraseMode;
+}
+
+void EditorTerrainState::SetEraseMode(bool eraseMode)
+{
+    DispatchToSimThread([this, eraseMode]()
+    {
+        AssertOnThread(g_simThread);
+
+        m_eraseMode = eraseMode;
+    });
+}
+
 Name EditorTerrainState::GetPaintGroundCoverLayer() const
 {
     return m_paintGroundCoverLayer;
@@ -603,6 +618,13 @@ bool EditorTerrainState::ApplyStroke(float dt)
     return true;
 }
 
+bool EditorTerrainState::ResolveStrokeInvert(bool invert) const
+{
+    const bool isPaintMode = m_mode == TerrainSculptMode::PaintSplat || m_mode == TerrainSculptMode::PaintGroundCover;
+
+    return (isPaintMode && m_eraseMode) ? !invert : invert;
+}
+
 void EditorTerrainState::BeginStroke(const Vec2f& relativePos, bool invert)
 {
     AssertOnThread(g_simThread);
@@ -613,7 +635,7 @@ void EditorTerrainState::BeginStroke(const Vec2f& relativePos, bool invert)
     }
 
     m_isStroking = true;
-    m_strokeInvert = invert;
+    m_strokeInvert = ResolveStrokeInvert(invert);
     m_strokeScreenPos = relativePos;
     m_strokeNeedsPick = true;
     m_hasStrokeAnchor = false;
@@ -621,7 +643,7 @@ void EditorTerrainState::BeginStroke(const Vec2f& relativePos, bool invert)
     m_strokeTimer.Reset();
     m_strokeTimer.NextTick();
 
-    if (!TryApplyAtScreenPos(relativePos, invert, MathUtil::Max(m_strokeTimer.delta, 1.0f / 60.0f)))
+    if (!TryApplyAtScreenPos(relativePos, m_strokeInvert, MathUtil::Max(m_strokeTimer.delta, 1.0f / 60.0f)))
     {
         m_hasHover = false;
     }
@@ -636,7 +658,7 @@ void EditorTerrainState::UpdateStroke(const Vec2f& relativePos, bool invert)
         return;
     }
 
-    m_strokeInvert = invert;
+    m_strokeInvert = ResolveStrokeInvert(invert);
 
     if (relativePos != m_strokeScreenPos)
     {

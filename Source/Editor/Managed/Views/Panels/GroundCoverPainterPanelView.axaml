@@ -9,7 +9,17 @@
     x:DataType="vm:GroundCoverPainterPanelViewModel"
     mc:Ignorable="d">
     <ScrollViewer Padding="4,0" Offset="{Binding ScrollOffset, Mode=TwoWay}">
-        <StackPanel Margin="12,12,12,8" Spacing="12">
+        <StackPanel Margin="12,12,12,8" Spacing="14">
+
+            <StackPanel Spacing="6">
+                <TextBlock Classes="section-label" Text="Mode" />
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="4">
+                    <RadioButton Classes="tool-mode" Content="Paint" IsChecked="{Binding PaintMode, Mode=TwoWay}" />
+                    <RadioButton Grid.Column="1" Classes="tool-mode" Content="Erase" IsChecked="{Binding EraseMode, Mode=TwoWay}" />
+                </Grid>
+            </StackPanel>
+
+            <Separator />
 
             <StackPanel Spacing="6">
                 <TextBlock Classes="section-label" Text="Prefab" />
@@ -19,6 +29,7 @@
             <StackPanel Spacing="6">
                 <TextBlock Classes="section-label" Text="Layer" />
                 <ComboBox
+                    HorizontalAlignment="Stretch"
                     IsVisible="{Binding HasLayers}"
                     ItemsSource="{Binding Layers}"
                     SelectedItem="{Binding SelectedLayer}" />
@@ -31,30 +42,22 @@
             <Separator />
 
             <StackPanel Spacing="6">
-                <Grid ColumnDefinitions="*,Auto">
-                    <TextBlock Classes="section-label" Text="Radius" />
-                    <TextBlock Grid.Column="1" Classes="hint-text" Text="{Binding RadiusText}" />
+                <TextBlock Classes="section-label" Text="Brush" />
+
+                <Grid Classes="setting-row" ColumnDefinitions="96,*,64">
+                    <TextBlock Text="Radius" />
+                    <Slider Grid.Column="1" Maximum="25" Minimum="0.5" Value="{Binding Radius}" />
+                    <NumericUpDown Grid.Column="2" Classes="setting-box" Increment="0.5" Minimum="0.5" Value="{Binding Radius}" />
                 </Grid>
-                <Slider
-                    Maximum="25"
-                    Minimum="0.5"
-                    Value="{Binding Radius}" />
+
+                <Grid Classes="setting-row" ColumnDefinitions="96,*,64">
+                    <TextBlock Text="Flow" />
+                    <Slider Grid.Column="1" Maximum="10" Minimum="0.05" Value="{Binding Strength}" />
+                    <NumericUpDown Grid.Column="2" Classes="setting-box" Increment="0.1" Minimum="0.05" Value="{Binding Strength}" />
+                </Grid>
             </StackPanel>
 
-            <StackPanel Spacing="6">
-                <Grid ColumnDefinitions="*,Auto">
-                    <TextBlock Classes="section-label" Text="Flow" />
-                    <TextBlock Grid.Column="1" Classes="hint-text" Text="{Binding StrengthText}" />
-                </Grid>
-                <Slider
-                    Maximum="10"
-                    Minimum="0.05"
-                    Value="{Binding Strength}" />
-            </StackPanel>
-
-            <TextBlock
-                Classes="hint-text"
-                Text="Paint: Drag LMB&#x0a;Erase: Shift+Drag LMB" />
+            <TextBlock Classes="hint-text" Text="Apply: Drag LMB&#x0a;Invert: Shift+Drag LMB" />
 
         </StackPanel>
     </ScrollViewer>

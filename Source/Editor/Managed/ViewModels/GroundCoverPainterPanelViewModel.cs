@@ -45,12 +45,9 @@ namespace Hyperion.Editor.ViewModels
                 if (SetProperty(ref _radius, value))
                 {
                     _terrainState.SetRadius((float)value);
-                    OnPropertyChanged(nameof(RadiusText));
                 }
             }
         }
-
-        public string RadiusText => $"{_radius:0.#} m";
 
         private double _strength;
         public double Strength
@@ -61,12 +58,50 @@ namespace Hyperion.Editor.ViewModels
                 if (SetProperty(ref _strength, value))
                 {
                     _terrainState.SetStrength((float)value);
-                    OnPropertyChanged(nameof(StrengthText));
                 }
             }
         }
 
-        public string StrengthText => $"{_strength:0.00}";
+        private bool _eraseMode;
+
+        // bound to radio buttons, so only the one being checked applies
+        public bool PaintMode
+        {
+            get => !_eraseMode;
+            set
+            {
+                if (value)
+                {
+                    SetEraseMode(false);
+                }
+            }
+        }
+
+        public bool EraseMode
+        {
+            get => _eraseMode;
+            set
+            {
+                if (value)
+                {
+                    SetEraseMode(true);
+                }
+            }
+        }
+
+        private void SetEraseMode(bool eraseMode)
+        {
+            if (_eraseMode == eraseMode)
+            {
+                return;
+            }
+
+            _eraseMode = eraseMode;
+            _terrainState.SetEraseMode(eraseMode);
+
+            OnPropertyChanged(nameof(PaintMode));
+            OnPropertyChanged(nameof(EraseMode));
+        }
 
         public GroundCoverPainterPanelViewModel(EditorSubsystem? editorSubsystem, EditorTerrainState? terrainState, Action? onClosed)
             : base("Ground Cover Painter")
@@ -78,6 +113,7 @@ namespace Hyperion.Editor.ViewModels
 
             _radius = terrainState.Radius;
             _strength = terrainState.Strength;
+            _eraseMode = terrainState.EraseMode;
 
             _prefabPicker = new PainterAssetPicker(
                 Title, terrainState, "ActiveGroundCoverPrefab", AssetBucket.Prefabs, editorSubsystem,

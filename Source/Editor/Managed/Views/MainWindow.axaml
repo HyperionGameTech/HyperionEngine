@@ -608,7 +608,10 @@
                     x:Name="TitleBarDragRegion"
                     Grid.Column="0"
                     Background="Transparent"
-                    PointerPressed="OnTitleBarPointerPressed">
+                    PointerPressed="OnTitleBarPointerPressed"
+                    PointerMoved="OnTitleBarPointerMoved"
+                    PointerReleased="OnTitleBarPointerReleased"
+                    PointerCaptureLost="OnTitleBarPointerCaptureLost">
                     <Panel Classes="chrome-content">
                         <StackPanel
                             Classes="chrome-leading"
@@ -2070,7 +2073,7 @@
                                         IsChecked="{Binding IsGhostModeEnabled, Mode=OneWay}"
                                         IsEnabled="{Binding IsSimulating}"
                                         ToggleType="CheckBox"
-                                        ToolTip.Tip="Free-fly through the world with no collision (WASD + Space/Ctrl to fly up/down). Only available while playing." />
+                                        ToolTip.Tip="Disables collision + enables free fly while in simulation mode" />
 
                                     <MenuItem
                                         Command="{Binding ToggleShowStats}"
@@ -2105,7 +2108,7 @@
                     InitializeFactory="True"
                     InitializeLayout="True">
                     <DockControl.Factory>
-                        <Factory HideDocumentsOnClose="True" HideToolsOnClose="True" />
+                        <local:EditorDockFactory HideDocumentsOnClose="True" HideToolsOnClose="True" />
                     </DockControl.Factory>
 
                     <RootDock

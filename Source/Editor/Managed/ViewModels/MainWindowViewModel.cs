@@ -3282,7 +3282,7 @@ namespace Hyperion.Editor.ViewModels
                 }
 
                 ModelImportSnapshot snapshot = new(
-                    review.GetFileName() ?? string.Empty,
+                    review.GetFileName(),
                     review.HasMesh(),
                     review.GetBoneCount(),
                     takes,
@@ -3387,8 +3387,8 @@ namespace Hyperion.Editor.ViewModels
                     return;
                 }
 
-                string name = editModeState.GetDisplayName() ?? string.Empty;
-                string kind = editModeState.GetKindName() ?? string.Empty;
+                string name = editModeState.GetDisplayName();
+                string kind = editModeState.GetKindName();
 
                 Dispatcher.UIThread.Post(() =>
                 {
@@ -3459,8 +3459,8 @@ namespace Hyperion.Editor.ViewModels
                 {
                     snapshot.Active = true;
                     snapshot.Dirty = editModeState.IsDirty();
-                    snapshot.Name = editModeState.GetDisplayName() ?? string.Empty;
-                    snapshot.Kind = editModeState.GetKindName() ?? string.Empty;
+                    snapshot.Name = editModeState.GetDisplayName();
+                    snapshot.Kind = editModeState.GetKindName();
                     snapshot.InspectedAsset = editModeState.GetInspectedAsset();
                 }
             }
