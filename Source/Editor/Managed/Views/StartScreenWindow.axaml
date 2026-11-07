@@ -225,6 +225,7 @@
                         IsVisible="{Binding HasRecentProjects}"
                         ItemsSource="{Binding RecentProjects}"
                         KeyDown="OnRecentListKeyDown"
+                        Tapped="OnRecentListTapped"
                         SelectedItem="{Binding SelectedProject, Mode=TwoWay}"
                         SelectionMode="Single">
                         <ListBox.ItemTemplate>
@@ -234,7 +235,6 @@
                                     Classes="recent-item"
                                     Classes.missing="{Binding !Exists}"
                                     ColumnDefinitions="Auto,*,Auto,Auto"
-                                    Tapped="OnRecentProjectTapped"
                                     ToolTip.Tip="{Binding FilePath}">
                                     <Grid.ContextMenu>
                                         <ContextMenu>
