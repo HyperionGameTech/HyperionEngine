@@ -4,7 +4,11 @@ cmake_policy(SET CMP0091 NEW)
 project(hyperion-sample CXX C)
 
 # Each sample subdirectory with a CMakeLists.txt defines its own target.
-add_subdirectory(DefaultGame)
+
+# this is temporarily disabled as it has rotted a bit; we should change this to
+# not rely on the CacheServerCommandlet and instead just require a command to be run
+# to build out the cache data for the game ahead of time.
+# add_subdirectory(DefaultGame)
 
 if(HYP_DOTNET AND NOT HYP_ANDROID AND NOT HYP_IOS AND NOT HYP_WEB)
   add_subdirectory(CSharpGame)
