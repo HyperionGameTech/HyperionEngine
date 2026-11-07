@@ -1467,6 +1467,19 @@ if(HYP_DYNAMIC_PLUGINS)
   else()
     target_link_options(${BUILD_NAME} PRIVATE "LINKER:--whole-archive,$<TARGET_FILE:Jolt>,--no-whole-archive")
   endif()
+
+  if(MINGW)
+    set(JOLT_EXPORTS_DEF "${CMAKE_CURRENT_BINARY_DIR}/JoltExports.def")
+
+    add_custom_command(
+      OUTPUT "${JOLT_EXPORTS_DEF}"
+      COMMAND "${CMAKE_COMMAND}" -DNM=${CMAKE_NM} -DARCHIVE=$<TARGET_FILE:Jolt> -DOUTPUT=${JOLT_EXPORTS_DEF}
+              -P "${CMAKE_CURRENT_SOURCE_DIR}/GenerateJoltExports.cmake"
+      DEPENDS Jolt "${CMAKE_CURRENT_SOURCE_DIR}/GenerateJoltExports.cmake"
+      VERBATIM)
+
+    target_sources(${BUILD_NAME} PRIVATE "${JOLT_EXPORTS_DEF}")
+  endif()
 endif()
 
 if(HYP_MONOLITHIC AND NOT HYP_BUILD_STATIC)

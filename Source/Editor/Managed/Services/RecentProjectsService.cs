@@ -18,6 +18,8 @@ namespace Hyperion.Editor.Services
         private readonly DelegateHandler _recentProjectsChangedHandler;
         private DelegateHandler? _editorLaunchedHandler;
         private readonly List<Action<EditorSubsystem>> _pendingEditorActions = new();
+        private readonly List<(string CommandName, Action Callback)> _pendingCommandCallbacks = new();
+        private DelegateHandler? _commandExecutedHandler;
 
         /// Raised on the UI thread whenever the recent list changes
         public event Action? Changed;
@@ -105,14 +107,81 @@ namespace Hyperion.Editor.Services
             RunWhenEditorReady(editorSubsystem => editorSubsystem.OpenProjectAtPath(projectFilepath));
         }
 
-        public void BrowseForProject()
+        public void BrowseForProject(Action? onCommandFinished = null)
         {
-            RunWhenEditorReady(editorSubsystem => editorSubsystem.ExecuteCommandByName(new Name("EditorCommandOpenProject")));
+            ExecuteEditorCommand("EditorCommandOpenProject", onCommandFinished);
         }
 
-        public void NewProject()
+        public void NewProject(Action? onCommandFinished = null)
         {
-            RunWhenEditorReady(editorSubsystem => editorSubsystem.ExecuteCommandByName(new Name("EditorCommandNewProject")));
+            ExecuteEditorCommand("EditorCommandNewProject", onCommandFinished);
+        }
+
+        private void ExecuteEditorCommand(string commandName, Action? onCommandFinished)
+        {
+            RunWhenEditorReady(editorSubsystem =>
+            {
+                if (onCommandFinished != null)
+                {
+                    BindCommandExecuted(editorSubsystem);
+
+                    lock (_pendingCommandCallbacks)
+                    {
+                        _pendingCommandCallbacks.Add((commandName, onCommandFinished));
+                    }
+                }
+
+                if (!editorSubsystem.ExecuteCommandByName(new Name(commandName)) && onCommandFinished != null)
+                {
+                    OnCommandExecuted(commandName);
+                }
+            });
+        }
+
+        private void BindCommandExecuted(EditorSubsystem editorSubsystem)
+        {
+            if (_commandExecutedHandler != null)
+            {
+                return;
+            }
+
+            _commandExecutedHandler = editorSubsystem.GetOnCommandExecutedDelegate().Bind((Name commandName) =>
+            {
+                OnCommandExecuted(commandName.ToString());
+            });
+        }
+
+        private void OnCommandExecuted(string commandName)
+        {
+            List<Action> callbacks = new();
+
+            lock (_pendingCommandCallbacks)
+            {
+                _pendingCommandCallbacks.RemoveAll(pending =>
+                {
+                    if (pending.CommandName != commandName)
+                    {
+                        return false;
+                    }
+
+                    callbacks.Add(pending.Callback);
+
+                    return true;
+                });
+            }
+
+            if (callbacks.Count == 0)
+            {
+                return;
+            }
+
+            Dispatcher.UIThread.Post(() =>
+            {
+                foreach (Action callback in callbacks)
+                {
+                    callback();
+                }
+            });
         }
 
         public void Remove(string projectFilepath)

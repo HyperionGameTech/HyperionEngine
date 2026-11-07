@@ -105,13 +105,16 @@ namespace Hyperion.Editor
         private readonly Dictionary<EditorDocumentViewModel, IDockable> _pluginDocuments = new();
         private int _frameCounter;
         private double _normalWidth;
+        private const double MaximizedDragRestoreThreshold = 4.0;
+        private PointerPressedEventArgs? _pendingMaximizedDragPress;
+        private Point _pendingMaximizedDragOrigin;
         private bool _viewportNativeHidden;
         private bool _isClosing;
         private int _mainThreadUpdateDepth;
         private bool _closeDeferred;
         private bool _suppressPanelSync;
         private HashSet<string> _newWorldExistingNames = new(StringComparer.OrdinalIgnoreCase);
-        private readonly Dictionary<string, object?> _dockContents = new Dictionary<string, object?>();
+        private readonly Dictionary<string, object?> _dockContents = new();
         private readonly Dictionary<EditorViewportType, Control> _orthoViewportContents = new();
 
         private enum ViewportLayout
@@ -440,7 +443,10 @@ namespace Hyperion.Editor
 
             if (WindowState == WindowState.Maximized)
             {
-                RestoreUnderPointer(e);
+                _pendingMaximizedDragPress = e;
+                _pendingMaximizedDragOrigin = e.GetPosition(this);
+                e.Pointer.Capture(TitleBarDragRegion);
+                return;
             }
 
             BeginMoveDrag(e);
@@ -448,9 +454,46 @@ namespace Hyperion.Editor
             ClearCaptionHover();
         }
 
-        private void RestoreUnderPointer(PointerPressedEventArgs e)
+        private void OnTitleBarPointerMoved(object? sender, PointerEventArgs e)
         {
-            Point cursorInWindow = e.GetPosition(this);
+            if (_pendingMaximizedDragPress is not PointerPressedEventArgs press)
+            {
+                return;
+            }
+
+            Vector delta = e.GetPosition(this) - _pendingMaximizedDragOrigin;
+            if (Math.Abs(delta.X) < MaximizedDragRestoreThreshold && Math.Abs(delta.Y) < MaximizedDragRestoreThreshold)
+            {
+                return;
+            }
+
+            _pendingMaximizedDragPress = null;
+            e.Pointer.Capture(null);
+
+            RestoreUnderPointer(_pendingMaximizedDragOrigin);
+            BeginMoveDrag(press);
+
+            ClearCaptionHover();
+        }
+
+        private void OnTitleBarPointerReleased(object? sender, PointerReleasedEventArgs e)
+        {
+            if (_pendingMaximizedDragPress == null)
+            {
+                return;
+            }
+
+            _pendingMaximizedDragPress = null;
+            e.Pointer.Capture(null);
+        }
+
+        private void OnTitleBarPointerCaptureLost(object? sender, PointerCaptureLostEventArgs e)
+        {
+            _pendingMaximizedDragPress = null;
+        }
+
+        private void RestoreUnderPointer(Point cursorInWindow)
+        {
             PixelPoint maximizedOrigin = Position;
             double fraction = cursorInWindow.X / Bounds.Width;
             double restoredWidth = _normalWidth > 0 ? _normalWidth : Bounds.Width;
@@ -1026,7 +1069,7 @@ namespace Hyperion.Editor
 
             if (_dynamicPanelsDock == null && DockControl.Layout is { } layout)
             {
-                _dynamicPanelsDock = FindDockableById(layout, "DynamicPanelsPane") as IDock;
+                _dynamicPanelsDock = FindDockableById(layout, EditorDockFactory.DynamicPanelsPaneId) as IDock;
             }
 
             if (_dynamicPanelsDock is not { } dock)
@@ -1294,7 +1337,7 @@ namespace Hyperion.Editor
             var bottomDock = new ProportionalDock { Id = "Bottom", Orientation = Orientation.Horizontal, Proportion = 0.4, VisibleDockables = CreateDockList(assetsPane, new ProportionalDockSplitter(), consolePane) };
             var centerDock = new ProportionalDock { Id = "Center", Orientation = Orientation.Vertical, VisibleDockables = CreateDockList(BuildViewportArea(documentsPane), new ProportionalDockSplitter(), bottomDock) };
 
-            var dynamicPanelsPane = new ToolDock { Id = "DynamicPanelsPane", Alignment = Alignment.Right, Proportion = 0.4, VisibleDockables = CreateDockList() };
+            var dynamicPanelsPane = new ToolDock { Id = EditorDockFactory.DynamicPanelsPaneId, Alignment = Alignment.Right, Proportion = 0.4, VisibleDockables = CreateDockList() };
 
             var mainLayout = new ProportionalDock
             {
@@ -3901,6 +3944,21 @@ namespace Hyperion.Editor
                     }
                     break;
             }
+        }
+    }
+
+    public sealed class EditorDockFactory : Dock.Model.Avalonia.Factory
+    {
+        public const string DynamicPanelsPaneId = "DynamicPanelsPane";
+
+        public override void CollapseDock(IDock dock)
+        {
+            if (dock.Id == DynamicPanelsPaneId)
+            {
+                return;
+            }
+
+            base.CollapseDock(dock);
         }
     }
 }

@@ -1,3 +1,7 @@
+if(POLICY CMP0207)
+  cmake_policy(SET CMP0207 NEW)
+endif()
+
 get_filename_component(runtime_dir "${LIBRARY}" DIRECTORY)
 get_filename_component(library_name "${LIBRARY}" NAME)
 

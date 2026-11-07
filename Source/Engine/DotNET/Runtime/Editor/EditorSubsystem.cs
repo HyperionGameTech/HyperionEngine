@@ -56,9 +56,9 @@ namespace Hyperion
 
         public EditorIsolatedEditState? ActiveIsolatedEditState => InvokeNativeMethod<EditorIsolatedEditState>(new Name("GetActiveIsolatedEditState"));
 
-        public void ExecuteCommandByName(Name commandName, params string[] arguments)
+        public bool ExecuteCommandByName(Name commandName, params string[] arguments)
         {
-            this.InvokeNativeMethod(new Name("ExecuteCommandByName"), new object[] { commandName, string.Join(" ", arguments) });
+            return this.InvokeNativeMethod<bool>(new Name("ExecuteCommandByName"), new object[] { commandName, string.Join(" ", arguments) });
         }
 
         public string GetCodeEditor()

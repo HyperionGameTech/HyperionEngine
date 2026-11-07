@@ -957,5 +957,63 @@
             <Setter Property="FontFamily" Value="{StaticResource Font.Base}" />
             <Setter Property="FontSize" Value="11.5" />
         </Style>
+
+        <Style Selector="RadioButton.tool-mode">
+            <Setter Property="Padding" Value="8,5" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="Background" Value="{DynamicResource Brush.PanelRaised}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{DynamicResource Radius.Small}" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextMuted}" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}">
+                        <ContentPresenter
+                            Margin="{TemplateBinding Padding}"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Content="{TemplateBinding Content}"
+                            TextElement.Foreground="{TemplateBinding Foreground}" />
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="RadioButton.tool-mode:pointerover">
+            <Setter Property="Background" Value="{DynamicResource Brush.MenuHover}" />
+        </Style>
+        <Style Selector="RadioButton.tool-mode:checked">
+            <Setter Property="Background" Value="{DynamicResource Brush.AccentSubtle}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Accent}" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.AccentHover}" />
+        </Style>
+        <Style Selector="RadioButton.tool-mode:checked:pointerover">
+            <Setter Property="Background" Value="{DynamicResource Brush.AccentMuted}" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+
+        <Style Selector="Grid.setting-row">
+            <Setter Property="MinHeight" Value="26" />
+        </Style>
+        <Style Selector="Grid.setting-row > TextBlock">
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Grid.setting-row > Slider">
+            <Setter Property="Margin" Value="0,0,8,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="NumericUpDown.setting-box">
+            <Setter Property="ShowButtonSpinner" Value="False" />
+            <Setter Property="FormatString" Value="0.##" />
+            <Setter Property="MinHeight" Value="24" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
     </Application.Styles>
 </Application>

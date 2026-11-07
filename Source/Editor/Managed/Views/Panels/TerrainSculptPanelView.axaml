@@ -8,86 +8,57 @@
     x:DataType="vm:TerrainSculptPanelViewModel"
     mc:Ignorable="d">
     <ScrollViewer Padding="4,0" Offset="{Binding ScrollOffset, Mode=TwoWay}">
-        <StackPanel Margin="12,12,12,8" Spacing="12">
+        <StackPanel Margin="12,12,12,8" Spacing="14">
 
             <StackPanel Spacing="6">
-                <TextBlock Classes="section-label" Text="Tool" />
-                <WrapPanel>
-                    <ToggleButton
-                        Margin="0,0,6,6"
-                        IsChecked="{Binding IsRaiseMode, Mode=OneWay}"
-                        Command="{Binding SetRaiseModeCommand}">
-                        <TextBlock Text="Raise" Margin="8,0" />
-                    </ToggleButton>
-                    <ToggleButton
-                        Margin="0,0,6,6"
-                        IsChecked="{Binding IsLowerMode, Mode=OneWay}"
-                        Command="{Binding SetLowerModeCommand}">
-                        <TextBlock Text="Lower" Margin="8,0" />
-                    </ToggleButton>
-                    <ToggleButton
-                        Margin="0,0,6,6"
-                        IsChecked="{Binding IsFlattenMode, Mode=OneWay}"
-                        Command="{Binding SetFlattenModeCommand}">
-                        <TextBlock Text="Flatten" Margin="8,0" />
-                    </ToggleButton>
-                    <ToggleButton
-                        Margin="0,0,6,6"
-                        IsChecked="{Binding IsSmoothMode, Mode=OneWay}"
-                        Command="{Binding SetSmoothModeCommand}">
-                        <TextBlock Text="Smooth" Margin="8,0" />
-                    </ToggleButton>
-                    <ToggleButton
-                        Margin="0,0,6,6"
-                        IsChecked="{Binding IsRampMode, Mode=OneWay}"
-                        Command="{Binding SetRampModeCommand}"
-                        ToolTip.Tip="Drag ramp between points">
-                        <TextBlock Text="Ramp" Margin="8,0" />
-                    </ToggleButton>
-                    <ToggleButton
-                        Margin="0,0,6,6"
-                        IsChecked="{Binding IsProceduralMode, Mode=OneWay}"
-                        Command="{Binding SetProceduralModeCommand}"
-                        ToolTip.Tip="Mark cells for procedural terrain generation. (hold Shift to unmark)">
-                        <TextBlock Text="Procedural" Margin="8,0" />
-                    </ToggleButton>
-                </WrapPanel>
+                <TextBlock Classes="section-label" Text="Mode" />
+                <Grid ColumnDefinitions="*,*,*" ColumnSpacing="4" RowDefinitions="Auto,Auto" RowSpacing="4">
+                    <RadioButton Classes="tool-mode" Content="Raise" IsChecked="{Binding IsRaiseMode, Mode=TwoWay}" />
+                    <RadioButton Grid.Column="1" Classes="tool-mode" Content="Lower" IsChecked="{Binding IsLowerMode, Mode=TwoWay}" />
+                    <RadioButton Grid.Column="2" Classes="tool-mode" Content="Flatten" IsChecked="{Binding IsFlattenMode, Mode=TwoWay}" />
+                    <RadioButton Grid.Row="1" Classes="tool-mode" Content="Smooth" IsChecked="{Binding IsSmoothMode, Mode=TwoWay}" />
+                    <RadioButton
+                        Grid.Row="1"
+                        Grid.Column="1"
+                        Classes="tool-mode"
+                        Content="Ramp"
+                        IsChecked="{Binding IsRampMode, Mode=TwoWay}"
+                        ToolTip.Tip="Drag a ramp between two points" />
+                    <RadioButton
+                        Grid.Row="1"
+                        Grid.Column="2"
+                        Classes="tool-mode"
+                        Content="Procedural"
+                        IsChecked="{Binding IsProceduralMode, Mode=TwoWay}"
+                        ToolTip.Tip="Mark cells for procedural terrain generation" />
+                </Grid>
             </StackPanel>
 
             <Separator />
 
             <StackPanel Spacing="6">
-                <Grid ColumnDefinitions="*,Auto">
-                    <TextBlock Classes="section-label" Text="Radius" />
-                    <TextBlock Grid.Column="1" Classes="hint-text" Text="{Binding RadiusText}" />
+                <TextBlock Classes="section-label" Text="Brush" />
+
+                <Grid Classes="setting-row" ColumnDefinitions="96,*,64">
+                    <TextBlock Text="Radius" />
+                    <Slider Grid.Column="1" Maximum="100" Minimum="0.5" Value="{Binding Radius}" />
+                    <NumericUpDown Grid.Column="2" Classes="setting-box" Increment="0.5" Minimum="0.5" Value="{Binding Radius}" />
                 </Grid>
-                <Slider
-                    Maximum="100"
-                    Minimum="0.5"
-                    Value="{Binding Radius}" />
+
+                <Grid Classes="setting-row" ColumnDefinitions="96,*,64">
+                    <TextBlock Text="Strength" />
+                    <Slider Grid.Column="1" Maximum="10" Minimum="0.05" Value="{Binding Strength}" />
+                    <NumericUpDown Grid.Column="2" Classes="setting-box" Increment="0.1" Minimum="0.05" Value="{Binding Strength}" />
+                </Grid>
+
+                <Grid Classes="setting-row" ColumnDefinitions="96,*,64" IsVisible="{Binding HasFalloff}" ToolTip.Tip="Fraction of the radius that blends into the surrounding terrain">
+                    <TextBlock Text="Falloff" />
+                    <Slider Grid.Column="1" Maximum="1" Minimum="0" Value="{Binding Falloff}" />
+                    <NumericUpDown Grid.Column="2" Classes="setting-box" Increment="0.05" Maximum="1" Minimum="0" Value="{Binding Falloff}" />
+                </Grid>
             </StackPanel>
 
-            <StackPanel Spacing="6">
-                <Grid ColumnDefinitions="*,Auto">
-                    <TextBlock Classes="section-label" Text="Strength" />
-                    <TextBlock Grid.Column="1" Classes="hint-text" Text="{Binding StrengthText}" />
-                </Grid>
-                <Slider
-                    Maximum="10"
-                    Minimum="0.05"
-                    Value="{Binding Strength}" />
-            </StackPanel>
-
-            <StackPanel IsVisible="{Binding HasFalloff}" Spacing="6">
-                <Grid ColumnDefinitions="*,Auto">
-                    <TextBlock Classes="section-label" Text="Falloff" />
-                    <TextBlock Grid.Column="1" Classes="hint-text" Text="{Binding FalloffText}" />
-                </Grid>
-                <Slider
-                    Maximum="1"
-                    Minimum="0"
-                    Value="{Binding Falloff}" />
-            </StackPanel>
+            <TextBlock Classes="hint-text" Text="Apply: Drag LMB&#x0a;Invert: Shift+Drag LMB" />
 
         </StackPanel>
     </ScrollViewer>

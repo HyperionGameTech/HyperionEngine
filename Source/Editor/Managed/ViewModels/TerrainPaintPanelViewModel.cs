@@ -7,6 +7,32 @@ namespace Hyperion.Editor.ViewModels
     {
         private readonly EditorTerrainState _terrainState;
 
+        private bool _eraseMode;
+
+        public bool PaintMode
+        {
+            get => !_eraseMode;
+            set
+            {
+                if (value)
+                {
+                    SetEraseMode(false);
+                }
+            }
+        }
+
+        public bool EraseMode
+        {
+            get => _eraseMode;
+            set
+            {
+                if (value)
+                {
+                    SetEraseMode(true);
+                }
+            }
+        }
+
         private int _paintLayerIndex = 0;
         public int PaintLayerIndex
         {
@@ -20,7 +46,7 @@ namespace Hyperion.Editor.ViewModels
             }
         }
 
-        private double _radius = 5.0;
+        private double _radius;
         public double Radius
         {
             get => _radius;
@@ -29,14 +55,11 @@ namespace Hyperion.Editor.ViewModels
                 if (SetProperty(ref _radius, value))
                 {
                     _terrainState.SetRadius((float)value);
-                    OnPropertyChanged(nameof(RadiusText));
                 }
             }
         }
 
-        public string RadiusText => $"{_radius:0.#} m";
-
-        private double _strength = 2.0;
+        private double _strength;
         public double Strength
         {
             get => _strength;
@@ -45,12 +68,9 @@ namespace Hyperion.Editor.ViewModels
                 if (SetProperty(ref _strength, value))
                 {
                     _terrainState.SetStrength((float)value);
-                    OnPropertyChanged(nameof(StrengthText));
                 }
             }
         }
-
-        public string StrengthText => $"{_strength:0.00}";
 
         public TerrainPaintPanelViewModel(EditorTerrainState terrainState, Action? onClosed)
             : base("Terrain Painting", onClosed)
@@ -58,6 +78,23 @@ namespace Hyperion.Editor.ViewModels
             _terrainState = terrainState ?? throw new ArgumentNullException(nameof(terrainState));
 
             _paintLayerIndex = terrainState.GetPaintLayer();
+            _radius = terrainState.Radius;
+            _strength = terrainState.Strength;
+            _eraseMode = terrainState.EraseMode;
+        }
+
+        private void SetEraseMode(bool eraseMode)
+        {
+            if (_eraseMode == eraseMode)
+            {
+                return;
+            }
+
+            _eraseMode = eraseMode;
+            _terrainState.SetEraseMode(eraseMode);
+
+            OnPropertyChanged(nameof(PaintMode));
+            OnPropertyChanged(nameof(EraseMode));
         }
     }
 }

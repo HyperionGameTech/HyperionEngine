@@ -114,6 +114,46 @@ namespace Hyperion.Editor.ViewModels
             }
         }
 
+        private bool _eraseMode;
+
+        public bool PaintMode
+        {
+            get => !_eraseMode;
+            set
+            {
+                if (value)
+                {
+                    SetEraseMode(false);
+                }
+            }
+        }
+
+        public bool EraseMode
+        {
+            get => _eraseMode;
+            set
+            {
+                if (value)
+                {
+                    SetEraseMode(true);
+                }
+            }
+        }
+
+        private void SetEraseMode(bool eraseMode)
+        {
+            if (_eraseMode == eraseMode)
+            {
+                return;
+            }
+
+            _eraseMode = eraseMode;
+            _painterState.SetEraseMode(eraseMode);
+
+            OnPropertyChanged(nameof(PaintMode));
+            OnPropertyChanged(nameof(EraseMode));
+        }
+
         protected SurfacePainterPanelViewModel(
             string title,
             string assetLabel,
@@ -137,6 +177,7 @@ namespace Hyperion.Editor.ViewModels
             _spacing = painterState.Spacing;
             _eraseRadius = painterState.EraseRadius;
             _alignToSurface = painterState.AlignToSurface;
+            _eraseMode = painterState.EraseMode;
 
             _assetPicker = new PainterAssetPicker(title, painterState, activeAssetPropertyName, assetBucket, editorSubsystem);
             _assetPicker.AssetBucketChanged += OnAssetBucketChanged;

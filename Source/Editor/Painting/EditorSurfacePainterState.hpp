@@ -83,11 +83,20 @@ public:
     HYP_METHOD()
     void SetAlignToSurface(bool alignToSurface);
 
+    /// Is it in erase mode?
+    HYP_METHOD()
+    bool GetEraseMode() const;
+
+    HYP_METHOD()
+    void SetEraseMode(bool eraseMode);
+
     HYP_METHOD()
     uint32 PaintArea(const Vec3f& center, float radius, uint32 count, bool erase);
 
-    void BeginStroke(const Vec2f& relativePos, bool erase);
-    void UpdateStroke(const Vec2f& relativePos, bool erase);
+    void StampAt(const Vec2f& relativePos);
+
+    void BeginStroke(const Vec2f& relativePos);
+    void UpdateStroke(const Vec2f& relativePos);
     void EndStroke();
 
     HYP_FORCE_INLINE bool IsStroking() const
@@ -173,6 +182,7 @@ protected:
     float m_spacing = 0.5f;
     float m_eraseRadius = 1.0f;
     bool m_alignToSurface = true;
+    bool m_eraseMode = false;
 
 private:
     bool TryGetSurfaceHit(

@@ -919,6 +919,9 @@ public:
     HYP_FIELD()
     ScriptableDelegate<void> OnScriptReloaded;
 
+    HYP_FIELD()
+    ScriptableDelegate<void, Name> OnCommandExecuted;
+
 private:
     void InitViewport();
 

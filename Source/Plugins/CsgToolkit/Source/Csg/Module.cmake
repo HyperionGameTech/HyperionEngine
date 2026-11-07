@@ -5,9 +5,15 @@ if(EXISTS "${MANIFOLD_DIR}/include/manifold/manifold.h")
   message(STATUS "manifold found, enabling mesh booleans")
 
   set(MANIFOLD_SOURCES
+    "${MANIFOLD_DIR}/src/boolean2.cpp"
+    "${MANIFOLD_DIR}/src/boolean2_diagnostics.cpp"
+    "${MANIFOLD_DIR}/src/boolean2_offset.cpp"
+    "${MANIFOLD_DIR}/src/boolean2_predicates.cpp"
+    "${MANIFOLD_DIR}/src/boolean2_sweep.cpp"
     "${MANIFOLD_DIR}/src/boolean3.cpp"
     "${MANIFOLD_DIR}/src/boolean_result.cpp"
     "${MANIFOLD_DIR}/src/constructors.cpp"
+    "${MANIFOLD_DIR}/src/cross_section.cpp"
     "${MANIFOLD_DIR}/src/csg_tree.cpp"
     "${MANIFOLD_DIR}/src/edge_op.cpp"
     "${MANIFOLD_DIR}/src/execution_impl.cpp"
@@ -43,7 +49,17 @@ if(EXISTS "${MANIFOLD_DIR}/include/manifold/manifold.h")
 
   source_group(TREE "${MANIFOLD_DIR}/src" PREFIX "Third-Party Code" FILES ${MANIFOLD_SOURCES})
 
+  file(READ "${MANIFOLD_DIR}/CMakeLists.txt" MANIFOLD_CMAKELISTS)
+
+  foreach(MANIFOLD_VERSION_PART MAJOR MINOR PATCH)
+    string(REGEX MATCH "set\\(MANIFOLD_VERSION_${MANIFOLD_VERSION_PART} ([0-9]+)\\)" _ "${MANIFOLD_CMAKELISTS}")
+    set(MANIFOLD_VERSION_${MANIFOLD_VERSION_PART} "${CMAKE_MATCH_1}")
+  endforeach()
+
+  set(MANIFOLD_GENERATED_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/manifold/include")
+  configure_file("${MANIFOLD_DIR}/cmake/version.h.in" "${MANIFOLD_GENERATED_INCLUDE_DIR}/manifold/version.h" @ONLY)
+
   target_sources(${plugin_target} PRIVATE ${MANIFOLD_SOURCES})
   target_compile_definitions(${plugin_target} PRIVATE HYP_MANIFOLD=1 MANIFOLD_PAR=-1)
-  target_include_directories(${plugin_target} SYSTEM PRIVATE "${MANIFOLD_DIR}/include")
+  target_include_directories(${plugin_target} SYSTEM PRIVATE "${MANIFOLD_DIR}/include" "${MANIFOLD_GENERATED_INCLUDE_DIR}")
 endif()

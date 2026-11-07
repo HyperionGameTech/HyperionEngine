@@ -1,7 +1,5 @@
 using System;
-using System.Windows.Input;
 using Hyperion;
-using Hyperion.Editor.Commands;
 
 namespace Hyperion.Editor.ViewModels
 {
@@ -11,23 +9,45 @@ namespace Hyperion.Editor.ViewModels
 
         private TerrainSculptMode _mode;
 
-        public bool IsRaiseMode => _mode == TerrainSculptMode.Raise;
-        public bool IsLowerMode => _mode == TerrainSculptMode.Lower;
-        public bool IsFlattenMode => _mode == TerrainSculptMode.Flatten;
-        public bool IsSmoothMode => _mode == TerrainSculptMode.Smooth;
-        public bool IsRampMode => _mode == TerrainSculptMode.Ramp;
-        public bool IsProceduralMode => _mode == TerrainSculptMode.MarkProcedural;
+        public bool IsRaiseMode
+        {
+            get => _mode == TerrainSculptMode.Raise;
+            set => CheckMode(TerrainSculptMode.Raise, value);
+        }
+
+        public bool IsLowerMode
+        {
+            get => _mode == TerrainSculptMode.Lower;
+            set => CheckMode(TerrainSculptMode.Lower, value);
+        }
+
+        public bool IsFlattenMode
+        {
+            get => _mode == TerrainSculptMode.Flatten;
+            set => CheckMode(TerrainSculptMode.Flatten, value);
+        }
+
+        public bool IsSmoothMode
+        {
+            get => _mode == TerrainSculptMode.Smooth;
+            set => CheckMode(TerrainSculptMode.Smooth, value);
+        }
+
+        public bool IsRampMode
+        {
+            get => _mode == TerrainSculptMode.Ramp;
+            set => CheckMode(TerrainSculptMode.Ramp, value);
+        }
+
+        public bool IsProceduralMode
+        {
+            get => _mode == TerrainSculptMode.MarkProcedural;
+            set => CheckMode(TerrainSculptMode.MarkProcedural, value);
+        }
 
         public bool HasFalloff => IsFlattenMode || IsRampMode;
 
-        public ICommand SetRaiseModeCommand { get; }
-        public ICommand SetLowerModeCommand { get; }
-        public ICommand SetFlattenModeCommand { get; }
-        public ICommand SetSmoothModeCommand { get; }
-        public ICommand SetRampModeCommand { get; }
-        public ICommand SetProceduralModeCommand { get; }
-
-        private double _radius = 5.0;
+        private double _radius;
         public double Radius
         {
             get => _radius;
@@ -36,14 +56,11 @@ namespace Hyperion.Editor.ViewModels
                 if (SetProperty(ref _radius, value))
                 {
                     _terrainState.SetRadius((float)value);
-                    OnPropertyChanged(nameof(RadiusText));
                 }
             }
         }
 
-        public string RadiusText => $"{_radius:0.#} m";
-
-        private double _strength = 2.0;
+        private double _strength;
         public double Strength
         {
             get => _strength;
@@ -52,14 +69,11 @@ namespace Hyperion.Editor.ViewModels
                 if (SetProperty(ref _strength, value))
                 {
                     _terrainState.SetStrength((float)value);
-                    OnPropertyChanged(nameof(StrengthText));
                 }
             }
         }
 
-        public string StrengthText => $"{_strength:0.00}";
-
-        private double _falloff = 0.5;
+        private double _falloff;
         public double Falloff
         {
             get => _falloff;
@@ -68,26 +82,18 @@ namespace Hyperion.Editor.ViewModels
                 if (SetProperty(ref _falloff, value))
                 {
                     _terrainState.SetFalloff((float)value);
-                    OnPropertyChanged(nameof(FalloffText));
                 }
             }
         }
-
-        public string FalloffText => $"{_falloff * 100.0:0}%";
 
         public TerrainSculptPanelViewModel(EditorTerrainState terrainState, Action? onClosed)
             : base("Terrain Sculpting", onClosed)
         {
             _terrainState = terrainState ?? throw new ArgumentNullException(nameof(terrainState));
 
-            SetRaiseModeCommand = new RelayCommand(() => SetMode(TerrainSculptMode.Raise));
-            SetLowerModeCommand = new RelayCommand(() => SetMode(TerrainSculptMode.Lower));
-            SetFlattenModeCommand = new RelayCommand(() => SetMode(TerrainSculptMode.Flatten));
-            SetSmoothModeCommand = new RelayCommand(() => SetMode(TerrainSculptMode.Smooth));
-            SetRampModeCommand = new RelayCommand(() => SetMode(TerrainSculptMode.Ramp));
-            SetProceduralModeCommand = new RelayCommand(() => SetMode(TerrainSculptMode.MarkProcedural));
-
             _mode = terrainState.GetMode();
+            _radius = terrainState.Radius;
+            _strength = terrainState.Strength;
             _falloff = terrainState.GetFalloff();
 
             if (_mode == TerrainSculptMode.PaintSplat || _mode == TerrainSculptMode.PaintGroundCover)
@@ -96,9 +102,9 @@ namespace Hyperion.Editor.ViewModels
             }
         }
 
-        private void SetMode(TerrainSculptMode mode)
+        private void CheckMode(TerrainSculptMode mode, bool isChecked)
         {
-            if (_mode == mode)
+            if (!isChecked || _mode == mode)
             {
                 return;
             }

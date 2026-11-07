@@ -121,12 +121,23 @@
                             Command="{Binding NewProjectCommand}"
                             ToolTip.Tip="New project from blank template">
                             <Grid ColumnDefinitions="Auto,*">
-                                <controls:Codicon
+                                <Panel
                                     Grid.Column="0"
+                                    Width="18"
                                     Margin="0,0,12,0"
-                                    VerticalAlignment="Center"
-                                    Kind="Add"
-                                    Size="18" />
+                                    VerticalAlignment="Center">
+                                    <controls:Codicon
+                                        IsVisible="{Binding !IsCreatingProject}"
+                                        Kind="Add"
+                                        Size="18" />
+                                    <Path
+                                        Width="16"
+                                        Height="16"
+                                        HorizontalAlignment="Center"
+                                        Classes="spinner"
+                                        IsVisible="{Binding IsCreatingProject}"
+                                        Stretch="Uniform" />
+                                </Panel>
                                 <StackPanel Grid.Column="1" Spacing="1">
                                     <TextBlock FontWeight="SemiBold" Text="New Project" />
                                     <TextBlock
@@ -142,12 +153,23 @@
                             Command="{Binding BrowseCommand}"
                             ToolTip.Tip="Open an existing project">
                             <Grid ColumnDefinitions="Auto,*">
-                                <controls:Codicon
+                                <Panel
                                     Grid.Column="0"
+                                    Width="18"
                                     Margin="0,0,12,0"
-                                    VerticalAlignment="Center"
-                                    Kind="FolderOpened"
-                                    Size="18" />
+                                    VerticalAlignment="Center">
+                                    <controls:Codicon
+                                        IsVisible="{Binding !IsBrowsing}"
+                                        Kind="FolderOpened"
+                                        Size="18" />
+                                    <Path
+                                        Width="16"
+                                        Height="16"
+                                        HorizontalAlignment="Center"
+                                        Classes="spinner"
+                                        IsVisible="{Binding IsBrowsing}"
+                                        Stretch="Uniform" />
+                                </Panel>
                                 <StackPanel Grid.Column="1" Spacing="1">
                                     <TextBlock FontWeight="SemiBold" Text="Browse..." />
                                     <TextBlock

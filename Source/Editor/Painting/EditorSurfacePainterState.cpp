@@ -244,6 +244,24 @@ void EditorSurfacePainterState::SetAlignToSurface(bool alignToSurface)
         });
 }
 
+bool EditorSurfacePainterState::GetEraseMode() const
+{
+    return m_eraseMode;
+}
+
+void EditorSurfacePainterState::SetEraseMode(bool eraseMode)
+{
+    DispatchToSimThread([this, eraseMode]()
+        {
+            if (m_isStroking)
+            {
+                EndStroke();
+            }
+
+            m_eraseMode = eraseMode;
+        });
+}
+
 bool EditorSurfacePainterState::TryGetSurfaceHit(const Vec2f& relativePos, SurfaceHit& outHit) const
 {
     AssertOnThread(g_simThread);
@@ -551,7 +569,20 @@ uint32 EditorSurfacePainterState::PaintArea(
     return (m_stampCount - stampCountBefore);
 }
 
-void EditorSurfacePainterState::BeginStroke(const Vec2f& relativePos, bool erase)
+void EditorSurfacePainterState::StampAt(const Vec2f& relativePos)
+{
+    AssertOnThread(g_simThread);
+
+    if (m_isStroking)
+    {
+        return;
+    }
+
+    BeginStroke(relativePos);
+    EndStroke();
+}
+
+void EditorSurfacePainterState::BeginStroke(const Vec2f& relativePos)
 {
     AssertOnThread(g_simThread);
 
@@ -559,6 +590,8 @@ void EditorSurfacePainterState::BeginStroke(const Vec2f& relativePos, bool erase
     {
         return;
     }
+
+    const bool erase = m_eraseMode;
 
     if (!erase && !HasActiveAsset())
     {
@@ -594,7 +627,7 @@ void EditorSurfacePainterState::BeginStroke(const Vec2f& relativePos, bool erase
     }
 }
 
-void EditorSurfacePainterState::UpdateStroke(const Vec2f& relativePos, bool erase)
+void EditorSurfacePainterState::UpdateStroke(const Vec2f& relativePos)
 {
     AssertOnThread(g_simThread);
 
@@ -622,7 +655,7 @@ void EditorSurfacePainterState::UpdateStroke(const Vec2f& relativePos, bool eras
         return;
     }
 
-    // spacing 0 = one stamp per click
+    // spacing 0 = one stamp per stroke
     if (m_spacing <= 0.0f)
     {
         return;
@@ -707,7 +740,7 @@ void EditorSurfacePainterState::DebugDrawCursor(DebugDrawCommandList& debugDrawC
     }
 
     // Erasing
-    if (m_isStroking && m_strokeErase)
+    if (m_isStroking ? m_strokeErase : m_eraseMode)
     {
         debugDrawCommandList.sphere(m_hover.position, m_eraseRadius, Color(1.0f, 0.3f, 0.2f, 1.0f), attributes);
 
