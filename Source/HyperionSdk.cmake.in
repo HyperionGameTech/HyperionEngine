@@ -1,4 +1,5 @@
 set(HYPERION_SDK_VERSION "@HYP_VERSION_MAJOR@.@HYP_VERSION_MINOR@.@HYP_VERSION_PATCH@")
+get_filename_component(HYPERION_SDK_STAMP_DIR "${CMAKE_CURRENT_LIST_DIR}/.." REALPATH)
 set(HYPERION_SDK_COMPILER "@HYP_SDK_COMPILER@")
 set(HYPERION_SDK_THIRD_PARTY_DIRS "@HYP_SDK_THIRD_PARTY_SUBDIRS@")
 set(HYPERION_SDK_RUNTIME_LIBRARIES "")
@@ -171,11 +172,12 @@ function(hyperion_copy_runtime target)
   endif()
 endfunction()
 
-# Writes <target>.EngineVersion.txt beside the game module once it's up to date
+# Writes <target>.EngineVersion.txt beside the game module once it's up to date. The editor compares it whole with
+# its own version and Sdk folder, since another editor install of the same version can export different symbols
 function(hyperion_stamp_engine_version target)
   set(stamp "${CMAKE_CURRENT_BINARY_DIR}/${target}.EngineVersion.txt")
 
-  file(CONFIGURE OUTPUT "${stamp}" CONTENT "${HYPERION_SDK_VERSION}\n")
+  file(CONFIGURE OUTPUT "${stamp}" CONTENT "${HYPERION_SDK_VERSION} ${HYPERION_SDK_STAMP_DIR}\n")
 
   add_custom_target(${target}EngineVersion ALL
       COMMAND ${CMAKE_COMMAND} -E copy_if_different "${stamp}" "$<TARGET_FILE_DIR:${target}>"

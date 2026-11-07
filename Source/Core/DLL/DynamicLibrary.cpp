@@ -16,6 +16,9 @@
 
 #include <Core/Threading/Mutex.hpp>
 
+#include <Core/Logging/Logger.hpp>
+#include <Core/Logging/LogChannels.hpp>
+
 #include <Core/Defines.hpp>
 
 #ifdef HYP_WINDOWS
@@ -66,6 +69,33 @@ static void GetLoadSegmentRange(const dl_phdr_info* info, UIntPtr& outBegin, UIn
             outEnd = MathUtil::Max(outEnd, UIntPtr(info->dlpi_addr + programHeader.p_vaddr + programHeader.p_memsz));
         }
     }
+}
+#endif
+
+#ifdef HYP_WINDOWS
+static String GetWindowsErrorMessage(DWORD errorCode)
+{
+    wchar_t* buffer = nullptr;
+
+    const DWORD length = FormatMessageW(
+        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+        nullptr,
+        errorCode,
+        0,
+        reinterpret_cast<wchar_t*>(&buffer),
+        0,
+        nullptr);
+
+    if (length == 0 || buffer == nullptr)
+    {
+        return HYP_FORMAT("error {}", errorCode);
+    }
+
+    const String message = String(WideString(buffer)).Trimmed();
+
+    LocalFree(buffer);
+
+    return HYP_FORMAT("{} (error {})", message, errorCode);
 }
 #endif
 
@@ -138,9 +168,27 @@ bool DynamicLibrary::Open()
     }
 
 #if HYP_WINDOWS
+    // a missing dependency or entry point fails the load instead of raising a modal loader dialog
+    DWORD previousErrorMode = 0;
+    SetThreadErrorMode(SEM_FAILCRITICALERRORS, &previousErrorMode);
+
     m_impl->handle = LoadLibraryW(m_impl->path.Data());
+
+    const DWORD errorCode = GetLastError();
+
+    SetThreadErrorMode(previousErrorMode, nullptr);
+
+    if (!m_impl->handle)
+    {
+        HYP_LOG(Core, Error, "Failed to load library {}: {}", String(m_impl->path), GetWindowsErrorMessage(errorCode));
+    }
 #elif HYP_UNIX
     m_impl->handle = dlopen(m_impl->path.Data(), RTLD_NOW);
+
+    if (!m_impl->handle)
+    {
+        HYP_LOG(Core, Error, "Failed to load library {}: {}", m_impl->path, dlerror());
+    }
 #else
     return false;
 #endif

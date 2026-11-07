@@ -22,6 +22,8 @@
 #include <Scene/ComponentInterface.hpp>
 #include <Scene/Systems/ScriptSystem.hpp>
 
+#include <Core/Core.hpp>
+
 #include <Core/DLL/DynamicLibrary.hpp>
 
 #include <Core/IO/ByteReader.hpp>
@@ -450,6 +452,24 @@ FilePath GetModuleBindingsPath(const FilePath& modulePath)
     return modulePath.BasePath() / (GetModuleTargetName(modulePath) + ".Bindings.dll");
 }
 
+String NormalizeEngineStamp(const String& stamp)
+{
+    const String normalized = stamp.Trimmed().ReplaceAll("\\", "/");
+
+#ifdef HYP_WINDOWS
+    return normalized.ToLower();
+#else
+    return normalized;
+#endif
+}
+
+String GetEditorEngineStamp()
+{
+    const FilePath sdkDirectory = FilePath::Canonical(CoreApi::GetExecutablePath() / "Sdk");
+
+    return HYP_FORMAT("{}.{}.{} {}", HYP_VERSION_MAJOR, HYP_VERSION_MINOR, HYP_VERSION_PATCH, sdkDirectory);
+}
+
 String CheckModuleEngineVersion(const FilePath& modulePath)
 {
     const FilePath stampPath = modulePath.BasePath() / (GetModuleTargetName(modulePath) + ".EngineVersion.txt");
@@ -460,12 +480,12 @@ String CheckModuleEngineVersion(const FilePath& modulePath)
     }
 
     const ByteBuffer stampBytes = FileByteReader(stampPath).Read();
-    const String builtVersion = String(ConstByteView(stampBytes.Data(), stampBytes.Size())).Trimmed();
-    const String engineVersion = HYP_FORMAT("{}.{}.{}", HYP_VERSION_MAJOR, HYP_VERSION_MINOR, HYP_VERSION_PATCH);
+    const String builtStamp = String(ConstByteView(stampBytes.Data(), stampBytes.Size())).Trimmed();
+    const String editorStamp = GetEditorEngineStamp();
 
-    if (builtVersion != engineVersion)
+    if (NormalizeEngineStamp(builtStamp) != NormalizeEngineStamp(editorStamp))
     {
-        return HYP_FORMAT("Game module {} was built for engine version {}, currently running on version {}.", modulePath, builtVersion, engineVersion);
+        return HYP_FORMAT("Game module {} was built for engine '{}', this editor is '{}'.", modulePath, builtStamp, editorStamp);
     }
 
     return String();
