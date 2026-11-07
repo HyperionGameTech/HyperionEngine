@@ -153,7 +153,7 @@ void EditorDecalPainterState::EraseAt(const SurfaceHit& hit)
         return;
     }
 
-    Array<Handle<DecalProxy>> decalProxies;
+    FatArray<Handle<DecalProxy>, InlineAllocator<8, SceneAllocator>> decalProxies;
 
     for (auto [decalProxy] : hit.scene->GetEntityManager()->GetEntitySet<EntityType<DecalProxy>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
     {
@@ -189,12 +189,7 @@ void EditorDecalPainterState::CommitStrokeEdits(const WeakHandle<Scene>& strokeS
 
 void EditorDecalPainterState::DebugDrawCursor(DebugDrawCommandList& debugDrawCommandList)
 {
-    if (!g_cvDecalsDebugDraw.Get())
-    {
-        return;
-    }
-
-    if (m_subsystem->GetCurrentProject().IsValid())
+    if (g_cvDecalsDebugDraw.Get() && m_subsystem->GetCurrentProject().IsValid())
     {
         if (const Handle<World>& world = m_subsystem->GetCurrentProject()->GetWorld(); world.IsValid())
         {

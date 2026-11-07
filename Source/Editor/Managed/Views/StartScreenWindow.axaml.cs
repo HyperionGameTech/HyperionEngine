@@ -134,14 +134,14 @@ namespace Hyperion.Editor.Views
             }
         }
 
-        private void OnRecentProjectTapped(object? sender, TappedEventArgs e)
+        private void OnRecentListTapped(object? sender, TappedEventArgs e)
         {
-            if (e.Source is Visual source && source.FindAncestorOfType<Button>(includeSelf: true) != null)
+            if (e.Source is not Visual source || source.FindAncestorOfType<Button>(includeSelf: true) != null)
             {
                 return;
             }
 
-            if ((sender as Control)?.DataContext is RecentProjectItemViewModel item)
+            if (source.FindAncestorOfType<ListBoxItem>(includeSelf: true)?.DataContext is RecentProjectItemViewModel item)
             {
                 ViewModel?.OpenRecentProjectCommand.Execute(item);
             }

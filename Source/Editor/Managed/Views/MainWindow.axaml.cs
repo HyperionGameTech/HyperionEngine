@@ -100,7 +100,6 @@ namespace Hyperion.Editor
         private ProjectSettingsWindow? _projectSettingsWindow;
         private PluginsWindow? _pluginsWindow;
         private PackagingSettingsWindow? _packagingSettingsWindow;
-        private IDock? _dynamicPanelsDock;
         private readonly Dictionary<EditorPanelViewModel, Tool> _dynamicPanelTools = new();
         private readonly Dictionary<EditorDocumentViewModel, IDockable> _pluginDocuments = new();
         private int _frameCounter;
@@ -216,6 +215,7 @@ namespace Hyperion.Editor
             // Detect a dynamic panel's tab being closed via its own [x] button so the
             // matching view model's OnClosed callback still runs.
             DockControl.Factory.DockableClosed += OnFactoryDockableClosed;
+            DockControl.Factory.WindowClosed += (_, _) => Dispatcher.UIThread.Post(ReleasePanelsOfClosedWindows);
 
             AddHandler(InputElement.GotFocusEvent, OnInspectorTextBoxGotFocus, RoutingStrategies.Bubble);
             AddHandler(InputElement.LostFocusEvent, OnInspectorTextBoxLostFocus, RoutingStrategies.Bubble);
@@ -1067,12 +1067,7 @@ namespace Hyperion.Editor
                 return;
             }
 
-            if (_dynamicPanelsDock == null && DockControl.Layout is { } layout)
-            {
-                _dynamicPanelsDock = FindDockableById(layout, EditorDockFactory.DynamicPanelsPaneId) as IDock;
-            }
-
-            if (_dynamicPanelsDock is not { } dock)
+            if (GetOrCreateDockedDynamicPanelsPane(factory) is not { } dock)
             {
                 Logger.Log(LogLevel.Warning, "SyncDynamicPanels: could not locate the DynamicPanelsPane dock.");
                 return;
@@ -1118,11 +1113,105 @@ namespace Hyperion.Editor
             if (activeTool != null)
             {
                 factory.SetActiveDockable(activeTool);
-                factory.SetFocusedDockable(dock, activeTool);
+                factory.SetFocusedDockable(activeTool.Owner as IDock ?? dock, activeTool);
             }
             else
             {
                 dock.ActiveDockable = null;
+            }
+        }
+
+        private IDock? GetOrCreateDockedDynamicPanelsPane(FactoryBase factory)
+        {
+            if (DockControl.Layout is not IDock root)
+            {
+                return null;
+            }
+
+            if (FindDockableById(root, EditorDockFactory.DynamicPanelsPaneId) is IDock docked)
+            {
+                return docked;
+            }
+
+            if (FindDockableById(root, "MainLayout") is not IDock mainLayout)
+            {
+                return null;
+            }
+
+            var pane = new ToolDock
+            {
+                Id = EditorDockFactory.DynamicPanelsPaneId,
+                Alignment = Alignment.Right,
+                Proportion = 0.22,
+                VisibleDockables = factory.CreateList<IDockable>()
+            };
+
+            mainLayout.VisibleDockables ??= factory.CreateList<IDockable>();
+
+            if (mainLayout.VisibleDockables.Count > 0 && mainLayout.VisibleDockables[^1] is not IProportionalDockSplitter)
+            {
+                factory.AddDockable(mainLayout, new ProportionalDockSplitter());
+            }
+
+            factory.AddDockable(mainLayout, pane);
+
+            Logger.Log(LogLevel.Info, "SyncDynamicPanels: DynamicPanelsPane was no longer docked in the main layout; re-created it.");
+
+            return pane;
+        }
+
+        private bool IsDockableInLiveLayout(IFactory factory, IDockable dockable)
+        {
+            IDockable? current = dockable.Owner;
+
+            while (current != null && current is not IRootDock)
+            {
+                current = current.Owner;
+            }
+
+            if (current is not IRootDock root)
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(root, DockControl.Layout))
+            {
+                return true;
+            }
+
+            return root.Window is { } window
+                && factory.HostWindows.Any(host => ReferenceEquals(host.Window, window));
+        }
+
+        private void ReleasePanelsOfClosedWindows()
+        {
+            if (_suppressPanelSync || _isClosing || DockControl.Factory is not { } factory)
+            {
+                return;
+            }
+
+            List<EditorPanelViewModel> orphaned = _dynamicPanelTools
+                .Where(kvp => !IsDockableInLiveLayout(factory, kvp.Value))
+                .Select(kvp => kvp.Key)
+                .ToList();
+
+            if (orphaned.Count == 0)
+            {
+                return;
+            }
+
+            _suppressPanelSync = true;
+            try
+            {
+                foreach (EditorPanelViewModel panel in orphaned)
+                {
+                    _dynamicPanelTools.Remove(panel);
+                    PanelService.Instance.RemovePanel(panel);
+                }
+            }
+            finally
+            {
+                _suppressPanelSync = false;
             }
         }
 
@@ -1379,8 +1468,7 @@ namespace Hyperion.Editor
 
             // Any open dynamic panel tabs belong to the layout tree being torn down here -
             // close them so their view models don't linger with stale Tool references.
-            // No sync while closing, or it would find and cache the old layout's DynamicPanelsPane
-            _dynamicPanelsDock = null;
+            // No sync while closing, or it would find the old layout's DynamicPanelsPane
             _dynamicPanelTools.Clear();
 
             _suppressPanelSync = true;

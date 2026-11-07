@@ -327,7 +327,7 @@ bool EditorSurfacePainterState::RaycastSurface(const Ray& ray, SurfaceHit& outHi
 
         RayTestResults results;
 
-        if (!scene->GetOctree().TestRay(ray, results, RayTestFlags::TestBVH))
+        if (!scene->GetOctree().TestRay(ray, results, RayTestFlags::TestBVH | RayTestFlags::EditorPick))
         {
             continue;
         }
