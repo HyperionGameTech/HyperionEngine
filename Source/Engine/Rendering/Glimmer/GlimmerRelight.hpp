@@ -27,10 +27,14 @@ class GlimmerSpanCache;
 /// GLIMMER_RELIGHT_LAYERS
 /// what the 2 surfaces receive, 4 parts to a layer
 static constexpr uint32 GlimmerRelightLayers = (2 * GlimmerLightParts + 3) / 4;
+// how many frames before "relight" after a change.
+static constexpr uint32 GlimmerRelightEchoFrames[] = { 32, 128 };
 
 struct GlimmerRelightShaderData
 {
-    Vec4i levels[GlimmerGroundLevels]; // xy = absolute texel of the lit window's origin, z = 1 once all of it has been lit
+    /// xy = absolute texel of the lit window's origin
+    /// z = 1 once all of it has been lit
+    Vec4i levels[GlimmerGroundLevels];
 };
 
 struct GlimmerRelightDispatch

@@ -121,11 +121,14 @@ static constexpr uint32 MaxLightBoxes = 4;
 static constexpr uint32 MaxEmitterBoxes = 4;
 static constexpr uint32 MaxChangedBoxes = MaxInstanceBoxes + MaxLightBoxes + MaxEmitterBoxes + 2 * GlimmerGroundLevels; // GLIMMER_PROBE_MAX_CHANGED_BOXES
 
+// probes near a change settle against ground that was relit while they still had the old light,
+// so they trace again a little after each relight echo. echo boxes use up some of the instance boxes
+static constexpr uint32 MaxEchoBoxes = 8;
+static constexpr uint32 ChangeEchoDelayFrames = 16;
+
 static constexpr float EmitterMatchDistance = 0.05f;
 
 static constexpr uint32 MaxRelocations = 2;
-
-static constexpr float NearFieldReachSpacings = 8.0f;
 
 static constexpr float BlockMarginSpacings = 1.0f;  // how far around a block solids make it wanted
 static constexpr float MinHeightAboveGround = 0.5f; // solids lower than this on the ground (roads, rocks) want no probes
@@ -166,7 +169,7 @@ struct GlimmerProbeAllocConstants
     /// w = seconds after which a settled probe is traced anyway (0 = never)
     Vec4u wake;
 
-    Vec4f changedMin[MaxChangedBoxes];
+    Vec4f changedMin[MaxChangedBoxes]; // w = 1: probes in the box trace again, but keep their history (nothing moved there this frame)
     Vec4f changedMax[MaxChangedBoxes];
 
     Vec4i brickChunkOrigin;          // xyz = absolute chunk of the bricks' window, w = 0 without bricks, 1 with, 2 when none are built yet
@@ -469,6 +472,44 @@ void GlimmerProbeVolume::UpdateWindows(const Vec3f& viewerPosition, const Vec3f&
     }
 }
 
+void GlimmerProbeVolume::AddChangeEchoes(const GlimmerSceneChanges* changes)
+{
+    for (uint32 relightFrames : GlimmerRelightEchoFrames)
+    {
+        const uint32 frame = m_frameIndex + relightFrames + ChangeEchoDelayFrames;
+
+        ChangeEcho* echo = nullptr;
+
+        for (ChangeEcho& pending : m_changeEchoes)
+        {
+            const int32 framesAfter = int32(frame - pending.frame);
+
+            if (framesAfter >= 0 && framesAfter < int32(ChangeEchoDelayFrames))
+            {
+                echo = &pending;
+
+                break;
+            }
+        }
+
+        if (!echo)
+        {
+            echo = &m_changeEchoes.EmplaceBack();
+            echo->frame = frame;
+        }
+
+        if (!changes)
+        {
+            echo->isEverywhere = true;
+
+            continue;
+        }
+
+        echo->changes.changes.Concat(changes->changes.ToSpan());
+        echo->changes.Quantize(MaxEchoBoxes);
+    }
+}
+
 void GlimmerProbeVolume::Update(Frame* frame, const GlimmerProbeUpdateInputs& inputs)
 {
     HYP_SCOPE;
@@ -567,7 +608,7 @@ void GlimmerProbeVolume::Update(Frame* frame, const GlimmerProbeUpdateInputs& in
 
     m_shaderData.nearField = Vec4f(
         float(MathUtil::Clamp(g_cvGlimmerProbesNearFieldCascades.Get(), 0, int(GlimmerProbeLevels))),
-        NearFieldReachSpacings,
+        GlimmerProbeNearFieldReachSpacings,
         hasNearTracer ? 1.0f : 0.0f,
         GlimmerDefaultGroundAlbedo);
 
@@ -617,6 +658,33 @@ void GlimmerProbeVolume::Update(Frame* frame, const GlimmerProbeUpdateInputs& in
 
         uint32 numChangedBoxes = 0;
 
+        GlimmerSceneChanges echoChanges;
+
+        for (size_t echoIndex = 0; echoIndex < m_changeEchoes.Size();)
+        {
+            const ChangeEcho& echo = m_changeEchoes[echoIndex];
+
+            if (int32(m_frameIndex - echo.frame) < 0)
+            {
+                echoIndex++;
+
+                continue;
+            }
+
+            if (echo.isEverywhere)
+            {
+                shouldAwaken = true;
+            }
+            else
+            {
+                echoChanges.changes.Concat(echo.changes.changes.ToSpan());
+            }
+
+            m_changeEchoes.EraseAt(echoIndex);
+        }
+
+        echoChanges.Quantize(MaxEchoBoxes);
+
         if (hasNearTracer && inputs.sceneInstances->GetGeneration() != m_seenInstancesGeneration)
         {
             GlimmerSceneChanges changes;
@@ -624,6 +692,11 @@ void GlimmerProbeVolume::Update(Frame* frame, const GlimmerProbeUpdateInputs& in
             if (m_seenInstancesGeneration == ~0u || !inputs.sceneInstances->GetChangesSince(m_seenInstancesGeneration, changes))
             {
                 shouldAwaken = true;
+
+                if (m_seenInstancesGeneration != ~0u)
+                {
+                    AddChangeEchoes(nullptr);
+                }
             }
             else
             {
@@ -639,7 +712,7 @@ void GlimmerProbeVolume::Update(Frame* frame, const GlimmerProbeUpdateInputs& in
 
                 changes = std::move(worldChanges);
 
-                changes.Quantize(MaxInstanceBoxes);
+                changes.Quantize(MaxInstanceBoxes - uint32(echoChanges.Size()));
 
                 for (const GlimmerSceneChange& change : changes)
                 {
@@ -648,9 +721,22 @@ void GlimmerProbeVolume::Update(Frame* frame, const GlimmerProbeUpdateInputs& in
 
                     numChangedBoxes++;
                 }
+
+                if (changes.Size() != 0)
+                {
+                    AddChangeEchoes(&changes);
+                }
             }
 
             m_seenInstancesGeneration = inputs.sceneInstances->GetGeneration();
+        }
+
+        for (const GlimmerSceneChange& change : echoChanges)
+        {
+            constants.changedMin[numChangedBoxes] = Vec4f(change.bounds.min, 1.0f);
+            constants.changedMax[numChangedBoxes] = Vec4f(change.bounds.max, 0.0f);
+
+            numChangedBoxes++;
         }
 
         if (inputs.localLights && inputs.localLights->GetGeneration() != m_seenLightsGeneration)
@@ -668,10 +754,17 @@ void GlimmerProbeVolume::Update(Frame* frame, const GlimmerProbeUpdateInputs& in
 
                     numChangedBoxes++;
                 }
+
+                if (changes.Size() != 0)
+                {
+                    AddChangeEchoes(&changes);
+                }
             }
             else
             {
                 shouldAwaken = true;
+
+                AddChangeEchoes(nullptr);
             }
 
             m_seenLightsGeneration = inputs.localLights->GetGeneration();

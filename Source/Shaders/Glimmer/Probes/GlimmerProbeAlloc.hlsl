@@ -50,11 +50,15 @@ struct GlimmerProbeAllocConstants
     /// w = seconds after which a settled probe is traced anyway (0 = never)
     uint4 wake;
 
+     /// if w == 1, probes in this box trace again, but keep their history (nothing moved there this frame)
     float4 changedMin[GLIMMER_PROBE_MAX_CHANGED_BOXES];
     float4 changedMax[GLIMMER_PROBE_MAX_CHANGED_BOXES];
 
-    int4 brickChunkOrigin;          // xyz = absolute chunk of the bricks' window, w = 0 without bricks, 1 with, 2 when none are built yet
-    uint4 brickChunksBuilding[16];  // a bit per chunk of the window, by its place in it, set while it is being built
+    /// xyz = absolute chunk of the bricks' window
+    /// w = 0 without bricks, 1 with bricks, 2 when none are built yet
+    int4 brickChunkOrigin;
+    /// one bit per chunk of the window, set while it is being built
+    uint4 brickChunksBuilding[16];
 };
 
 DECLARE_BUFFER_DYNAMIC(GlimmerProbeAlloc, CBuffer) cbuffer CBuffer
@@ -627,7 +631,7 @@ uint GlimmerProbeChange(float3 position, float reach)
         const float3 boxMin = constants.changedMin[boxIndex].xyz;
         const float3 boxMax = constants.changedMax[boxIndex].xyz;
 
-        const bool isInstanceBox = boxMax.y - boxMin.y < GLIMMER_PROBE_GROUND_BOX_HEIGHT;
+        const bool isInstanceBox = boxMax.y - boxMin.y < GLIMMER_PROBE_GROUND_BOX_HEIGHT && constants.changedMin[boxIndex].w == 0.0;
 
         numInstanceBoxes += isInstanceBox ? 1u : 0u;
 

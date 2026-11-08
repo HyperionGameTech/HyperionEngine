@@ -136,6 +136,7 @@ private:
     UniquePtr<GlimmerBrickWorld, GlimmerAllocator> m_brickWorld;
 
     uint32 m_relightLightsGeneration = 0;
+    uint32 m_relightInstancesGeneration = 0;
 
     GpuBufferRef m_scratchBuffer;
 

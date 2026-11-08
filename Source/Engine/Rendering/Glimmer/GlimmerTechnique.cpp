@@ -63,6 +63,8 @@ HYP_DECLARE_LOG_CHANNEL(Rendering);
 
 namespace {
 
+constexpr size_t MaxRelightInstanceChangeBoxes = 4;
+
 struct GlimmerHeightfieldDebugConstants
 {
     Vec4u dimensionsMode;
@@ -294,6 +296,41 @@ void GlimmerTechnique::Update(const GlimmerTechniqueUpdateContext& context)
 
                 m_relightLightsGeneration = m_localLights->GetGeneration();
             }
+
+            if (m_relightInstancesGeneration != 0 && sceneInstances.GetGeneration() != m_relightInstancesGeneration)
+            {
+                GlimmerSceneChanges changes;
+
+                if (sceneInstances.GetChangesSince(m_relightInstancesGeneration, changes))
+                {
+                    GlimmerSceneChanges worldChanges;
+
+                    for (const GlimmerSceneChange& change : changes)
+                    {
+                        if (!change.isLodOnly)
+                        {
+                            worldChanges.Add(change);
+                        }
+                    }
+
+                    worldChanges.Quantize(MaxRelightInstanceChangeBoxes);
+
+                    const float margin = GlimmerHelpers::GetGlimmerProbeLevelSpacing(0) * GlimmerProbeNearFieldReachSpacings;
+
+                    for (const GlimmerSceneChange& change : worldChanges)
+                    {
+                        m_relight->AddChangedArea(
+                            Vec2f(change.bounds.min.x - margin, change.bounds.min.z - margin),
+                            Vec2f(change.bounds.max.x + margin, change.bounds.max.z + margin));
+                    }
+                }
+                else
+                {
+                    m_relight->AddChangedArea(Vec2f(-1e6f), Vec2f(1e6f));
+                }
+            }
+
+            m_relightInstancesGeneration = sceneInstances.GetGeneration();
 
             m_relight->Schedule(*context.channelState, *context.surfaceCache, *context.spanCache);
         }

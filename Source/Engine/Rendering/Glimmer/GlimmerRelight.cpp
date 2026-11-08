@@ -26,7 +26,6 @@ static constexpr uint32 RelightTexelsPerFrame = 4096;
 static constexpr int32 IdleRefreshTexelsPerFrame = 512;
 static constexpr size_t MaxPendingRects = 16;
 
-static constexpr uint32 EchoFrames[] = { 32, 128 };
 static constexpr size_t MaxEchoes = 64;
 
 #pragma region GlimmerRelight
@@ -95,7 +94,7 @@ void GlimmerRelight::AddPending(Level& level, const Rect& rect)
 
 void GlimmerRelight::AddEcho(uint32 levelIndex, const Rect& rect)
 {
-    if (m_echoes.Size() + std::size(EchoFrames) > MaxEchoes)
+    if (m_echoes.Size() + std::size(GlimmerRelightEchoFrames) > MaxEchoes)
     {
         m_echoes.Clear();
 
@@ -107,7 +106,7 @@ void GlimmerRelight::AddEcho(uint32 levelIndex, const Rect& rect)
                     windowLevel,
                     GlimmerHelpers::GetGlimmerGroundWindow(
                         m_levels[windowLevel].windowOrigin),
-                        m_frameIndex + EchoFrames[std::size(EchoFrames) - 1]
+                        m_frameIndex + GlimmerRelightEchoFrames[std::size(GlimmerRelightEchoFrames) - 1]
                     });
             }
         }
@@ -115,7 +114,7 @@ void GlimmerRelight::AddEcho(uint32 levelIndex, const Rect& rect)
         return;
     }
 
-    for (uint32 frames : EchoFrames)
+    for (uint32 frames : GlimmerRelightEchoFrames)
     {
         m_echoes.PushBack(Echo {
             levelIndex,

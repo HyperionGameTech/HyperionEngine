@@ -9,6 +9,7 @@
 #include <Rendering/RenderTypes.hpp>
 #include <Rendering/Glimmer/GlimmerSurfaceCache.hpp>
 #include <Rendering/Glimmer/GlimmerSpanCache.hpp>
+#include <Rendering/Glimmer/GlimmerSceneInstances.hpp>
 
 #include <Core/Reflection/Handle.hpp>
 
@@ -48,6 +49,8 @@ static constexpr uint32 GlimmerProbePoolBlocks = 1024;
 static constexpr uint32 GlimmerProbePoolProbes = GlimmerProbePoolBlocks * GlimmerProbesPerBlock;
 
 static constexpr uint32 GlimmerProbeRays = 32;
+
+static constexpr float GlimmerProbeNearFieldReachSpacings = 8.0f;
 
 static constexpr uint32 GlimmerProbeVisibilityTexels = 64;
 static constexpr uint32 GlimmerMaxProbesPerFrame = 4096;
@@ -140,9 +143,17 @@ public:
     const GpuBufferRef& GetSlotsBuffer() const;
 
 private:
+    struct ChangeEcho
+    {
+        uint32 frame = 0;
+        bool isEverywhere = false;
+        GlimmerSceneChanges changes;
+    };
+
     void CreateResources(Frame* frame);
     void ReleaseResources();
     void UpdateWindows(const Vec3f& viewerPosition, const Vec3f& lookAhead);
+    void AddChangeEchoes(const GlimmerSceneChanges* changes);
     void ReadCounters(Frame* frame);
     void CopyCounters(Frame* frame, uint32 probesPerFrame);
 
@@ -167,6 +178,8 @@ private:
 
     /// per emitter world center and sphere radius, then its radiance and own radius
     Array<Vec4f, GlimmerAllocator> m_seenEmitters;
+
+    Array<ChangeEcho, GlimmerAllocator> m_changeEchoes;
 
     GpuBufferRef m_placeholderBuffer;
 

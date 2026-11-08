@@ -1,8 +1,5 @@
 #include "../../Include/Defines.hlsli"
 
-// a pixel finds the crossing it is on, which owns a block of four slots, each the hit of one ray in a bin of directions, and reads the light of what the slots name
-// REQUESTS traces what blocks lacked last frame, RESOLVE reads slots, FINISH asks and lists, RAYS traces for the listed, HISTORY adds frames up, SPREAD fills every pixel,
-// then WHOLE_LIST and WHOLE_RAYS give every pixel of a polished thing a ray: a mirror's picture cannot be spread from one pixel in four
 PERMUTE(MODE, REQUESTS, RESOLVE, FINISH, RAYS, HISTORY, SPREAD, WHOLE_LIST, WHOLE_RAYS)
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
