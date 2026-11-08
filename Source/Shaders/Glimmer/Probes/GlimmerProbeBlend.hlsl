@@ -65,6 +65,7 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
 
     float4 light[GLIMMER_LIGHT_ENTRIES];
 
+    [unroll]
     for (uint entry = 0; entry < GLIMMER_LIGHT_ENTRIES; entry++)
     {
         light[entry] = OutLight[probeIndex * GLIMMER_LIGHT_ENTRIES + entry];
@@ -109,9 +110,15 @@ DECLARE_SRV(GlimmerProbeBlend, GlimmerSHLightBuffer) StructuredBuffer<uint> glim
 
 #define GLIMMER_PROBE_SEED_UPDATES 3.0
 
-float GlimmerSampleSHEntries(float3 P, out float4 outEntries[GLIMMER_LIGHT_ENTRIES])
+#define GLIMMER_PROBE_RAY_SUMS (GLIMMER_LIGHT_PARTS * 3 + GLIMMER_LIGHT_TERMS)
+
+#if GLIMMER_PROBE_MAX_RAYS + GLIMMER_LIGHT_ENTRIES > GROUP_SIZE || GLIMMER_PROBE_RAY_SUMS > GROUP_SIZE
+#error "uhoh"
+#endif
+
+float GlimmerSampleSHEntry(float3 P, uint entry, out float4 outValue)
 {
-    outEntries = (float4[GLIMMER_LIGHT_ENTRIES])0.0;
+    outValue = (float4)0.0;
 
     if (constants.sh.info.w == 0u)
     {
@@ -131,22 +138,19 @@ float GlimmerSampleSHEntries(float3 P, out float4 outEntries[GLIMMER_LIGHT_ENTRI
             continue;
         }
 
-        const float scale = cascadeWeight * remaining / taps.weightSum;
+        float4 value = (float4)0.0;
 
-        [loop]
+        [unroll]
         for (uint tap = 0; tap < 8; tap++)
         {
             [branch]
             if (taps.weights[tap] > 0.0)
             {
-                [loop]
-                for (uint entry = 0; entry < GLIMMER_LIGHT_ENTRIES; entry++)
-                {
-                    outEntries[entry] += GLIMMER_SH_LOAD_LIGHT(taps.texels[tap], entry) * (taps.weights[tap] * scale);
-                }
+                value += GLIMMER_SH_LOAD_LIGHT(taps.texels[tap], entry) * taps.weights[tap];
             }
         }
 
+        outValue += value * (cascadeWeight * remaining / taps.weightSum);
         remaining *= 1.0 - cascadeWeight;
     }
 
@@ -154,11 +158,7 @@ float GlimmerSampleSHEntries(float3 P, out float4 outEntries[GLIMMER_LIGHT_ENTRI
 
     if (coverage > 1e-4)
     {
-        [loop]
-        for (uint entry = 0; entry < GLIMMER_LIGHT_ENTRIES; entry++)
-        {
-            outEntries[entry] /= coverage;
-        }
+        outValue /= coverage;
     }
 
     return coverage;
@@ -166,12 +166,20 @@ float GlimmerSampleSHEntries(float3 P, out float4 outEntries[GLIMMER_LIGHT_ENTRI
 
 /// hit distance (negative on back faces, 0 starting inside)
 groupshared float gsRayDistances[GLIMMER_PROBE_MAX_RAYS];
-groupshared float gsRayEscapes[GLIMMER_PROBE_MAX_RAYS];
+groupshared float gsRayLuminances[GLIMMER_PROBE_MAX_RAYS];
 groupshared float3 gsRayLight[GLIMMER_PROBE_MAX_RAYS * GLIMMER_LIGHT_PARTS];
+groupshared float gsRayBasis[GLIMMER_PROBE_MAX_RAYS * GLIMMER_LIGHT_TERMS];
 
 groupshared float3 gsDirections[GLIMMER_PROBE_MAX_RAYS];
 groupshared uint gsWriteVisibility;
 groupshared float gsVisibilityBlend;
+
+groupshared float4 gsSums[GLIMMER_PROBE_RAY_SUMS];
+groupshared float4 gsEntries[GLIMMER_LIGHT_ENTRIES];
+
+groupshared uint gsSeed;
+groupshared float3 gsSeedPosition;
+groupshared float4 gsSeedTrend;
 
 float3 GlimmerClampOffset(float3 offset)
 {
@@ -189,13 +197,6 @@ float GlimmerComposedLuminance(float4 entries[GLIMMER_LIGHT_ENTRIES])
 void GlimmerBlendProbe(uint probeIndex, int4 slot, uint4 state, uint numRays, float invSpacing)
 {
     uint probeState = GlimmerProbeStateOf(state);
-
-    float3 e0[GLIMMER_LIGHT_PARTS] = (float3[GLIMMER_LIGHT_PARTS])0.0;
-    float3 e1R[GLIMMER_LIGHT_PARTS] = (float3[GLIMMER_LIGHT_PARTS])0.0;
-    float3 e1G[GLIMMER_LIGHT_PARTS] = (float3[GLIMMER_LIGHT_PARTS])0.0;
-    float3 e1B[GLIMMER_LIGHT_PARTS] = (float3[GLIMMER_LIGHT_PARTS])0.0;
-
-    float4 direct[GLIMMER_LIGHT_TERMS] = (float4[GLIMMER_LIGHT_TERMS])0.0;
 
     float luminanceSquaredSum = 0.0;
 
@@ -236,34 +237,7 @@ void GlimmerBlendProbe(uint probeIndex, int4 slot, uint4 state, uint numRays, fl
             continue;
         }
 
-        const float escape = gsRayEscapes[rayIndex];
-
-        GlimmerLight rayLight;
-
-        [unroll]
-        for (uint part = 0; part < GLIMMER_LIGHT_PARTS; part++)
-        {
-            const float3 value = gsRayLight[rayIndex * GLIMMER_LIGHT_PARTS + part];
-
-            rayLight.parts[part] = value;
-
-            e0[part] += value;
-            e1R[part] += value.r * direction;
-            e1G[part] += value.g * direction;
-            e1B[part] += value.b * direction;
-        }
-
-        // a ray that got out brings the distant light along it straight in
-        float basis[GLIMMER_LIGHT_TERMS];
-        GlimmerLightBasis(direction, basis);
-
-        [unroll]
-        for (uint term = 0; term < GLIMMER_LIGHT_TERMS; term++)
-        {
-            direct[term] += float4(1.0, direction) * (basis[term] * escape);
-        }
-
-        const float rayLuminance = GlimmerLuminance(GlimmerComposeRayLight(constants.light, rayLight, direction, escape));
+        const float rayLuminance = gsRayLuminances[rayIndex];
 
         luminanceSquaredSum += rayLuminance * rayLuminance;
 
@@ -391,17 +365,21 @@ void GlimmerBlendProbe(uint probeIndex, int4 slot, uint4 state, uint numRays, fl
     [unroll]
     for (uint projectPart = 0; projectPart < GLIMMER_LIGHT_PARTS; projectPart++)
     {
-        GlimmerSetBounceEntry(light, projectPart, 0u, float4(e0[projectPart].r * invNumRays, e1R[projectPart] * (2.0 * invNumRays)));
-        GlimmerSetBounceEntry(light, projectPart, 1u, float4(e0[projectPart].g * invNumRays, e1G[projectPart] * (2.0 * invNumRays)));
-        GlimmerSetBounceEntry(light, projectPart, 2u, float4(e0[projectPart].b * invNumRays, e1B[projectPart] * (2.0 * invNumRays)));
+        [unroll]
+        for (uint channel = 0; channel < 3; channel++)
+        {
+            const float4 sum = gsSums[projectPart * 3u + channel];
+
+            GlimmerSetBounceEntry(light, projectPart, channel, float4(sum.x * invNumRays, sum.yzw * (2.0 * invNumRays)));
+        }
     }
 
     [unroll]
     for (uint projectTerm = 0; projectTerm < GLIMMER_LIGHT_TERMS; projectTerm++)
     {
-        light[GLIMMER_LIGHT_DIRECT_ENTRY + projectTerm] = float4(
-            direct[projectTerm].x * invNumRays,
-            direct[projectTerm].yzw * (2.0 * invNumRays));
+        const float4 sum = gsSums[GLIMMER_LIGHT_PARTS * 3u + projectTerm];
+
+        light[GLIMMER_LIGHT_DIRECT_ENTRY + projectTerm] = float4(sum.x * invNumRays, sum.yzw * (2.0 * invNumRays));
     }
 
     const float estimateLuminance = GlimmerComposedLuminance(light);
@@ -421,9 +399,10 @@ void GlimmerBlendProbe(uint probeIndex, int4 slot, uint4 state, uint numRays, fl
     {
         float4 previous[GLIMMER_LIGHT_ENTRIES];
 
+        [unroll]
         for (uint loadEntry = 0; loadEntry < GLIMMER_LIGHT_ENTRIES; loadEntry++)
         {
-            previous[loadEntry] = OutLight[probeIndex * GLIMMER_LIGHT_ENTRIES + loadEntry];
+            previous[loadEntry] = gsEntries[loadEntry];
         }
 
         const float historyLuminance = GlimmerComposedLuminance(previous);
@@ -462,6 +441,7 @@ void GlimmerBlendProbe(uint probeIndex, int4 slot, uint4 state, uint numRays, fl
 
         const float blend = 1.0 / (history + 1.0);
 
+        [unroll]
         for (uint blendEntry = 0; blendEntry < GLIMMER_LIGHT_ENTRIES; blendEntry++)
         {
             light[blendEntry] = lerp(previous[blendEntry], light[blendEntry] * fireflyScale, blend);
@@ -482,34 +462,42 @@ void GlimmerBlendProbe(uint probeIndex, int4 slot, uint4 state, uint numRays, fl
         const float relativeVariance = estimateVariance / (estimateScale * estimateScale);
 
         // starting from the far field, so a new probe eases in from what was shown there rather than from one noisy estimate
-        const float3 position = GlimmerProbeGridPosition(constants.volume.levels[slot.w], GlimmerProbeCoord(slot.xyz, GlimmerLocalProbeOf(probeIndex))) + offset / invSpacing;
+        gsSeedPosition = GlimmerProbeGridPosition(
+            constants.volume.levels[slot.w],
+            GlimmerProbeCoord(slot.xyz, GlimmerLocalProbeOf(probeIndex))) + offset / invSpacing;
 
-        float4 seed[GLIMMER_LIGHT_ENTRIES];
-        const float seedUpdates = GLIMMER_PROBE_SEED_UPDATES * saturate(GlimmerSampleSHEntries(position, seed));
-
-        for (uint seedEntry = 0; seedEntry < GLIMMER_LIGHT_ENTRIES; seedEntry++)
-        {
-            light[seedEntry] = lerp(light[seedEntry], seed[seedEntry], seedUpdates / (seedUpdates + 1.0));
-        }
-
-        trend = float4(relativeVariance, 0.0, 2.0 * relativeVariance, 1.0 + seedUpdates);
+        trend = float4(relativeVariance, 0.0, 2.0 * relativeVariance, 1.0 + GLIMMER_PROBE_SEED_UPDATES);
     }
 
     if (relocations != 0u && updates >= GLIMMER_PROBE_SETTLE_UPDATES)
     {
         relocations = 0u;
     }
+    
+    trend.w = select(moved, min(trend.w, GLIMMER_PROBE_MOVED_HISTORY), trend.w);
 
-    for (uint storeEntry = 0; storeEntry < GLIMMER_LIGHT_ENTRIES; storeEntry++)
+    if (updates > 0u)
     {
-        OutLight[probeIndex * GLIMMER_LIGHT_ENTRIES + storeEntry] = light[storeEntry];
+        [unroll]
+        for (uint storeEntry = 0; storeEntry < GLIMMER_LIGHT_ENTRIES; storeEntry++)
+        {
+            OutLight[probeIndex * GLIMMER_LIGHT_ENTRIES + storeEntry] = light[storeEntry];
+        }
+
+        GlimmerWriteComposed(probeIndex, light);
+
+        OutTrend[probeIndex] = trend;
     }
-
-    GlimmerWriteComposed(probeIndex, light);
-
-    if (moved)
+    else
     {
-        trend.w = min(trend.w, GLIMMER_PROBE_MOVED_HISTORY);
+        [unroll]
+        for (uint seedEntry = 0; seedEntry < GLIMMER_LIGHT_ENTRIES; seedEntry++)
+        {
+            gsEntries[seedEntry] = light[seedEntry];
+        }
+
+        gsSeedTrend = trend;
+        gsSeed = 1u;
     }
 
     const uint sleepInterval = idle && relocations == 0u && !moved
@@ -521,7 +509,6 @@ void GlimmerBlendProbe(uint probeIndex, int4 slot, uint4 state, uint numRays, fl
         InterlockedAdd(glimmerProbeCounters[GLIMMER_PROBE_COUNTER_WOKEN_BY_LIGHT], 1u);
     }
 
-    OutTrend[probeIndex] = trend;
     OutStates[probeIndex] = uint4(
         GlimmerWithSleepInterval(GlimmerPackProbeFlags(probeState, relocations, updates + 1u, numBackfaces, numStartsInside), sleepInterval),
         GlimmerPackProbeOffset(offset) | select(isNudgedFromClear, GLIMMER_PROBE_OFFSET_NUDGED, 0u),
@@ -557,61 +544,161 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
     {
         const uint base = (listIndex * numRays + groupIndex) * GLIMMER_PROBE_RAY_RECORD_UINTS;
 
-        gsRayDistances[groupIndex] = asfloat(rays[base]);
-        gsRayEscapes[groupIndex] = asfloat(rays[base + 1u]);
+        const float rayDistance = asfloat(rays[base]);
+        const float3 direction = GlimmerProbeRayDirection(constants.volume, probeIndex, groupIndex);
+
+        GlimmerLight rayLight = GlimmerNoLight();
+        float escape = 0.0;
+        float rayLuminance = 0.0;
+        
+        if (rayDistance > 0.0)
+        {
+            escape = asfloat(rays[base + 1u]);
+
+            [unroll]
+            for (uint part = 0; part < GLIMMER_LIGHT_PARTS; part++)
+            {
+                rayLight.parts[part] = GlimmerUnpackLightPart(uint2(rays[base + 2u + part * 2u], rays[base + 3u + part * 2u]));
+            }
+
+            rayLuminance = GlimmerLuminance(GlimmerComposeRayLight(constants.light, rayLight, direction, escape));
+        }
+        
+        float basis[GLIMMER_LIGHT_TERMS];
+        GlimmerLightBasis(direction, basis);
 
         [unroll]
         for (uint part = 0; part < GLIMMER_LIGHT_PARTS; part++)
         {
-            gsRayLight[groupIndex * GLIMMER_LIGHT_PARTS + part] = GlimmerUnpackLightPart(uint2(rays[base + 2u + part * 2u], rays[base + 3u + part * 2u]));
+            gsRayLight[groupIndex * GLIMMER_LIGHT_PARTS + part] = rayLight.parts[part];
         }
 
-        gsDirections[groupIndex] = GlimmerProbeRayDirection(constants.volume, probeIndex, groupIndex);
+        [unroll]
+        for (uint term = 0; term < GLIMMER_LIGHT_TERMS; term++)
+        {
+            gsRayBasis[groupIndex * GLIMMER_LIGHT_TERMS + term] = basis[term] * escape;
+        }
+
+        gsRayDistances[groupIndex] = rayDistance;
+        gsRayLuminances[groupIndex] = rayLuminance;
+        gsDirections[groupIndex] = direction;
+    }
+
+    if (isUpdated && groupIndex >= GROUP_SIZE - GLIMMER_LIGHT_ENTRIES && GlimmerProbeUpdates(state) > 0u)
+    {
+        const uint entry = groupIndex - (GROUP_SIZE - GLIMMER_LIGHT_ENTRIES);
+
+        gsEntries[entry] = OutLight[probeIndex * GLIMMER_LIGHT_ENTRIES + entry];
+    }
+
+    GroupMemoryBarrierWithGroupSync();
+
+    if (isUpdated && groupIndex < GLIMMER_PROBE_RAY_SUMS)
+    {
+        float4 sum = (float4)0.0;
+
+        if (groupIndex < GLIMMER_LIGHT_PARTS * 3u)
+        {
+            const uint part = groupIndex / 3u;
+            const uint channel = groupIndex % 3u;
+
+            for (uint rayIndex = 0; rayIndex < numRays; rayIndex++)
+            {
+                const float value = gsRayLight[rayIndex * GLIMMER_LIGHT_PARTS + part][channel];
+
+                sum += float4(value, value * gsDirections[rayIndex]);
+            }
+        }
+        else
+        {
+            const uint term = groupIndex - GLIMMER_LIGHT_PARTS * 3u;
+
+            for (uint rayIndex = 0; rayIndex < numRays; rayIndex++)
+            {
+                sum += float4(1.0, gsDirections[rayIndex]) * gsRayBasis[rayIndex * GLIMMER_LIGHT_TERMS + term];
+            }
+        }
+
+        gsSums[groupIndex] = sum;
     }
 
     GroupMemoryBarrierWithGroupSync();
 
     if (isUpdated && groupIndex == 0u)
     {
+        gsSeed = 0u;
+
         GlimmerBlendProbe(probeIndex, slot, state, numRays, invSpacing);
     }
 
     GroupMemoryBarrierWithGroupSync();
 
-    if (!isUpdated || gsWriteVisibility == 0u)
+    float seedCoverage = 0.0;
+
+    if (isUpdated && gsSeed != 0u && groupIndex < GLIMMER_LIGHT_ENTRIES)
     {
-        return;
+        float4 seed;
+        seedCoverage = GlimmerSampleSHEntry(gsSeedPosition, groupIndex, seed);
+
+        const float seedUpdates = GLIMMER_PROBE_SEED_UPDATES * saturate(seedCoverage);
+        const float4 seeded = lerp(gsEntries[groupIndex], seed, seedUpdates / (seedUpdates + 1.0));
+
+        OutLight[probeIndex * GLIMMER_LIGHT_ENTRIES + groupIndex] = seeded;
+        gsEntries[groupIndex] = seeded;
     }
 
-    const uint texel = groupIndex;
-    const float2 texelUV = (float2(texel % GLIMMER_PROBE_VISIBILITY_RES, texel / GLIMMER_PROBE_VISIBILITY_RES) + 0.5) / float(GLIMMER_PROBE_VISIBILITY_RES);
-    const float3 texelDirection = GlimmerOctahedralDecode(texelUV);
-
-    float3 sums = (float3)0.0; // weighted depth, weighted depth squared, weight
-
-    for (uint rayIndex = 0; rayIndex < numRays; rayIndex++)
+    if (isUpdated && gsWriteVisibility != 0u)
     {
-        const float weight = pow(saturate(dot(texelDirection, gsDirections[rayIndex])), GLIMMER_PROBE_VISIBILITY_SHARPNESS);
-        const float depth = min(abs(gsRayDistances[rayIndex]) * invSpacing, GLIMMER_PROBE_DEPTH_RANGE);
+        const uint texel = groupIndex;
+        const float2 texelUV = (float2(texel % GLIMMER_PROBE_VISIBILITY_RES, texel / GLIMMER_PROBE_VISIBILITY_RES) + 0.5) / float(GLIMMER_PROBE_VISIBILITY_RES);
+        const float3 texelDirection = GlimmerOctahedralDecode(texelUV);
 
-        sums += float3(depth, depth * depth, 1.0) * weight;
+        float3 sums = (float3)0.0; // weighted depth, weighted depth squared, weight
+
+        for (uint rayIndex = 0; rayIndex < numRays; rayIndex++)
+        {
+            const float weight = pow(saturate(dot(texelDirection, gsDirections[rayIndex])), GLIMMER_PROBE_VISIBILITY_SHARPNESS);
+            const float depth = min(abs(gsRayDistances[rayIndex]) * invSpacing, GLIMMER_PROBE_DEPTH_RANGE);
+
+            sums += float3(depth, depth * depth, 1.0) * weight;
+        }
+
+        const uint visibilityIndex = probeIndex * GLIMMER_PROBE_VISIBILITY_TEXELS + texel;
+
+        if (gsVisibilityBlend >= 1.0)
+        {
+            const float2 estimate = sums.z > 1e-4
+                ? sums.xy / sums.z
+                : float2(GLIMMER_PROBE_DEPTH_RANGE, GLIMMER_PROBE_DEPTH_RANGE * GLIMMER_PROBE_DEPTH_RANGE);
+
+            OutVisibility[visibilityIndex] = GlimmerPackHalf2(estimate);
+        }
+        else if (sums.z > 1e-4)
+        {
+            const float2 estimate = sums.xy / sums.z;
+
+            OutVisibility[visibilityIndex] = GlimmerPackHalf2(lerp(GlimmerUnpackHalf2(OutVisibility[visibilityIndex]), estimate, gsVisibilityBlend * saturate(sums.z)));
+        }
     }
 
-    const uint visibilityIndex = probeIndex * GLIMMER_PROBE_VISIBILITY_TEXELS + texel;
+    GroupMemoryBarrierWithGroupSync();
 
-    if (gsVisibilityBlend >= 1.0)
+    if (isUpdated && gsSeed != 0u && groupIndex == 0u)
     {
-        const float2 estimate = sums.z > 1e-4
-            ? sums.xy / sums.z
-            : float2(GLIMMER_PROBE_DEPTH_RANGE, GLIMMER_PROBE_DEPTH_RANGE * GLIMMER_PROBE_DEPTH_RANGE);
+        float4 light[GLIMMER_LIGHT_ENTRIES];
 
-        OutVisibility[visibilityIndex] = GlimmerPackHalf2(estimate);
-    }
-    else if (sums.z > 1e-4)
-    {
-        const float2 estimate = sums.xy / sums.z;
+        [unroll]
+        for (uint lightEntry = 0; lightEntry < GLIMMER_LIGHT_ENTRIES; lightEntry++)
+        {
+            light[lightEntry] = gsEntries[lightEntry];
+        }
 
-        OutVisibility[visibilityIndex] = GlimmerPackHalf2(lerp(GlimmerUnpackHalf2(OutVisibility[visibilityIndex]), estimate, gsVisibilityBlend * saturate(sums.z)));
+        GlimmerWriteComposed(probeIndex, light);
+
+        float4 trend = gsSeedTrend;
+        trend.w = min(trend.w, 1.0 + GLIMMER_PROBE_SEED_UPDATES * saturate(seedCoverage));
+
+        OutTrend[probeIndex] = trend;
     }
 }
 

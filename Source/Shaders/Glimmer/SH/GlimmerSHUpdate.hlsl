@@ -176,7 +176,6 @@ DECLARE_UAV(GlimmerSHUpdate, OutState) RWTexture3D<uint4> OutState;
 DECLARE_SRV(GlimmerSHUpdate, GlimmerSHOccupancyTexture) Texture3D<float4> glimmerSHOccupancy;
 DECLARE_SRV(GlimmerSHUpdate, GlimmerSHOccupancyMaskBuffer) StructuredBuffer<uint> glimmerSHOccupancyMask;
 
-// the hits see the far field as this update's own volume has it
 #define GLIMMER_SH_LOAD_DATA(texel) OutData[texel]
 #define GLIMMER_SH_LOAD_STATE(texel) OutState[texel]
 #define GLIMMER_SH_LOAD_RADIANCE(texel) OutRadiance[texel]
@@ -216,7 +215,7 @@ groupshared float3 gsRayDirections[GLIMMER_SH_RAYS];
 groupshared float gsRayEscapes[GLIMMER_SH_RAYS];
 groupshared float gsRayBasis[GLIMMER_SH_RAYS * GLIMMER_LIGHT_TERMS]; // each ray's light basis, times how much of it got out
 groupshared float4 gsSums[GLIMMER_LIGHT_PARTS * 3 + GLIMMER_LIGHT_TERMS];
-groupshared uint gsOctantFree[8];
+groupshared uint gsSubVoxelFree[8];
 groupshared float gsAxisDepths[GLIMMER_SH_AXIS_DEPTHS]; // in voxels
 
 #define GLIMMER_SH_VOXEL_TRACED 0u
@@ -321,8 +320,8 @@ bool GlimmerSHIsAir(GlimmerSHCascade cascade, int3 voxel)
     return float(voxel.y) * spacing > top + spacing;
 }
 
-// a voxel well above everything only sees the sky over it and the ground under it, so its rays skip the march and hit the ground
-// as a plane at its height under the voxel
+/// a voxel well above all geometry has nothing to march through.
+/// rays going up see sky, and rays going down hit a flat plane at the ground height below the voxel.
 bool GlimmerSHTraceAirRay(float3 origin, float3 direction, uint minGroundLevel, out GlimmerHeightfieldHit hit)
 {
     hit = (GlimmerHeightfieldHit)0;
@@ -388,8 +387,8 @@ GlimmerLight GlimmerSHShadeHit(float3 P, GlimmerHeightfieldHit hit, float3 albed
     GlimmerLight received;
     bool hasReceived = false;
 
-    // the filtered sample loads every light entry of up to 8 voxels a cascade.
-    // lighting a hit from the one voxel, half a voxel off it, is a fraction of the cost
+    // GlimmerIndirect loads every light entry of up to 8 voxels per cascade.
+    // read just the nearest probe or SH voxel half a voxel out - falls back if that voxel's origin is behind the surface
     if (constants.options.x != 0u)
     {
         hasReceived = SampleGlimmerNearestProbeLight(constants.probes, P + hit.normal * (0.5 * constants.volume.cascades[0].params.x), hit.normal, received)
@@ -424,7 +423,7 @@ float4 GlimmerSHProjectSum(float4 sum)
 
 float GlimmerSHSampleCoarse(uint cascadeIndex, float3 P, uint seedIndex, out float4 outValue)
 {
-    outValue = (float4)0.0;
+    outValue = (float4) 0.0;
 
     float remaining = 1.0;
 
@@ -439,7 +438,7 @@ float GlimmerSHSampleCoarse(uint cascadeIndex, float3 P, uint seedIndex, out flo
             continue;
         }
 
-        float4 value = (float4)0.0;
+        float4 value = (float4) 0.0;
 
         [unroll]
         for (uint tap = 0; tap < 8; tap++)
@@ -482,12 +481,15 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
     const uint3 texel = GlimmerSHTexel(cascadeIndex, voxel);
     const float3 center = GlimmerSHVoxelCenter(cascade, voxel);
 
-    // the octants' burial tests, one a thread
+    // the sub-voxels' burial tests, one a thread
     if (groupIndex < 8u)
     {
-        const float3 octantOffset = float3(groupIndex & 1u, (groupIndex >> 1) & 1u, (groupIndex >> 2) & 1u) * 0.5 - 0.25;
+        const float3 subVoxelOffset = float3(
+            groupIndex & 1u,
+            (groupIndex >> 1) & 1u,
+            (groupIndex >> 2) & 1u) * 0.5 - 0.25;
 
-        gsOctantFree[groupIndex] = GlimmerSHIsBuried(center + octantOffset * spacing, minGroundLevel) ? 0u : 1u;
+        gsSubVoxelFree[groupIndex] = GlimmerSHIsBuried(center + subVoxelOffset * spacing, minGroundLevel) ? 0u : 1u;
     }
 
     GroupMemoryBarrierWithGroupSync();
@@ -501,14 +503,17 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
         float3 firstFree = (float3)0.0;
 
         [loop]
-        for (uint octant = 0; octant < 8; octant++)
+        for (uint subVoxel = 0; subVoxel < 8; subVoxel++)
         {
-            const float3 octantOffset = float3(octant & 1u, (octant >> 1) & 1u, (octant >> 2) & 1u) * 0.5 - 0.25;
+            const float3 subVoxelOffset = float3(
+                subVoxel & 1u,
+                (subVoxel >> 1) & 1u,
+                (subVoxel >> 2) & 1u) * 0.5 - 0.25;
 
-            if (gsOctantFree[octant] != 0u)
+            if (gsSubVoxelFree[subVoxel] != 0u)
             {
-                firstFree = freeCount == 0.0 ? octantOffset : firstFree;
-                freeSum += octantOffset;
+                firstFree = freeCount == 0.0 ? subVoxelOffset : firstFree;
+                freeSum += subVoxelOffset;
                 freeCount += 1.0;
             }
         }
@@ -529,12 +534,12 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
 
         if (isBuried)
         {
-            GlimmerSHVoxel data = (GlimmerSHVoxel)0;
+            GlimmerSHVoxel data = (GlimmerSHVoxel) 0;
             data.isBuried = true;
 
             OutData[texel] = (float4)0.0;
             
-            float4 noLight[GLIMMER_LIGHT_ENTRIES] = (float4[GLIMMER_LIGHT_ENTRIES])0;
+            float4 noLight[GLIMMER_LIGHT_ENTRIES] = (float4[GLIMMER_LIGHT_ENTRIES]) 0;
 
             GlimmerSHWriteLight(texel, noLight);
             OutState[texel] = GlimmerSHPackVoxel(voxel, data);
@@ -600,8 +605,8 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
         else
         {
             // leaves don't count for the axis depths: light through a canopy isn't a leak
-            const float3 direction = isRayThread ? rayDirection : GlimmerSHAxisDirection(axisIndex);
-            const float tMax = isRayThread ? constants.params.y : GLIMMER_SH_DEPTH_RANGE * spacing;
+            const float3 direction = select(isRayThread, rayDirection, GlimmerSHAxisDirection(axisIndex));
+            const float tMax = select(isRayThread, constants.params.y, GLIMMER_SH_DEPTH_RANGE * spacing);
 
             didHit = GlimmerSHTraceScene(origin, direction, tMax, startLevel, isRayThread, hit, hitLightmap);
         }
@@ -663,7 +668,6 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
     {
         if (isAir)
         {
-            // nothing is near but the ground under it
             gsAxisDepths[axisIndex] = axisIndex == 3u && gsHasGround != 0u
                 ? clamp((origin.y - gsGroundHeight) / spacing, 0.0, GLIMMER_SH_DEPTH_RANGE)
                 : GLIMMER_SH_DEPTH_RANGE;
@@ -746,7 +750,7 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
     }
 
     float4 visibility = GlimmerSHProjectSum(gsVisibility[0]);
-    float4 light[GLIMMER_LIGHT_ENTRIES] = (float4[GLIMMER_LIGHT_ENTRIES])0.0;
+    float4 light[GLIMMER_LIGHT_ENTRIES] = (float4[GLIMMER_LIGHT_ENTRIES]) 0.0;
 
     [unroll]
     for (uint part = 0; part < GLIMMER_LIGHT_PARTS; part++)
@@ -755,8 +759,7 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
         GlimmerSetBounceEntry(light, part, 1u, GlimmerSHProjectSum(gsSums[part * 3u + 1u]));
         GlimmerSetBounceEntry(light, part, 2u, GlimmerSHProjectSum(gsSums[part * 3u + 2u]));
     }
-
-    // a ray that got out brings the distant light along it straight in
+    
     [unroll]
     for (uint term = 0; term < GLIMMER_LIGHT_TERMS; term++)
     {
@@ -788,9 +791,9 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
     data.isAir = isAir;
 
     [unroll]
-    for (uint axisIndex = 0; axisIndex < GLIMMER_SH_AXIS_DEPTHS; axisIndex++)
+    for (uint i = 0; i < GLIMMER_SH_AXIS_DEPTHS; i++)
     {
-        data.depths[axisIndex] = gsAxisDepths[axisIndex];
+        data.depths[i] = gsAxisDepths[i];
     }
 
     OutData[texel] = visibility;
