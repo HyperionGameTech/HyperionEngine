@@ -358,17 +358,22 @@ bool GlimmerSHTraceAirRay(float3 origin, float3 direction, uint minGroundLevel, 
     return true;
 }
 
-bool GlimmerSHLocalLightVisible(float3 origin, float3 direction, float tMax)
+float GlimmerSHShadowTransmittance(float3 origin, float3 direction, float tMax)
 {
     GlimmerHeightfieldHit hit;
     float4 lightmap;
 
-    return !GlimmerSHTraceScene(origin, direction, tMax, 0u, false, hit, lightmap);
+    if (GlimmerSHTraceScene(origin, direction, tMax, 0u, false, hit, lightmap))
+    {
+        return 0.0;
+    }
+
+    return hit.transmittance;
 }
 
-#define GLIMMER_LOCAL_LIGHT_VISIBLE GlimmerSHLocalLightVisible
+#define GLIMMER_LOCAL_LIGHT_TRANSMITTANCE GlimmerSHShadowTransmittance
 #include "../GlimmerLocalLights.hlsli"
-#undef GLIMMER_LOCAL_LIGHT_VISIBLE
+#undef GLIMMER_LOCAL_LIGHT_TRANSMITTANCE
 
 GlimmerLight GlimmerSHShadeHit(float3 P, GlimmerHeightfieldHit hit, float3 albedo, float4 lightmap)
 {

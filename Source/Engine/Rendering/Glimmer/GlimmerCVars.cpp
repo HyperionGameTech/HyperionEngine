@@ -32,4 +32,15 @@ CVar<int> g_cvGlimmerBVHNodePoolMB("Rendering.Glimmer.BVH.NodePoolMB", 96);
 CVar<float> g_cvGlimmerBVHRadius("Rendering.Glimmer.BVH.Radius", 128.0f);
 CVar<float> g_cvGlimmerBVHCellSize("Rendering.Glimmer.BVH.CellSize", 64.0f);
 
+CVar<int> g_cvGlimmerReference("Rendering.Glimmer.Reference", 0);
+CVar<int> g_cvGlimmerReferencePaths("Rendering.Glimmer.Reference.Paths", 1);
+CVar<int> g_cvGlimmerReferenceStride("Rendering.Glimmer.Reference.Stride", 1);
+CVar<float> g_cvGlimmerReferenceOffset("Rendering.Glimmer.Reference.Offset", 0.0f);
+CVar<int> g_cvGlimmerReferenceBounces("Rendering.Glimmer.Reference.Bounces", 8);
+CVar<float> g_cvGlimmerReferenceExposure("Rendering.Glimmer.Reference.Exposure", 1.0f);
+CVar<float> g_cvGlimmerReferenceErrorScale("Rendering.Glimmer.Reference.ErrorScale", 0.5f);
+CVar<bool> g_cvGlimmerReferenceSkySH("Rendering.Glimmer.Reference.SkySH", false);
+CVar<bool> g_cvGlimmerReferenceFurnace("Rendering.Glimmer.Reference.Furnace", false);
+CVar<bool> g_cvGlimmerReferenceShaded("Rendering.Glimmer.Reference.Shaded", false);
+
 } // namespace Hyperion

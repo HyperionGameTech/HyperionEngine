@@ -29,7 +29,7 @@ struct GlimmerLight
 
 struct GlimmerLightParams
 {
-    float4 bounceWeights[GLIMMER_LIGHT_TERMS]; // rgb = the sun's and the sky's SH term
+    float4 bounceWeights[GLIMMER_LIGHT_TERMS]; // rgb = the sun's and the sky's radiance in each term
     float4 directWeights[GLIMMER_LIGHT_TERMS]; // rgb = the sky's alone
 };
 
@@ -74,35 +74,84 @@ void GlimmerAddLight(inout GlimmerLight light, GlimmerLight other, float3 scale)
     }
 }
 
-void GlimmerLightBasis(float3 direction, out float basis[GLIMMER_LIGHT_TERMS])
-{
-    basis[0] = 0.282095;
-    basis[1] = 0.488603 * direction.y;
-    basis[2] = 0.488603 * direction.z;
-    basis[3] = 0.488603 * direction.x;
+// the terms are the sky in overlapping bins that sum to one in every direction: the zenith, 3 around 40 degrees up, 4 around the horizon
+// and all of it below. Unlike SH, a sky seen through a gap near the horizon is the sky there, not a smear of all of it
+#define GLIMMER_SKY_ZENITH_TERM 0u
+#define GLIMMER_SKY_MID_TERM 1u
+#define GLIMMER_SKY_MID_BINS 3u
+#define GLIMMER_SKY_HORIZON_TERM 4u
+#define GLIMMER_SKY_HORIZON_BINS 4u
+#define GLIMMER_SKY_BELOW_TERM 8u
 
-#if GLIMMER_LIGHT_TERMS > 4
-    basis[4] = 1.092548 * direction.x * direction.y;
-    basis[5] = 1.092548 * direction.y * direction.z;
-    basis[6] = 0.315392 * (3.0 * direction.z * direction.z - 1.0);
-    basis[7] = 1.092548 * direction.x * direction.z;
-    basis[8] = 0.546274 * (direction.x * direction.x - direction.y * direction.y);
-#endif
+#define GLIMMER_SKY_MID_Y 0.642788
+#define GLIMMER_SKY_BELOW_Y 0.17
+
+// the solid angle each term covers, and its weighted direction
+static const float GlimmerSkyTermSolidAngle[GLIMMER_LIGHT_TERMS] = { 1.122216, 1.047198, 1.047198, 1.047198, 0.638362, 0.638362, 0.638362, 0.638362, 5.749115 };
+
+static const float3 GlimmerSkyTermDirection[GLIMMER_LIGHT_TERMS] = {
+    float3(0.0, 0.988593, 0.0),
+    float3(0.570432, 0.573441, 0.0),
+    float3(-0.285216, 0.573441, 0.494009),
+    float3(-0.285216, 0.573441, -0.494009),
+    float3(0.502426, 0.100603, 0.0),
+    float3(0.0, 0.100603, 0.502426),
+    float3(-0.502426, 0.100603, 0.0),
+    float3(0.0, 0.100603, -0.502426),
+    float3(0.0, -3.111329, 0.0)
+};
+
+// x = around the horizon, y = around 40 degrees up, z = the zenith, for directions above the horizon
+float3 GlimmerSkyElevationWeights(float y)
+{
+    const float horizon = saturate(1.0 - y / GLIMMER_SKY_MID_Y);
+    const float zenith = saturate((y - GLIMMER_SKY_MID_Y) / (1.0 - GLIMMER_SKY_MID_Y));
+
+    return float3(horizon, 1.0 - horizon - zenith, zenith);
 }
 
+// NOTE must match GetGlimmerSkyTerms in GlimmerHelpers.cpp
+void GlimmerLightBasis(float3 direction, out float basis[GLIMMER_LIGHT_TERMS])
+{
+    [unroll]
+    for (uint term = 0; term < GLIMMER_LIGHT_TERMS; term++)
+    {
+        basis[term] = 0.0;
+    }
+
+    const float below = saturate(-direction.y / GLIMMER_SKY_BELOW_Y);
+    const float3 elevation = GlimmerSkyElevationWeights(max(direction.y, 0.0)) * (1.0 - below);
+
+    float azimuth = atan2(direction.z, direction.x);
+    azimuth += azimuth < 0.0 ? HYP_FMATH_PI * 2.0 : 0.0;
+
+    const float midAt = azimuth * (float(GLIMMER_SKY_MID_BINS) / (HYP_FMATH_PI * 2.0));
+    const uint midBin = min(uint(midAt), GLIMMER_SKY_MID_BINS - 1u);
+    const float midBlend = saturate(midAt - float(midBin));
+
+    const float horizonAt = azimuth * (float(GLIMMER_SKY_HORIZON_BINS) / (HYP_FMATH_PI * 2.0));
+    const uint horizonBin = min(uint(horizonAt), GLIMMER_SKY_HORIZON_BINS - 1u);
+    const float horizonBlend = saturate(horizonAt - float(horizonBin));
+
+    basis[GLIMMER_SKY_ZENITH_TERM] = elevation.z;
+    basis[GLIMMER_SKY_MID_TERM + midBin] += elevation.y * (1.0 - midBlend);
+    basis[GLIMMER_SKY_MID_TERM + (midBin + 1u) % GLIMMER_SKY_MID_BINS] += elevation.y * midBlend;
+    basis[GLIMMER_SKY_HORIZON_TERM + horizonBin] += elevation.x * (1.0 - horizonBlend);
+    basis[GLIMMER_SKY_HORIZON_TERM + (horizonBin + 1u) % GLIMMER_SKY_HORIZON_BINS] += elevation.x * horizonBlend;
+    basis[GLIMMER_SKY_BELOW_TERM] = below;
+}
+
+// what a whole sky of each term's light gives a surface facing direction, as irradiance / pi (each term's linear part, cosine convolved)
 GlimmerLight GlimmerDistantLight(float3 direction, float scale)
 {
     GlimmerLight light = GlimmerNoLight();
 
-    float basis[GLIMMER_LIGHT_TERMS];
-    GlimmerLightBasis(direction, basis);
-
     [unroll]
     for (uint term = 0; term < GLIMMER_LIGHT_TERMS; term++)
     {
-        const float cosineLobe = term == 0u ? 1.0 : (term < 4u ? 2.0 / 3.0 : 0.25);
+        const float response = GlimmerSkyTermSolidAngle[term] * (0.25 * HYP_FMATH_ONE_OVER_PI) + dot(GlimmerSkyTermDirection[term], direction) * (0.5 * HYP_FMATH_ONE_OVER_PI);
 
-        light.parts[term] = (float3)(basis[term] * cosineLobe * scale);
+        light.parts[term] = (float3)(response * scale);
     }
 
     return light;

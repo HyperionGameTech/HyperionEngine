@@ -299,6 +299,36 @@ struct WindSettings
 };
 
 HYP_STRUCT()
+struct TimeOfDaySettings
+{
+    HYP_STRUCT_BODY(TimeOfDaySettings);
+
+    // the sun light follows the clock along its arc
+    HYP_FIELD(Property = "Enabled", Serialize, Label = "Enabled")
+    bool enabled = false;
+
+    HYP_FIELD(Property = "Hour", Serialize, Label = "Hour")
+    float hour = 17.0f;
+
+    HYP_FIELD(Property = "HoursPerSecond", Serialize, Label = "Hours Per Second")
+    float hoursPerSecond = 0.0f;
+
+    HYP_FIELD(Property = "Sunrise", Serialize, Label = "Sunrise")
+    float sunrise = 6.0f;
+
+    HYP_FIELD(Property = "Sunset", Serialize, Label = "Sunset")
+    float sunset = 19.0f;
+
+    // how far the sun's arc leans from overhead; its highest is 90 degrees less this
+    HYP_FIELD(Property = "Tilt", Serialize, Label = "Tilt")
+    float tiltDegrees = 35.0f;
+
+    // turns the arc about +y; at 0 the sun rises in +x and leans toward +z
+    HYP_FIELD(Property = "Heading", Serialize, Label = "Heading")
+    float headingDegrees = 0.0f;
+};
+
+HYP_STRUCT()
 struct GlobalIlluminationSettings
 {
     HYP_STRUCT_BODY(GlobalIlluminationSettings);
@@ -335,6 +365,9 @@ struct EnvironmentSettings
 
     HYP_FIELD(Property = "Wind", Serialize, Label = "Wind")
     WindSettings wind;
+
+    HYP_FIELD(Property = "TimeOfDay", Serialize, Label = "Time of Day")
+    TimeOfDaySettings timeOfDay;
 
     HYP_FIELD(Property = "GlobalIllumination", Serialize, Label = "Global Illumination & Reflections")
     GlobalIlluminationSettings globalIllumination;

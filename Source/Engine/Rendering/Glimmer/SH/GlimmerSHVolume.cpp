@@ -763,12 +763,26 @@ void GlimmerSHVolume::Update(Frame* frame, const GlimmerSHVolumeUpdateInputs& in
     if (inputs.isOccupancySettled)
     {
         m_occupancyWaitFrames = 0;
+
+        if (m_hasTracedUnsettledOccupancy)
+        {
+            m_hasTracedUnsettledOccupancy = false;
+
+            for (uint32 cascadeIndex = 0; cascadeIndex < GlimmerSHCascades; cascadeIndex++)
+            {
+                AddPending(cascadeIndex, GetWindow(*m_cascades[cascadeIndex].origin));
+            }
+        }
     }
     else if (m_occupancyWaitFrames < MaxOccupancyWaitFrames)
     {
         m_occupancyWaitFrames++;
 
         return;
+    }
+    else
+    {
+        m_hasTracedUnsettledOccupancy = true;
     }
 
     ENGINE_STAT_GPU_SCOPE(&s_statGlimmerSHUpdate);

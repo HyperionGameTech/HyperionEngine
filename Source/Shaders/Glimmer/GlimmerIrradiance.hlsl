@@ -54,6 +54,7 @@ DECLARE_SRV(DeferredPass, GBufferMaterialTexture) Texture2D<uint> GBufferMateria
 DECLARE_SRV(DeferredPass, GlimmerHalfIrradianceTexture) Texture2D GlimmerHalfIrradianceTexture;
 DECLARE_SRV(DeferredPass, GlimmerHalfSpecularTexture) Texture2D GlimmerHalfSpecularTexture;
 DECLARE_SRV(DeferredPass, GlimmerHalfReflectionTexture) Texture2D GlimmerHalfReflectionTexture;
+DECLARE_SRV(DeferredPass, GlimmerReferenceTexture) Texture2D GlimmerReferenceTexture;
 
 #include "../Include/Gbuffer.hlsli"
 #include "../Include/Scene.hlsli"
@@ -70,7 +71,7 @@ DECLARE_SRV(DeferredPass, WorldsBuffer) StructuredBuffer<WorldShaderData> _world
 DECLARE_BUFFER_DYNAMIC(DeferredPass, CBuffer) cbuffer CBuffer
 {
     GlimmerApply glimmer;
-    uint4 irradianceParams; // xy = the pixel of each 2x2 quad HALF shades this frame
+    uint4 irradianceParams; // xy = the pixel of each 2x2 quad HALF shades this frame, z = 1 to light the frame by the reference, w = what scales its sum to the mean (float bits)
 };
 
 #define GLIMMER_APPLY_WITH_SAMPLING
@@ -273,6 +274,11 @@ PSOutput PSMain(PSInput input)
     {
         // GLIMMER_DEBUG_VIS_IRRADIANCE shows this as it is
         output = GlimmerEvaluateSurface(surface);
+    }
+
+    if (irradianceParams.z != 0u)
+    {
+        output.irradiance = float4(GlimmerReferenceTexture.Load(int3(pixel, 0)).rgb * asfloat(irradianceParams.w), 1.0);
     }
 
     return output;

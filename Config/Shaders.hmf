@@ -241,6 +241,10 @@ ShaderDefinitions "ShaderDefinitions" {
             Cook = EditorOnly
             CS = "Glimmer/GlimmerHeightfieldDebug.hlsl"
         }
+        ShaderDefinition "GlimmerReference" {
+            Cook = EditorOnly
+            CS = "Glimmer/GlimmerReference.hlsl"
+        }
         ShaderDefinition "GlimmerGroundUpload" {
             Condition = "Rendering.Glimmer.Enabled"
             CS = "Glimmer/GlimmerGroundUpload.hlsl"
@@ -276,6 +280,10 @@ ShaderDefinitions "ShaderDefinitions" {
         ShaderDefinition "GlimmerHeightBounds" {
             Condition = "Rendering.Glimmer.Enabled"
             CS = "Glimmer/GlimmerHeightBounds.hlsl"
+        }
+        ShaderDefinition "GlimmerSkyBins" {
+            Condition = "Rendering.Glimmer.Enabled"
+            CS = "Glimmer/GlimmerSkyBins.hlsl"
         }
         ShaderDefinition "GlimmerSHUpdate" {
             Condition = "Rendering.Glimmer.Enabled"

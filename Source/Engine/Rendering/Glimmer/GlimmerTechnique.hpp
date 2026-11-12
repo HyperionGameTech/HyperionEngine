@@ -13,6 +13,7 @@
 #include <Rendering/Glimmer/GlimmerMemory.hpp>
 
 #include <Core/Memory/UniquePtr.hpp>
+#include <Core/Containers/FixedArray.hpp>
 
 #include <Core/Math/BoundingBox.hpp>
 #include <Core/Math/Vector2.hpp>
@@ -85,6 +86,9 @@ struct GlimmerDebugViewContext
     GpuImageViewRef outputImageView;
     Vec2u extent;
 
+    EnvProbe* skyProbe = nullptr;
+    GpuImageViewRef irradianceImageView; // what Glimmer gave the frame, for the reference to compare with
+
     // GlimmerDebugView::TechniqueFirst + 1
     int techniqueView = 0;
 };
@@ -142,6 +146,13 @@ private:
     GlimmerLightShaderData m_light;
     bool m_hasLight = false;
     uint64 m_lightTime = 0;
+
+    void UpdateSkyBins(Frame* frame, EnvProbe* skyProbe);
+
+    GpuBufferRef m_skyBinsBuffer;
+    FixedArray<GpuBufferRef, NumFramesInFlight> m_skyBinsReadbackBuffers;
+    FixedArray<uint32, NumFramesInFlight> m_skyBinsReadbackTextures {}; // the sky texture index + 1 each holds, 0 when none is on its way
+    uint32 m_skyBinsFrame = 0;
 };
 
 } // namespace Hyperion

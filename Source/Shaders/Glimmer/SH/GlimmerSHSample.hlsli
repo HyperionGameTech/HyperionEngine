@@ -4,6 +4,7 @@
 #include "GlimmerSHCommon.hlsli"
 
 #define GLIMMER_SH_VISIBILITY_NORMAL_BIAS 0.3
+#define GLIMMER_SH_SAMPLE_NORMAL_OFFSET 0.25
 #define GLIMMER_SH_CRUSH_THRESHOLD 0.2
 #define GLIMMER_SH_AXIS_FADE 0.5
 // a rejected voxel keeps this much weight: with next to none, the blend jumps where the voxels around the point change
@@ -183,7 +184,7 @@ float GlimmerSHSampleVolume(GlimmerSHVolume volume, float3 P, float3 N, out floa
     {
         float4 cascadeVisibility;
         GlimmerSHRadiance cascadeRadiance;
-        const float cascadeWeight = GlimmerSHSampleCascade(volume, cascadeIndex, P + N * 0.05, N, cascadeVisibility, cascadeRadiance);
+        const float cascadeWeight = GlimmerSHSampleCascade(volume, cascadeIndex, P + N * (GLIMMER_SH_SAMPLE_NORMAL_OFFSET * volume.cascades[cascadeIndex].params.x), N, cascadeVisibility, cascadeRadiance);
 
         if (cascadeWeight <= 0.0)
         {

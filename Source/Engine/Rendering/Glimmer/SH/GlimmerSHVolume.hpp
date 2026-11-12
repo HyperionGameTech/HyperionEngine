@@ -190,6 +190,7 @@ private:
     uint32 m_seenInstancesGeneration;
     uint32 m_seenLightsGeneration = 0;
     uint32 m_occupancyWaitFrames;
+    bool m_hasTracedUnsettledOccupancy = false;
 
     int32 m_refreshBudget;                              /// voxels the refresh may still trace, carried between frames so a rate below a slice still gets its turn
 

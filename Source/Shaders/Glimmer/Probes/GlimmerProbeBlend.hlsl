@@ -358,7 +358,9 @@ void GlimmerBlendProbe(uint probeIndex, int4 slot, uint4 state, uint numRays, fl
         }
     }
 
-    const float invNumRays = 1.0 / float(max(numRays, 1u));
+    // back face rays and rays that start inside carry no light; averaging over them would darken probes near walls
+    const uint numOpenRays = numRays - min(numBackfaces + numStartsInside, numRays);
+    const float invNumRays = 1.0 / float(max(numOpenRays, 1u));
 
     float4 light[GLIMMER_LIGHT_ENTRIES] = (float4[GLIMMER_LIGHT_ENTRIES])0.0;
 

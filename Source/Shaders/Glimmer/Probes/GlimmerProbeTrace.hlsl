@@ -199,7 +199,7 @@ DECLARE_SRV(GlimmerProbeTrace, GlimmerRelightTexture) Texture2DArray<float4> gli
 
 #include "../GlimmerHeightfield.hlsli"
 
-bool GlimmerProbeLocalLightVisible(float3 origin, float3 direction, float tMax)
+float GlimmerProbeShadowTransmittance(float3 origin, float3 direction, float tMax)
 {
 #if defined(TRACER_BVH)
     GlimmerBVHHit bvhHit;
@@ -207,25 +207,30 @@ bool GlimmerProbeLocalLightVisible(float3 origin, float3 direction, float tMax)
 
     if (TraceGlimmerBVH(origin, direction, 0.0, tMax, constants.bvh.x, true, bvhHit, stats))
     {
-        return false;
+        return 0.0;
     }
 #else
     GlimmerBrickHit brickHit;
 
     if (TraceGlimmerBricks(constants.bricks, origin, direction, 0.0, tMax, brickHit))
     {
-        return false;
+        return 0.0;
     }
 #endif
 
     GlimmerHeightfieldHit heightfieldHit;
 
-    return !GlimmerTraceHeightfield(constants.ground, constants.spans, origin, direction, tMax, 0u, tMax, constants.params.x, false, heightfieldHit);
+    if (GlimmerTraceHeightfield(constants.ground, constants.spans, origin, direction, tMax, 0u, tMax, constants.params.x, false, heightfieldHit))
+    {
+        return 0.0;
+    }
+
+    return heightfieldHit.transmittance;
 }
 
-#define GLIMMER_LOCAL_LIGHT_VISIBLE GlimmerProbeLocalLightVisible
+#define GLIMMER_LOCAL_LIGHT_TRANSMITTANCE GlimmerProbeShadowTransmittance
 #include "../GlimmerLocalLights.hlsli"
-#undef GLIMMER_LOCAL_LIGHT_VISIBLE
+#undef GLIMMER_LOCAL_LIGHT_TRANSMITTANCE
 
 void GlimmerAddEmitters(float3 origin, float3 direction, float hitT, float tMax, inout GlimmerLight ioInscatter)
 {
@@ -487,7 +492,8 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
         GlimmerBVHHit bvhHit;
         bool hitNear = false;
 
-        const float solidsFromT = traceNear ? nearRange : 0.0;
+        // the BVH owns the solids up to where the ray leaves it; the spans' solids count from there
+        const float solidsFromT = traceNear ? min(GlimmerBVHWindowExit(origin, direction, constants.bvh.x), nearRange) : 0.0;
 
         if (solidsFromT > 0.0)
         {

@@ -12,6 +12,12 @@
 #define GLIMMER_HEIGHTFIELD_MISS 0u
 #define GLIMMER_HEIGHTFIELD_GROUND 1u
 #define GLIMMER_HEIGHTFIELD_SOLID 2u
+#define GLIMMER_HEIGHTFIELD_CANOPY 3u
+
+#ifdef GLIMMER_HEIGHTFIELD_FREE_FLIGHT
+// the ray scatters off the canopy or a partly solid span where their transmittance falls below this; 0 never scatters
+static float glimmerScatterTransmittance = 0.0;
+#endif
 
 bool GlimmerSpanOccupies(float y, float margin, float spanMin, float spanMax, uint bins)
 {
@@ -163,6 +169,9 @@ struct GlimmerHeightfieldHit
     float3 albedo;
     float transmittance;        // how much of what's behind (the hit, or the sky) still reaches the origin
     GlimmerLight inscatter;     // light the canopy scattered toward the origin along the way
+#ifdef GLIMMER_HEIGHTFIELD_FREE_FLIGHT
+    float scatterTransmittance; // the canopy's and the partly solid spans', kept out of transmittance: they scatter rather than absorb
+#endif
 };
 
 #define GLIMMER_HEIGHTFIELD_MAX_STEPS 128
@@ -185,7 +194,7 @@ float3 GlimmerCanopySkyZonal(float opticalDepthAbove, float opticalDepthColumn)
         const float mu = (float(sampleIndex) + 0.5) / float(GLIMMER_CANOPY_SKY_SAMPLES);
         const float transmittance = exp(-min(opticalDepthAbove / mu, pathCap)) / float(GLIMMER_CANOPY_SKY_SAMPLES);
 
-        zonal += transmittance * float3(0.282095, 0.488603 * mu, 0.315392 * (3.0 * mu * mu - 1.0));
+        zonal += transmittance * GlimmerSkyElevationWeights(mu);
     }
 
     return zonal;
@@ -194,13 +203,19 @@ float3 GlimmerCanopySkyZonal(float opticalDepthAbove, float opticalDepthColumn)
 GlimmerLight GlimmerCanopySkyTransfer(float3 zonal)
 {
     GlimmerLight light = GlimmerNoLight();
-    light.parts[0] = (float3)zonal.x;
-    light.parts[1] = (float3)zonal.y;
+    light.parts[GLIMMER_SKY_ZENITH_TERM] = (float3)zonal.z;
 
-#if GLIMMER_LIGHT_TERMS > 4
-    light.parts[6] = (float3)(-0.5 * zonal.z);
-    light.parts[8] = (float3)(-0.866025 * zonal.z);
-#endif
+    [unroll]
+    for (uint mid = 0; mid < GLIMMER_SKY_MID_BINS; mid++)
+    {
+        light.parts[GLIMMER_SKY_MID_TERM + mid] = (float3)(zonal.y / float(GLIMMER_SKY_MID_BINS));
+    }
+
+    [unroll]
+    for (uint horizon = 0; horizon < GLIMMER_SKY_HORIZON_BINS; horizon++)
+    {
+        light.parts[GLIMMER_SKY_HORIZON_TERM + horizon] = (float3)(zonal.x / float(GLIMMER_SKY_HORIZON_BINS));
+    }
 
     return light;
 }
@@ -249,6 +264,9 @@ bool GlimmerTraceHeightfield(
     hit.albedo = (float3)0.0;
     hit.transmittance = 1.0;
     hit.inscatter = GlimmerNoLight();
+#ifdef GLIMMER_HEIGHTFIELD_FREE_FLIGHT
+    hit.scatterTransmittance = 1.0;
+#endif
 
     float groundHeight;
     uint level;
@@ -392,7 +410,28 @@ bool GlimmerTraceHeightfield(
                     canopyWeight += scattered;
                 }
 
+#ifdef GLIMMER_HEIGHTFIELD_FREE_FLIGHT
+                const float scatterAfter = hit.scatterTransmittance * segmentTransmittance;
+
+                if (scatterAfter < glimmerScatterTransmittance)
+                {
+                    const float depthToScatter = log(hit.scatterTransmittance / glimmerScatterTransmittance);
+
+                    hit.t = previousT + segmentLength * saturate(depthToScatter / max(canopy.opticalDepth, 1e-6));
+                    hit.kind = GLIMMER_HEIGHTFIELD_CANOPY;
+                    hit.level = stepLevel;
+                    hit.normal = -direction;
+                    hit.albedo = min(spanSample.canopyAlbedo, (float3)GLIMMER_CANOPY_MAX_ALBEDO);
+
+                    isHit = true;
+
+                    break;
+                }
+
+                hit.scatterTransmittance = scatterAfter;
+#else
                 hit.transmittance *= segmentTransmittance;
+#endif
             }
 
             if (t > solidsFromT)
@@ -430,7 +469,28 @@ bool GlimmerTraceHeightfield(
                     break;
                 }
 
+#ifdef GLIMMER_HEIGHTFIELD_FREE_FLIGHT
+                const float solidAfter = hit.scatterTransmittance * exp(-solid.opticalDepth);
+
+                if (solidAfter < glimmerScatterTransmittance)
+                {
+                    const float depthToScatter = log(hit.scatterTransmittance / glimmerScatterTransmittance);
+
+                    hit.t = max(previousT + segmentLength * saturate(depthToScatter / max(solid.opticalDepth, 1e-6)), solidsFromT);
+                    hit.kind = GLIMMER_HEIGHTFIELD_SOLID;
+                    hit.level = stepLevel;
+                    hit.normal = -direction;
+                    hit.albedo = spanSample.solidAlbedo;
+
+                    isHit = true;
+
+                    break;
+                }
+
+                hit.scatterTransmittance = solidAfter;
+#else
                 hit.transmittance *= exp(-solid.opticalDepth);
+#endif
             }
 
             if (hit.transmittance < 0.02)

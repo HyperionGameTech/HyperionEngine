@@ -4,7 +4,7 @@
 #include "GlimmerLight.hlsli"
 #include "GlimmerSpans.hlsli"
 
-#define GLIMMER_MAX_ALBEDO 0.9
+#define GLIMMER_MAX_ALBEDO 0.98
 #define GLIMMER_UNKNOWN_OPENNESS 0.5
 
 float3 GlimmerSkyIrradiance(float3 N)
@@ -132,7 +132,7 @@ GlimmerLight GlimmerCanopyRadiance(float3 P, float3 weightedAlbedo, GlimmerLight
     GlimmerLight received = skyTransfer;
     GlimmerAddLight(received, GlimmerIndirectNearest(P, float3(0.0, -1.0, 0.0)), (float3)1.0);
 
-    return GlimmerScaleLight(received, weightedAlbedo);
+    return GlimmerScaleLight(received, weightedAlbedo * 0.5);
 }
 
 #endif

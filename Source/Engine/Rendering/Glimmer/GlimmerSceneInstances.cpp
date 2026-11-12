@@ -24,6 +24,7 @@
 #include <Rendering/Material.hpp>
 #include <Rendering/Texture.hpp>
 #include <Rendering/RenderHelpers.hpp>
+#include <Rendering/ObjectMasks.hpp>
 
 #include <Rendering/Util/DeletionQueue.hpp>
 
@@ -547,6 +548,11 @@ void GlimmerSceneInstances::Gather(RenderProxyList& rpl, const BoundingBox& regi
         RenderProxyMesh* proxy = rpl.GetMeshEntities().GetProxy(entity->Id());
 
         if (!proxy || !proxy->mesh || !proxy->material || proxy->skeleton != nullptr)
+        {
+            continue;
+        }
+
+        if (proxy->bufferData.objectMask & DynamicObjectMask)
         {
             continue;
         }

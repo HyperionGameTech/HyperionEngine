@@ -72,6 +72,9 @@ private:
     // Centers the top-down capture on the viewer and rebuilds its matrices. Sim thread only.
     void UpdateSkyVisibilityView();
 
+    // advances the clock and points the sun light along its arc. Sim thread only.
+    void UpdateTimeOfDay(float delta, Span<Handle<Scene>> scenes);
+
     virtual SystemComponentDescriptors GetComponentDescriptors() const override
     {
         return { };
@@ -96,6 +99,9 @@ private:
 
     ClockTimer m_updateTimer;
     uint32 m_lastFrame;
+
+    float m_timeOfDayHour;    // the clock as it runs
+    float m_timeOfDaySetHour; // the hour the settings last gave it
 
     DelegateHandler m_onWorldEnvironmentSettingsChangedHandler;
 };

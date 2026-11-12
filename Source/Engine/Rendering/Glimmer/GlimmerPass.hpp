@@ -30,6 +30,7 @@ class GlimmerSurfaceCache;
 class GlimmerTriangleCache;
 class GlimmerSceneInstances;
 class GlimmerSpanCache;
+class GlimmerReference;
 
 struct GlimmerApplyShaderData
 {
@@ -83,6 +84,7 @@ public:
     UniquePtr<GlimmerTechnique, GlimmerAllocator> technique;
 
     World* world = nullptr;
+    EnvProbe* skyProbe = nullptr; // as of the last update
     BoundingBox region;
     uint32 lastUpdatedFrame = ~0u;
 
@@ -110,6 +112,8 @@ public:
     virtual ~GlimmerViewPassData() override;
 
     Handle<Texture> debugTexture;
+
+    UniquePtr<GlimmerReference> reference;
 };
 
 class GlimmerPass final : public PassBase
@@ -124,6 +128,9 @@ public:
     virtual void RenderFrame(Frame* frame, const RenderSetup& renderSetup) override;
 
     bool RenderDebugView(Frame* frame, const RenderSetup& renderSetup, Framebuffer* gbufferFramebuffer, GpuImageViewRef& outImageView);
+
+    // the reference's irradiance sum for the frame to be lit by, and what scales it to the mean; false unless Rendering.Glimmer.Reference is 5 and it has frames
+    bool GetLitReference(View* view, Handle<Texture>& outTexture, float& outScale);
 
     void WriteApplyShaderData(CBufferAllocator& cbufferAllocator, World* world) const;
 

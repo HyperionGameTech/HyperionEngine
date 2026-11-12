@@ -543,6 +543,11 @@ void GlimmerProbeVolume::Update(Frame* frame, const GlimmerProbeUpdateInputs& in
 
     m_nearTracer = nearTracer;
 
+    const int32 nearFieldCascades = MathUtil::Clamp(g_cvGlimmerProbesNearFieldCascades.Get(), 0, int(GlimmerProbeLevels));
+    const bool isNewNearField = nearFieldCascades != m_nearFieldCascades;
+
+    m_nearFieldCascades = nearFieldCascades;
+
     // counted per frame, so a low frame rate gets more a frame to keep the same pace
     const float budgetScale = MathUtil::Clamp(inputs.budgetScale, 1.0f, float(MaxBudgetScale));
 
@@ -566,7 +571,7 @@ void GlimmerProbeVolume::Update(Frame* frame, const GlimmerProbeUpdateInputs& in
         GlimmerMaxRayDistance);
 
     m_shaderData.nearField = Vec4f(
-        float(MathUtil::Clamp(g_cvGlimmerProbesNearFieldCascades.Get(), 0, int(GlimmerProbeLevels))),
+        float(nearFieldCascades),
         NearFieldReachSpacings,
         hasNearTracer ? 1.0f : 0.0f,
         GlimmerDefaultGroundAlbedo);
@@ -613,7 +618,7 @@ void GlimmerProbeVolume::Update(Frame* frame, const GlimmerProbeUpdateInputs& in
 
         constants.viewer = Vec4f(priorityPoint.x, priorityPoint.y, priorityPoint.z, 0.0f);
 
-        bool shouldAwaken = isNewTracer;
+        bool shouldAwaken = isNewTracer || isNewNearField;
 
         uint32 numChangedBoxes = 0;
 

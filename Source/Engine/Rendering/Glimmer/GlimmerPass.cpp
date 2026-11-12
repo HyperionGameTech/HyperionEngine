@@ -15,6 +15,8 @@
 #include <Rendering/Glimmer/GlimmerChannel.hpp>
 #include <Rendering/Glimmer/GlimmerCVars.hpp>
 #include <Rendering/Glimmer/GlimmerHelpers.hpp>
+#include <Rendering/Glimmer/GlimmerReference.hpp>
+#include <Rendering/Glimmer/GlimmerIrradiancePass.hpp>
 
 #include <Rendering/Glimmer/Bricks/GlimmerBrickWorld.hpp>
 
@@ -92,6 +94,8 @@ static constexpr Pair<StringHash, GlimmerRestartParts> StatefulShaders[] = {
 };
 
 static constexpr uint32 NumStatefulShaders = uint32(GetArrayCount(StatefulShaders));
+
+static constexpr int LitReferenceView = 5;
 
 
 namespace  /* Helpers */ {
@@ -458,6 +462,8 @@ void GlimmerPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
     scene->sceneInstances->Update(frame, rpl, region, viewerPosition, *scene->triangleCache);
 
+    scene->skyProbe = renderSetup.envProbe;
+
     GlimmerTechniqueUpdateContext context;
     context.frame = frame;
     context.world = renderSetup.world;
@@ -536,13 +542,22 @@ bool GlimmerPass::RenderDebugView(Frame* frame, const RenderSetup& renderSetup, 
     AssertOnThread(g_renderThread);
 
     const int debugView = g_cvGlimmerDebugView.Get();
+    const bool isReference = g_cvGlimmerReference.Get() > 0;
 
-    if (debugView < int(GlimmerDebugView::TechniqueFirst))
+    View* view = renderSetup.view;
+
+    if (!isReference && view)
+    {
+        if (GlimmerViewPassData* viewData = TryCast<GlimmerViewPassData>(FetchViewPassData(view)))
+        {
+            viewData->reference.Reset();
+        }
+    }
+
+    if (debugView < int(GlimmerDebugView::TechniqueFirst) && !isReference)
     {
         return false;
     }
-
-    View* view = renderSetup.view;
 
     if (!view || !view->GetCamera() || !gbufferFramebuffer)
     {
@@ -593,8 +608,31 @@ bool GlimmerPass::RenderDebugView(Frame* frame, const RenderSetup& renderSetup, 
     context.outputImageView = RI.textureViewCache->GetOrCreate(viewData->debugTexture);
     context.extent = extent;
     context.techniqueView = debugView - int(GlimmerDebugView::TechniqueFirst) + 1;
+    context.skyProbe = scene->skyProbe;
 
-    const bool rendered = scene->technique->RenderDebugView(context);
+    if (const DeferredPassData* deferredPassData = TryCast<DeferredPassData>(renderSetup.passData))
+    {
+        if (deferredPassData->glimmerIrradiancePass)
+        {
+            context.irradianceImageView = deferredPassData->glimmerIrradiancePass->GetAttachment(0)->GetImageView();
+        }
+    }
+
+    bool rendered = false;
+
+    if (isReference)
+    {
+        if (!viewData->reference)
+        {
+            viewData->reference = MakeUnique<GlimmerReference>();
+        }
+
+        rendered = viewData->reference->Render(context) && g_cvGlimmerReference.Get() != LitReferenceView;
+    }
+    else
+    {
+        rendered = scene->technique->RenderDebugView(context);
+    }
 
     cr << InsertBarrier(viewData->debugTexture->GetGpuImage(), ResourceState::ShaderResource, ShaderModuleType::Pixel);
 
@@ -604,6 +642,26 @@ bool GlimmerPass::RenderDebugView(Frame* frame, const RenderSetup& renderSetup, 
     }
 
     outImageView = context.outputImageView;
+
+    return true;
+}
+
+bool GlimmerPass::GetLitReference(View* view, Handle<Texture>& outTexture, float& outScale)
+{
+    if (!view || g_cvGlimmerReference.Get() != LitReferenceView)
+    {
+        return false;
+    }
+
+    GlimmerViewPassData* viewData = TryCast<GlimmerViewPassData>(FetchViewPassData(view));
+
+    if (!viewData || !viewData->reference || viewData->reference->GetNumFrames() == 0 || !viewData->reference->GetReferenceTexture().IsValid())
+    {
+        return false;
+    }
+
+    outTexture = viewData->reference->GetReferenceTexture();
+    outScale = 1.0f / float(viewData->reference->GetNumFrames());
 
     return true;
 }

@@ -192,6 +192,87 @@ GlimmerTechnique::GlimmerTechnique()
 GlimmerTechnique::~GlimmerTechnique()
 {
     EnqueueDeletion(std::move(m_scratchBuffer));
+    EnqueueDeletion(std::move(m_skyBinsBuffer));
+
+    for (GpuBufferRef& readbackBuffer : m_skyBinsReadbackBuffers)
+    {
+        EnqueueDeletion(std::move(readbackBuffer));
+    }
+}
+
+static constexpr uint32 SkyBinsIntervalFrames = 8;
+
+// the sky probe's radiance averaged over each light term, measured every few frames and read back a few frames later
+void GlimmerTechnique::UpdateSkyBins(Frame* frame, EnvProbe* skyProbe)
+{
+    HYP_SCOPE;
+
+    const uint32 slot = frame->GetFrameIndex() % NumFramesInFlight;
+
+    if (m_skyBinsReadbackTextures[slot] != 0 && m_skyBinsReadbackBuffers[slot].IsValid())
+    {
+        Vec4f bins[GlimmerLightTerms];
+
+        m_skyBinsReadbackBuffers[slot]->Invalidate();
+        m_skyBinsReadbackBuffers[slot]->Read(sizeof(bins), bins);
+
+        GlimmerHelpers::SetGlimmerSkyBins(m_skyBinsReadbackTextures[slot] - 1, bins);
+
+        m_skyBinsReadbackTextures[slot] = 0;
+    }
+
+    if (!skyProbe || (m_skyBinsFrame++ % SkyBinsIntervalFrames) != 0)
+    {
+        return;
+    }
+
+    GlimmerSkyShaderData sky;
+    EnvProbeShaderData skyProbeData;
+    GlimmerHelpers::GetGlimmerSkyShaderData(skyProbe, sky, skyProbeData);
+
+    if (sky.info.x >= 0xFFFFu)
+    {
+        return;
+    }
+
+    if (!m_skyBinsBuffer.IsValid())
+    {
+        m_skyBinsBuffer = GlimmerHelpers::CreateGlimmerRWBuffer(GlimmerLightTerms * sizeof(Vec4f), sizeof(Vec4f));
+
+        for (GpuBufferRef& readbackBuffer : m_skyBinsReadbackBuffers)
+        {
+            readbackBuffer = RI.MakeGpuBuffer(GpuBufferType::ReadbackBuffer, GlimmerLightTerms * sizeof(Vec4f));
+            readbackBuffer->SetIsCpuAccessible(true);
+            Check(readbackBuffer->Create());
+        }
+    }
+
+    CommandRecorder& cr = frame->cr;
+
+    const Vec4u info(sky.info.x, 0u, 0u, 0u);
+
+    GpuBuffer* cbuffer = nullptr;
+    size_t cbufferOffset = 0;
+    size_t cbufferSize = 0;
+
+    RI.cbufferAllocator->Write(&info);
+    RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
+
+    cr << InsertBarrier(m_skyBinsBuffer.Get(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
+    cr << SetCurrentShader(ShaderDesc(NAME("GlimmerSkyBins")));
+    cr << SetShaderUniform(0, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
+    cr << SetShaderUniform(1, "EnvProbesColorTexture"_sh, RI.textureViewCache->GetOrCreate(RI.envProbesColorTexture));
+    cr << SetShaderUniform(2, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
+    cr << SetShaderUniform(3, "OutBins"_sh, m_skyBinsBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4f)));
+    cr << DispatchCompute(Vec3u { 1, 1, 1 });
+
+    GpuBufferRef& readbackBuffer = m_skyBinsReadbackBuffers[slot];
+
+    cr << InsertBarrier(m_skyBinsBuffer.Get(), ResourceState::CopySrc, ShaderModuleType::Compute);
+    cr << InsertBarrier(readbackBuffer.Get(), ResourceState::CopyDst, ShaderModuleType::Compute);
+    cr << CopyBuffer(m_skyBinsBuffer.Get(), readbackBuffer.Get(), uint32(GlimmerLightTerms * sizeof(Vec4f)));
+
+    m_skyBinsReadbackTextures[slot] = sky.info.x + 1;
 }
 
 void GlimmerTechnique::ResetLighting()
@@ -251,6 +332,8 @@ void GlimmerTechnique::Update(const GlimmerTechniqueUpdateContext& context)
         }
 
         const bool probesEnabled = g_cvGlimmerProbesEnabled.Get();
+
+        UpdateSkyBins(context.frame, context.skyProbe);
 
         GlimmerLightShaderData targetLight;
         GlimmerHelpers::GetGlimmerLightShaderData(context.skyProbe, targetLight);

@@ -60,4 +60,21 @@ extern CVar<float> g_cvGlimmerBVHRadius;                     // how far from the
 extern CVar<float> g_cvGlimmerBVHCellSize;                   // the TLAS and its LODs follow the viewer a cell (xz) at a time
 extern CVar<int> g_cvGlimmerBVHNodePoolMB;                   // BLAS nodes for tracing the triangle cache; 0 builds no BVH
 
+// 0 = off
+// 1 = the reference path tracer's irradiance
+// 2 = Glimmer's, averaged over the same frames
+// 3 = Glimmer's error against the reference (red brighter, blue darker)
+// 4 = the reference on the left, Glimmer on the right
+// 5 = the frame as it is, lit by the reference's irradiance in place of Glimmer's
+extern CVar<int> g_cvGlimmerReference;
+extern CVar<int> g_cvGlimmerReferencePaths;                  // paths each pixel adds a frame
+extern CVar<float> g_cvGlimmerReferenceOffset;               // metres out along the normal the reference is measured at, as for an object near the surface
+extern CVar<int> g_cvGlimmerReferenceStride;                 // pixels apart the reference traces along each axis; the stats count only those
+extern CVar<int> g_cvGlimmerReferenceBounces;
+extern CVar<float> g_cvGlimmerReferenceExposure;
+extern CVar<float> g_cvGlimmerReferenceErrorScale;           // relative error the error view saturates at
+extern CVar<bool> g_cvGlimmerReferenceFurnace;               // white sky and surfaces, no sun or emitters: the reference should come out 1 wherever nothing absorbs
+extern CVar<bool> g_cvGlimmerReferenceShaded;                // the views show diffuse shading (the sun behind a traced shadow ray, plus the irradiance) rather than the irradiance alone
+extern CVar<bool> g_cvGlimmerReferenceSkySH;                 // paths that escape take the sky terms Glimmer is lit by rather than the sky probe's cubemap
+
 } // namespace Hyperion

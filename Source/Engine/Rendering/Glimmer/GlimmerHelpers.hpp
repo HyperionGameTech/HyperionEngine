@@ -56,7 +56,7 @@ static constexpr uint32 GlimmerLightEntries = GlimmerLightTransferEntries + 3;
 
 struct GlimmerLightShaderData
 {
-    Vec4f bounceWeights[GlimmerLightTerms]; // rgb = the sun's and the sky's SH term
+    Vec4f bounceWeights[GlimmerLightTerms]; // rgb = the sun's and the sky's radiance in each term
     Vec4f directWeights[GlimmerLightTerms]; // rgb = the sky's alone
 
     GlimmerLightShaderData()
@@ -155,6 +155,14 @@ void FillGlimmerGroundCover(TerrainWorldGridLayer* terrain, GlimmerChannelState&
 void GetGlimmerSkyShaderData(EnvProbe* skyProbe, GlimmerSkyShaderData& outSky, EnvProbeShaderData& outSkyProbe);
 
 void GetGlimmerLightShaderData(EnvProbe* skyProbe, GlimmerLightShaderData& outLight);
+
+// NOTE must match GlimmerLightBasis in GlimmerLight.hlsli
+void GetGlimmerSkyTerms(const Vec3f& direction, float outTerms[GlimmerLightTerms]);
+
+// the sky probe's mean radiance in each term, as GlimmerSkyBins measured it
+void SetGlimmerSkyBins(uint32 skyTextureIndex, const Vec4f (&radiance)[GlimmerLightTerms]);
+
+Vec3f GetGlimmerSunDirection();
 
 float GetGlimmerFoliageExtinction();
 

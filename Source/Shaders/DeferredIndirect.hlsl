@@ -132,7 +132,7 @@ DECLARE_BUFFER_DYNAMIC(DeferredPass, CBuffer) cbuffer CBuffer
     Camera camera;
     EnvProbe skyProbe;
     SkyVisibilityCapture skyVisibilityCapture;
-    uint4 glimmerParams; // GlimmerIrradianceShaderData: x = 1 when GlimmerIrradianceTexture holds Glimmer, y = 1 when it holds a debug view, z = 1 when sky reflections use GlimmerSpecularTexture, w = 1 when GlimmerBrickReflectionTexture holds reflections
+    uint4 glimmerParams; // GlimmerIrradianceShaderData: x = 1 when GlimmerIrradianceTexture holds Glimmer (2 when it holds the reference's irradiance), y = 1 when it holds a debug view, z = 1 when sky reflections use GlimmerSpecularTexture, w = 1 when GlimmerBrickReflectionTexture holds reflections
 };
 
 DECLARE_SRV(DeferredPass, GlimmerIrradianceTexture) Texture2D GlimmerIrradianceTexture;

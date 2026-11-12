@@ -417,8 +417,7 @@ void EvaluateEnvProbes(
         const float skyReflectionsVisibility = lerp(g_skyVisibility, g_glimmerSpecular.x, g_glimmerSpecular.y);
         const float3 blockedReflectionsColor = g_glimmerReflection * (g_glimmerSpecular.y * (1.0 - g_glimmerSpecular.x));
 
-        reflectionsSum += skyReflectionsColor * (skyReflectionsMissedWeight + skyReflectionsUncoveredWeight * skyReflectionsVisibility)
-            + blockedReflectionsColor * skyReflectionsUncoveredWeight;
+        reflectionsSum += (skyReflectionsColor * skyReflectionsVisibility + blockedReflectionsColor) * (skyReflectionsMissedWeight + skyReflectionsUncoveredWeight);
         reflectionsWeightSum += skyReflectionsMissedWeight + skyReflectionsUncoveredWeight;
 
         skyIrradiance = (skyIrradianceSum / max(skyIrradianceWeightSum, HYP_FMATH_EPSILON)) * skyIrradianceIntensity;
