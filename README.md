@@ -12,17 +12,22 @@
 
 ## About
 
-Hyperion is a full-featured modular game engine built from the ground up in C++ and C#, with a focus on high-fidelity atmospheric environments and scalable worlds, without requiring high-end hardware.
+Hyperion is a full-featured modular game engine built from the ground up in C++ and C#, with a focus on atmospheric environments and large worlds that run on devices without hardware RT.
 
 It has been developed continuously since 2016, and is largely built around a custom reflection system that allows for serialization, editor integration, network replication, and scripting to be generated automatically from the same source code.
+
+Along with the renderer and editor, it includes content cooking, asset references that survive renames and moves, level streaming, a dedicated server, and packaging for desktop, mobile, and web.
+
+**[Try the Glide sample in your browser (WebGPU)](https://hyperionengine.dev/GlideSample)**
 
 
 ## Why Hyperion?
 
-- **Dynamic GI without RT hardware.** Glimmer, our GI system, uses a hybrid of voxel-based GI and software traced probes to provide dynamic global illumination without requiring ray tracing hardware.
-- **Reflection gives you functionality for free.** Mark a class, struct, or field for reflection and our build tools will allow it to be used in serialization, editing, network replication, and script bindings.
-- **Multiplayer you can test in the editor.** play-in-editor can run as a client, by starting a server others can connect to - or connect to another running server altogether
-- **Write the entire game in C# or C++** Use C# for scripting or write the entire game in it. Or generate a C++ project that links to Hyperion, then build and package it from the editor.
+- **Dynamic GI on devices without hardware RT.** Glimmer, our GI system, combines voxel GI with software traced probes. Terrain, foliage, and ground cover are part of the GI scene, so it works for large outdoor scenes as well as interiors. Its results can be compared against a reference path tracer built into the engine.
+- **Reflection and codegen.** Mark a class, struct, or field for reflection and it can be serialized, edited in the inspector, replicated over the network, and used from C#.
+- **Multiplayer you can test in the editor.** Server authoritative replication with client-side prediction and interest management, plus a dedicated server. Play-in-editor can start a server others can connect to, or connect to one that's already running.
+- **Content pipeline and packaging.** Content cooking with a shared cache server, UUID-based asset references, level streaming, and packaging from the editor for Windows, Linux, macOS, Android, iOS, and web.
+- **Write the entire game in C# or C++.** Use C# for scripting or write the entire game in it. Or generate a C++ project that links to Hyperion, then build and package it from the editor.
 
 ## Screenshots
 <table>
@@ -50,6 +55,11 @@ Click a section header below to expand it:
 <summary><b>Rendering</b></summary>
 
 - **Glimmer** - As described above - a hybrid voxel-based + software ray traced probe GI system provides dynamic global illumination without requiring ray tracing hardware
+  - Terrain is traced as a heightfield, streamed in around the camera.
+  - Sparse foliage voxels light leaves and objects inside tree canopies.
+  - Ground cover contributes to the color of light bounced off the terrain.
+  - Sun bounce updates as the sun moves, and is dimmed by clouds.
+  - Built-in reference path tracer for comparing Glimmer against ground truth, with error stats per surface class.
 - **Clustered deferred shading** supporting a large number of dynamic lights while maintaining good frame times, with forward clustered shading for translucent materials.
 - **Offline lightmapper** integrated into the editor. Bakes lightmaps into the scene, reflection/irradiance probes supported for dynamic objects, fog volumes, and other static lighting data such as shadow maps.
 - Real time reflections via ray tracing on RT capable hardware, with screen-space reflections everywhere else.
