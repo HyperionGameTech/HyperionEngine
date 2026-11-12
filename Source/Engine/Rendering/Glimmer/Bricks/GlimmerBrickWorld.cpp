@@ -248,6 +248,8 @@ static float LightChange(const GlimmerLightShaderData& from, const GlimmerLightS
         addTerm(from.directWeights[term], to.directWeights[term]);
     }
 
+    addTerm(from.sun, to.sun);
+
     return total > 1e-6f ? change / total : (change > 0.0f ? 1.0f : 0.0f);
 }
 

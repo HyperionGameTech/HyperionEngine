@@ -48,6 +48,8 @@ struct WorldShaderData
     float4 volumetric_fog_emissive;
     float4 volumetric_fog_layer;
     float4 volumetric_fog_tint;
+
+    float4 sun_arc;
 };
 
 struct Camera

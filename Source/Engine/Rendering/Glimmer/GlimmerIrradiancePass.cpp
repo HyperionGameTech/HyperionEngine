@@ -24,6 +24,9 @@
 #include <Rendering/Mesh.hpp>
 #include <Rendering/ShaderManager.hpp>
 #include <Rendering/StencilMasks.hpp>
+#include <Rendering/Texture.hpp>
+#include <Rendering/TextureViewCache.hpp>
+#include <Rendering/PlaceholderData.hpp>
 #include <Rendering/Frame.hpp>
 
 #include <Rendering/Util/DeletionQueue.hpp>
@@ -208,7 +211,21 @@ void GlimmerIrradiancePass::Render(Frame* frame, const RenderSetup& renderSetup)
 
     ENGINE_STAT_GPU_SCOPE(&s_statGlimmerIrradiance);
 
-    const bool isHalfRes = g_cvGlimmerHalfRes.Get() && !isDebugView;
+    Handle<Texture> litReferenceTexture;
+    float litReferenceScale = 0.0f;
+    const bool isLitByReference = glimmerPass->GetLitReference(renderSetup.view, litReferenceTexture, litReferenceScale);
+
+    if (isLitByReference)
+    {
+        cr << InsertBarrier(litReferenceTexture->GetGpuImage(), ResourceState::ShaderResource, ShaderModuleType::Pixel);
+    }
+
+    if (isLitByReference)
+    {
+        m_shaderData.params.x = 2u;
+    }
+
+    const bool isHalfRes = g_cvGlimmerHalfRes.Get() && !isDebugView && !isLitByReference;
     // without TAA nothing averages the four picks, so cycling them just shimmers
     const Vec2u& halfResPick = g_cvTAA.Get() ? HalfResPicks[m_frameIndex++ % 4] : HalfResPicks[0];
 
@@ -227,8 +244,10 @@ void GlimmerIrradiancePass::Render(Frame* frame, const RenderSetup& renderSetup)
 
         glimmerPass->WriteApplyShaderData(*RI.cbufferAllocator, renderSetup.world);
 
-        const Vec4u irradianceParams { halfResPick.x, halfResPick.y, 0, 0 };
+        const Vec4u irradianceParams { halfResPick.x, halfResPick.y, isLitByReference ? 1u : 0u, std::bit_cast<uint32>(litReferenceScale) };
         RI.cbufferAllocator->Write(&irradianceParams);
+
+        GlimmerTechnique::WriteSurfelApplyShaderData(*RI.cbufferAllocator, technique);
 
         RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
 
@@ -240,11 +259,21 @@ void GlimmerIrradiancePass::Render(Frame* frame, const RenderSetup& renderSetup)
         cr << SetShaderUniform(uniformIndex++, "GlimmerHalfIrradianceTexture"_sh, m_halfFramebuffer->GetAttachment(0)->GetImageView());
         cr << SetShaderUniform(uniformIndex++, "GlimmerHalfSpecularTexture"_sh, m_halfFramebuffer->GetAttachment(1)->GetImageView());
         cr << SetShaderUniform(uniformIndex++, "GlimmerHalfReflectionTexture"_sh, m_halfFramebuffer->GetAttachment(2)->GetImageView());
+
+        if (isLitByReference)
+        {
+            cr << SetShaderUniform(uniformIndex++, "GlimmerReferenceTexture"_sh, RI.textureViewCache->GetOrCreate(litReferenceTexture));
+        }
+        else
+        {
+            cr << SetShaderUniform(uniformIndex++, "GlimmerReferenceTexture"_sh, RI.textureViewCache->GetOrCreate(RI.placeholderData->textureSolidWhite));
+        }
         cr << SetShaderUniform(uniformIndex++, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
         cr << SetShaderUniform(uniformIndex++, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras], Resources::GetBinding(renderSetup.view->GetCamera()));
         cr << SetShaderUniform(uniformIndex++, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 
         uniformIndex = glimmerPass->BindApplyResources(cr, uniformIndex, renderSetup.world);
+        uniformIndex = GlimmerTechnique::BindSurfelApplyResources(cr, uniformIndex, technique);
 
         cr << CommitDrawState();
 

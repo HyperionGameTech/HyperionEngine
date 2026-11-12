@@ -72,7 +72,8 @@ enum class WorldEnvironmentFlags : uint32
     DDGI = 0x8,
     RayTracedReflections = 0x10,
     Glimmer = 0x20,
-    VolumetricFog = 0x40
+    VolumetricFog = 0x40,
+    SunArc = 0x80 // the sun follows the time of day along sunArc
 };
 
 HYP_MAKE_ENUM_FLAGS(WorldEnvironmentFlags);

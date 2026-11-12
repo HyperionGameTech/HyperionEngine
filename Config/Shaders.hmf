@@ -241,6 +241,10 @@ ShaderDefinitions "ShaderDefinitions" {
             Cook = EditorOnly
             CS = "Glimmer/GlimmerHeightfieldDebug.hlsl"
         }
+        ShaderDefinition "GlimmerReference" {
+            Cook = EditorOnly
+            CS = "Glimmer/GlimmerReference.hlsl"
+        }
         ShaderDefinition "GlimmerGroundUpload" {
             Condition = "Rendering.Glimmer.Enabled"
             CS = "Glimmer/GlimmerGroundUpload.hlsl"
@@ -253,21 +257,21 @@ ShaderDefinitions "ShaderDefinitions" {
             Condition = "Rendering.Glimmer.Enabled"
             CS = "Glimmer/GlimmerGroundCover.hlsl"
         }
-        ShaderDefinition "GlimmerProbeAlloc" {
+        ShaderDefinition "GlimmerSurfelTrace" {
             Condition = "Rendering.Glimmer.Enabled"
-            CS = "Glimmer/Probes/GlimmerProbeAlloc.hlsl"
+            CS = "Glimmer/Surfels/GlimmerSurfelTrace.hlsl"
         }
-        ShaderDefinition "GlimmerProbeTrace" {
+        ShaderDefinition "GlimmerSurfelPlace" {
             Condition = "Rendering.Glimmer.Enabled"
-            CS = "Glimmer/Probes/GlimmerProbeTrace.hlsl"
+            CS = "Glimmer/Surfels/GlimmerSurfelPlace.hlsl"
         }
-        ShaderDefinition "GlimmerProbeBlend" {
+        ShaderDefinition "GlimmerSurfelBlend" {
             Condition = "Rendering.Glimmer.Enabled"
-            CS = "Glimmer/Probes/GlimmerProbeBlend.hlsl"
+            CS = "Glimmer/Surfels/GlimmerSurfelBlend.hlsl"
         }
-        ShaderDefinition "GlimmerProbeDebug" {
-            Cook = EditorOnly
-            CS = "Glimmer/Probes/GlimmerProbeDebug.hlsl"
+        ShaderDefinition "GlimmerSurfelTransfer" {
+            Condition = "Rendering.Glimmer.Enabled"
+            CS = "Glimmer/Surfels/GlimmerSurfelTransfer.hlsl"
         }
         ShaderDefinition "GlimmerSpanSplat" {
             Condition = "Rendering.Glimmer.Enabled"
@@ -276,6 +280,10 @@ ShaderDefinitions "ShaderDefinitions" {
         ShaderDefinition "GlimmerHeightBounds" {
             Condition = "Rendering.Glimmer.Enabled"
             CS = "Glimmer/GlimmerHeightBounds.hlsl"
+        }
+        ShaderDefinition "GlimmerSkyBins" {
+            Condition = "Rendering.Glimmer.Enabled"
+            CS = "Glimmer/GlimmerSkyBins.hlsl"
         }
         ShaderDefinition "GlimmerSHUpdate" {
             Condition = "Rendering.Glimmer.Enabled"

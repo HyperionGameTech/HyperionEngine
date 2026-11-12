@@ -10,7 +10,6 @@
 #include <Rendering/Glimmer/GlimmerChannel.hpp>
 #include <Rendering/Glimmer/GlimmerSurfaceCache.hpp>
 #include <Rendering/Glimmer/SH/GlimmerSHVolume.hpp>
-#include <Rendering/Glimmer/Probes/GlimmerProbeVolume.hpp>
 #include <Rendering/Glimmer/GlimmerCVars.hpp>
 
 #include <Rendering/RenderInterface.hpp>
@@ -126,17 +125,14 @@ float GetGlimmerRegionMinRadius()
 
 float GetGlimmerSHCascadeSpacing(uint32 cascadeIndex)
 {
-    return GlimmerSHSpacing * float(1u << cascadeIndex);
+    constexpr float CascadeScales[GlimmerSHCascades] = { 0.5f, 1.0f, 2.0f, 8.0f, 32.0f };
+
+    return GlimmerSHSpacing * CascadeScales[MathUtil::Min(cascadeIndex, GlimmerSHCascades - 1)];
 }
 
 float GetGlimmerSHOccupancySpacing(uint32 cascadeIndex)
 {
     return 0.5f * GetGlimmerSHCascadeSpacing(cascadeIndex);
-}
-
-float GetGlimmerProbeLevelSpacing(uint32 levelIndex)
-{
-    return 2.0f * float(1u << levelIndex);
 }
 
 Vec3f GetGlimmerWindowCenter(const Vec3f& viewerPosition, const Vec3f& lookAhead, const Vec3f& windowExtent)
@@ -156,23 +152,6 @@ Vec3f GetGlimmerWindowCenter(const Vec3f& viewerPosition, const Vec3f& lookAhead
     const float clampedVertical = MathUtil::Clamp(lookAhead.y, -0.25f * windowExtent.y, 0.25f * windowExtent.y);
 
     return viewerPosition + Vec3f(clampedHorizontal.x, clampedVertical, clampedHorizontal.y);
-}
-
-Vec3f GetGlimmerProbeWindowCenter(const Vec3f& viewerPosition, const Vec3f& lookAhead, uint32 levelIndex)
-{
-    const float blockSize = GetGlimmerProbeLevelSpacing(levelIndex) * float(GlimmerProbeBlock);
-
-    return GetGlimmerWindowCenter(viewerPosition, lookAhead, Vec3f(blockSize * float(GlimmerProbeWindow)));
-}
-
-Vec3i GetGlimmerProbeWindowOrigin(const Vec3f& viewerPosition, const Vec3f& lookAhead, uint32 levelIndex)
-{
-    const int32 halfWindow = int32(GlimmerProbeWindow / 2);
-
-    const float blockSize = GetGlimmerProbeLevelSpacing(levelIndex) * float(GlimmerProbeBlock);
-    const Vec3f center = GetGlimmerProbeWindowCenter(viewerPosition, lookAhead, levelIndex);
-
-    return Vec3i(MathUtil::Floor(center / blockSize + Vec3f(0.5f))) - halfWindow;
 }
 
 Vec4f MakeGlimmerRandomRotation(uint32 seed)
@@ -366,6 +345,164 @@ void GetGlimmerSkyShaderData(EnvProbe* skyProbe, GlimmerSkyShaderData& outSky, E
 
         outSky.params.z = (MathUtil::Max(up.x, 0.0f) * 0.2126f + MathUtil::Max(up.y, 0.0f) * 0.7152f + MathUtil::Max(up.z, 0.0f) * 0.0722f)
             * skyProbeProxy->bufferData.worldPosition.w;
+
+        if (const WorldShaderData* worldData = GetWorldBufferData())
+        {
+            outSky.params.w = skyProbeProxy->bufferData.worldPosition.w * worldData->skyLightParams.x;
+        }
+    }
+}
+
+static constexpr float GlimmerSkyMidY = 0.642788f;
+static constexpr float GlimmerSkyBelowY = 0.17f;
+static constexpr uint32 GlimmerSkyMidBins = 3;
+static constexpr uint32 GlimmerSkyHorizonBins = 4;
+
+static constexpr float GlimmerSkyTermSolidAngle[GlimmerLightTerms] = { 1.122216f, 1.047198f, 1.047198f, 1.047198f, 0.638362f, 0.638362f, 0.638362f, 0.638362f, 5.749115f };
+
+static Vec4f s_skyBins[GlimmerLightTerms] {};
+static uint32 s_skyBinsTextureIndex = ~0u;
+
+void GetGlimmerSkyTerms(const Vec3f& direction, float outTerms[GlimmerLightTerms])
+{
+    for (uint32 term = 0; term < GlimmerLightTerms; term++)
+    {
+        outTerms[term] = 0.0f;
+    }
+
+    const float below = MathUtil::Clamp(-direction.y / GlimmerSkyBelowY, 0.0f, 1.0f);
+    const float y = MathUtil::Max(direction.y, 0.0f);
+
+    const float horizon = MathUtil::Clamp(1.0f - y / GlimmerSkyMidY, 0.0f, 1.0f) * (1.0f - below);
+    const float zenith = MathUtil::Clamp((y - GlimmerSkyMidY) / (1.0f - GlimmerSkyMidY), 0.0f, 1.0f) * (1.0f - below);
+    const float mid = (1.0f - below) - horizon - zenith;
+
+    float azimuth = std::atan2(direction.z, direction.x);
+
+    if (azimuth < 0.0f)
+    {
+        azimuth += 6.28318531f;
+    }
+
+    const float midAt = azimuth * (float(GlimmerSkyMidBins) / 6.28318531f);
+    const uint32 midBin = MathUtil::Min(uint32(midAt), GlimmerSkyMidBins - 1);
+    const float midBlend = MathUtil::Clamp(midAt - float(midBin), 0.0f, 1.0f);
+
+    const float horizonAt = azimuth * (float(GlimmerSkyHorizonBins) / 6.28318531f);
+    const uint32 horizonBin = MathUtil::Min(uint32(horizonAt), GlimmerSkyHorizonBins - 1);
+    const float horizonBlend = MathUtil::Clamp(horizonAt - float(horizonBin), 0.0f, 1.0f);
+
+    outTerms[0] = zenith;
+    outTerms[1 + midBin] += mid * (1.0f - midBlend);
+    outTerms[1 + (midBin + 1) % GlimmerSkyMidBins] += mid * midBlend;
+    outTerms[4 + horizonBin] += horizon * (1.0f - horizonBlend);
+    outTerms[4 + (horizonBin + 1) % GlimmerSkyHorizonBins] += horizon * horizonBlend;
+    outTerms[8] = below;
+}
+
+void SetGlimmerSkyBins(uint32 skyTextureIndex, const Vec4f (&radiance)[GlimmerLightTerms])
+{
+    for (uint32 term = 0; term < GlimmerLightTerms; term++)
+    {
+        s_skyBins[term] = radiance[term];
+    }
+
+    s_skyBinsTextureIndex = skyTextureIndex;
+}
+
+// until GlimmerSkyBins has measured the sky probe: its radiance SH, averaged over each term
+static void GetSkyTermsFromSH(const Vec4f* irradianceSH, Vec4f (&outRadiance)[GlimmerLightTerms])
+{
+    constexpr float RadianceFromIrradiance[9] = { 1.0f, 1.5f, 1.5f, 1.5f, 4.0f, 4.0f, 4.0f, 4.0f, 4.0f };
+    constexpr uint32 NumSamples = 512;
+
+    float weightSums[GlimmerLightTerms] {};
+
+    for (uint32 term = 0; term < GlimmerLightTerms; term++)
+    {
+        outRadiance[term] = Vec4f(0.0f);
+    }
+
+    for (uint32 sampleIndex = 0; sampleIndex < NumSamples; sampleIndex++)
+    {
+        const float y = 1.0f - 2.0f * (float(sampleIndex) + 0.5f) / float(NumSamples);
+        const float radius = MathUtil::Sqrt(MathUtil::Max(1.0f - y * y, 0.0f));
+        const float angle = float(sampleIndex) * 2.39996323f;
+
+        const Vec3f d(radius * std::cos(angle), y, radius * std::sin(angle));
+
+        const float sh[9] = {
+            0.282095f,
+            0.488603f * d.y,
+            0.488603f * d.z,
+            0.488603f * d.x,
+            1.092548f * d.x * d.y,
+            1.092548f * d.y * d.z,
+            0.315392f * (3.0f * d.z * d.z - 1.0f),
+            1.092548f * d.x * d.z,
+            0.546274f * (d.x * d.x - d.y * d.y)
+        };
+
+        Vec3f radiance(0.0f);
+
+        for (uint32 term = 0; term < 9; term++)
+        {
+            radiance += irradianceSH[term].GetXYZ() * (sh[term] * RadianceFromIrradiance[term]);
+        }
+
+        radiance = Vec3f(MathUtil::Max(radiance.x, 0.0f), MathUtil::Max(radiance.y, 0.0f), MathUtil::Max(radiance.z, 0.0f));
+
+        float terms[GlimmerLightTerms];
+        GetGlimmerSkyTerms(d, terms);
+
+        for (uint32 term = 0; term < GlimmerLightTerms; term++)
+        {
+            outRadiance[term] += Vec4f(radiance * terms[term], 0.0f);
+            weightSums[term] += terms[term];
+        }
+    }
+
+    for (uint32 term = 0; term < GlimmerLightTerms; term++)
+    {
+        outRadiance[term] /= MathUtil::Max(weightSums[term], 1e-6f);
+        outRadiance[term].w = weightSums[term] / float(NumSamples);
+    }
+}
+
+// the inverse of the terms' Gram matrix (the integral of each pair's product over the sphere)
+static constexpr float GlimmerSkyTermsGramInverse[GlimmerLightTerms][GlimmerLightTerms] = {
+    { 1.489053f, -0.304822f, -0.304823f, -0.304823f, 0.120937f, 0.120938f, 0.120938f, 0.120938f, -0.003865f },
+    { -0.304822f, 2.792408f, -0.481736f, -0.481736f, -1.140950f, -0.062060f, 0.297570f, -0.062060f, 0.007729f },
+    { -0.304823f, -0.481736f, 2.777006f, -0.466334f, 0.207662f, -0.946308f, -0.511598f, 0.282742f, 0.007729f },
+    { -0.304823f, -0.481736f, -0.466334f, 2.777006f, 0.207662f, 0.282742f, -0.511598f, -0.946308f, 0.007729f },
+    { 0.120937f, -1.140950f, 0.207662f, 0.207662f, 4.580349f, -1.151015f, 0.463179f, -1.151015f, -0.021901f },
+    { 0.120938f, -0.062060f, -0.946308f, 0.282742f, -1.151015f, 4.457706f, -1.032511f, 0.467316f, -0.021901f },
+    { 0.120938f, 0.297570f, -0.511598f, -0.511598f, 0.463179f, -1.032511f, 4.343339f, -1.032510f, -0.021901f },
+    { 0.120938f, -0.062060f, 0.282742f, -0.946308f, -1.151015f, 0.467316f, -1.032510f, 4.457706f, -0.021901f },
+    { -0.003865f, 0.007729f, 0.007729f, 0.007729f, -0.021901f, -0.021901f, -0.021901f, -0.021901f, 0.180198f }
+};
+
+// the term weights whose blend matches the sky best (least squares), from each term's mean radiance (w = its share of the sphere):
+// a term's mean alone blurs the sky across it, which a gap seeing only part of the term gets wrong
+static void FitSkyTerms(const Vec4f (&meanRadiance)[GlimmerLightTerms], Vec3f (&outWeights)[GlimmerLightTerms])
+{
+    Vec3f projections[GlimmerLightTerms];
+
+    for (uint32 term = 0; term < GlimmerLightTerms; term++)
+    {
+        projections[term] = meanRadiance[term].GetXYZ() * (meanRadiance[term].w * 4.0f * 3.14159265f);
+    }
+
+    for (uint32 term = 0; term < GlimmerLightTerms; term++)
+    {
+        Vec3f weight(0.0f);
+
+        for (uint32 other = 0; other < GlimmerLightTerms; other++)
+        {
+            weight += projections[other] * GlimmerSkyTermsGramInverse[term][other];
+        }
+
+        outWeights[term] = Vec3f(MathUtil::Max(weight.x, 0.0f), MathUtil::Max(weight.y, 0.0f), MathUtil::Max(weight.z, 0.0f));
     }
 }
 
@@ -384,43 +521,66 @@ void GetGlimmerLightShaderData(EnvProbe* skyProbe, GlimmerLightShaderData& outLi
     {
         if (RenderProxyEnvProbe* skyProbeProxy = static_cast<RenderProxyEnvProbe*>(GetRenderProxy(skyProbe)))
         {
-            constexpr float RadianceFromIrradiance[9] = { 1.0f, 1.5f, 1.5f, 1.5f, 4.0f, 4.0f, 4.0f, 4.0f, 4.0f };
-
-            const Vec4f* sh = skyProbeProxy->bufferData.shData;
             const float skyScale = skyProbeProxy->bufferData.worldPosition.w * worldData->skyLightParams.x;
+
+            Vec4f skyRadiance[GlimmerLightTerms];
+
+            if (s_skyBinsTextureIndex == (skyProbeProxy->bufferData.textureIndices & 0xFFFFu))
+            {
+                for (uint32 term = 0; term < GlimmerLightTerms; term++)
+                {
+                    skyRadiance[term] = s_skyBins[term];
+                }
+            }
+            else
+            {
+                GetSkyTermsFromSH(skyProbeProxy->bufferData.shData, skyRadiance);
+            }
+
+            Vec3f skyWeights[GlimmerLightTerms];
+            FitSkyTerms(skyRadiance, skyWeights);
 
             for (uint32 term = 0; term < GlimmerLightTerms; term++)
             {
-                outLight.directWeights[term] = Vec4f(sh[term].GetXYZ() * (RadianceFromIrradiance[term] * skyScale), 0.0f);
+                outLight.directWeights[term] = Vec4f(skyWeights[term] * skyScale, 0.0f);
             }
         }
     }
 
-    const Vec3f toSun = worldData->sunDirectionIntensity.GetXYZ();
-    const Vec3f sunDirection = toSun.LengthSquared() > 1e-8f ? toSun.Normalized() : Vec3f(0.0f, 1.0f, 0.0f);
+    const Vec3f sunDirection = GetGlimmerSunDirection();
 
     const float aboveHorizon = MathUtil::Clamp((sunDirection.y + 0.1f) / 0.15f, 0.0f, 1.0f);
 
     const Vec3f sunIrradiance = worldData->sunColor.GetXYZ() * worldData->sunAtmosphereTint.GetXYZ() * (worldData->sunDirectionIntensity.w * aboveHorizon);
 
-    const float sunBasis[9] = {
-        0.282095f,
-        0.488603f * sunDirection.y,
-        0.488603f * sunDirection.z,
-        0.488603f * sunDirection.x,
-        1.092548f * sunDirection.x * sunDirection.y,
-        1.092548f * sunDirection.y * sunDirection.z,
-        0.315392f * (3.0f * sunDirection.z * sunDirection.z - 1.0f),
-        1.092548f * sunDirection.x * sunDirection.z,
-        0.546274f * (sunDirection.x * sunDirection.x - sunDirection.y * sunDirection.y)
-    };
-
-    constexpr float WindowOfTerm[9] = { 1.0f, 2.0f / 3.0f, 2.0f / 3.0f, 2.0f / 3.0f, 0.25f, 0.25f, 0.25f, 0.25f, 0.25f };
+    float sunTerms[GlimmerLightTerms];
+    GetGlimmerSkyTerms(sunDirection, sunTerms);
 
     for (uint32 term = 0; term < GlimmerLightTerms; term++)
     {
-        outLight.bounceWeights[term] = outLight.directWeights[term] + Vec4f(sunIrradiance * (sunBasis[term] * WindowOfTerm[term]), 0.0f);
+        outLight.bounceWeights[term] = outLight.directWeights[term] + Vec4f(sunIrradiance * (sunTerms[term] / GlimmerSkyTermSolidAngle[term]), 0.0f);
     }
+
+    outLight.sun = Vec4f(sunIrradiance, 0.0f);
+}
+
+Vec3f GetGlimmerSunDirection()
+{
+    const WorldShaderData* worldData = GetWorldBufferData();
+
+    if (!worldData)
+    {
+        return Vec3f(0.0f, 1.0f, 0.0f);
+    }
+
+    const Vec3f toSun = worldData->sunDirectionIntensity.GetXYZ();
+
+    if (toSun.LengthSquared() <= 1e-8f)
+    {
+        return Vec3f(0.0f, 1.0f, 0.0f);
+    }
+
+    return toSun.Normalized();
 }
 
 float GetGlimmerFoliageExtinction()

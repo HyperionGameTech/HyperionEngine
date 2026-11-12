@@ -52,9 +52,11 @@ bool GlimmerSampleRelight(
     uint level,
     float2 worldXZ,
     uint surface,
-    out GlimmerLight outReceived)
+    out GlimmerLight outReceived,
+    out float3 outReceivedSun)
 {
     outReceived = GlimmerNoLight();
+    outReceivedSun = (float3)0.0;
 
     const int4 litWindow = params.levels[level];
 
@@ -81,7 +83,14 @@ bool GlimmerSampleRelight(
 
     for (uint part = 1; part < GLIMMER_LIGHT_PARTS; part++)
     {
-        outReceived.parts[part] = glimmerRelight.Load(int4(GlimmerRelightTexel(texel, level, surface, part), 0)).rgb;
+        const float4 value = glimmerRelight.Load(int4(GlimmerRelightTexel(texel, level, surface, part), 0));
+
+        outReceived.parts[part] = value.rgb;
+
+        if (part <= 3u)
+        {
+            outReceivedSun[part - 1u] = value.a;
+        }
     }
 
     return true;

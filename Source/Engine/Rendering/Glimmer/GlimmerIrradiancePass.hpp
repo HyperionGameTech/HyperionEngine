@@ -20,7 +20,7 @@ class GlimmerBrickReflections;
 
 struct GlimmerIrradianceShaderData
 {
-    Vec4u params; // x = 1 when the target holds Glimmer this frame, y = 1 when it holds a debug view in place of the irradiance, z = 1 when sky reflections use its specular visibility, w = 1 when the bricks have reflections
+    Vec4u params; // x = 1 when the target holds Glimmer this frame (2 when it holds the reference's irradiance in place of it), y = 1 when it holds a debug view in place of the irradiance, z = 1 when sky reflections use its specular visibility, w = 1 when the bricks have reflections
 };
 
 class GlimmerIrradiancePass final : public FullScreenPass

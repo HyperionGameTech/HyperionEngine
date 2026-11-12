@@ -112,10 +112,11 @@ float4 TraceHeightfield(float3 origin, float3 direction, out float outT, out uin
         const float3 albedo = min(isGround ? GlimmerSampleGroundAlbedo(glimmerGroundAlbedo, constants.ground, P.xz, hit.level, (float3)GROUND_ALBEDO) : hit.albedo, (float3)MAX_ALBEDO);
 
         GlimmerLight received;
+        float3 receivedSun;
         float3 surfaceRadiance;
 
         if (GlimmerRelightCovers(isGround, hit.normal)
-            && GlimmerSampleRelight(constants.relight, constants.ground, hit.level, P.xz, isGround ? GLIMMER_RELIGHT_GROUND : GLIMMER_RELIGHT_SPAN_TOP, received))
+            && GlimmerSampleRelight(constants.relight, constants.ground, hit.level, P.xz, isGround ? GLIMMER_RELIGHT_GROUND : GLIMMER_RELIGHT_SPAN_TOP, received, receivedSun))
         {
             surfaceRadiance = GlimmerComposeRayLight(constants.light, GlimmerScaleLight(received, albedo), direction, 0.0);
         }

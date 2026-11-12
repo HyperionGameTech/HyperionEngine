@@ -35,7 +35,6 @@ GlimmerRelight::GlimmerRelight()
     : m_groundGeneration(~0u),
       m_refreshLevel(0),
       m_refreshBudget(0),
-      m_hasProbeWindows(false),
       m_frameIndex(0),
       m_shaderData {}
 {
@@ -172,65 +171,6 @@ void GlimmerRelight::AddEchoAround(const Vec2f& min, const Vec2f& max)
     }
 }
 
-void GlimmerRelight::UpdateProbeWindows(const GlimmerChannelState& state)
-{
-    if (!state.hasViewer)
-    {
-        return;
-    }
-
-    const int32 window = int32(GlimmerProbeWindow);
-
-    for (uint32 levelIndex = 0; levelIndex < GlimmerProbeLevels; levelIndex++)
-    {
-        const float blockSize = GlimmerHelpers::GetGlimmerProbeLevelSpacing(levelIndex) * float(GlimmerProbeBlock);
-
-        const Vec3i origin = GlimmerHelpers::GetGlimmerProbeWindowOrigin(state.viewerPosition, state.lookAhead, levelIndex);
-        const Vec3i previous = m_probeWindows[levelIndex];
-
-        m_probeWindows[levelIndex] = origin;
-
-        if (!m_hasProbeWindows || origin == previous)
-        {
-            continue;
-        }
-
-        const Vec2f windowMin = Vec2f(float(origin.x) * blockSize, float(origin.z) * blockSize);
-        const Vec2f windowMax = Vec2f(float(origin.x + window) * blockSize, float(origin.z + window) * blockSize);
-
-        const int32 dx = origin.x - previous.x;
-        const int32 dz = origin.z - previous.z;
-
-        // up or down, or a jump: new probes anywhere under the window
-        if (origin.y != previous.y || MathUtil::Abs(dx) >= window || MathUtil::Abs(dz) >= window)
-        {
-            AddEchoAround(windowMin, windowMax);
-
-            continue;
-        }
-
-        if (dx != 0)
-        {
-            const float edge = float(dx > 0 ? previous.x + window : previous.x) * blockSize;
-
-            AddEchoAround(
-                Vec2f(MathUtil::Min(edge, dx > 0 ? windowMax.x : windowMin.x), windowMin.y),
-                Vec2f(MathUtil::Max(edge, dx > 0 ? windowMax.x : windowMin.x), windowMax.y));
-        }
-
-        if (dz != 0)
-        {
-            const float edge = float(dz > 0 ? previous.z + window : previous.z) * blockSize;
-
-            AddEchoAround(
-                Vec2f(windowMin.x, MathUtil::Min(edge, dz > 0 ? windowMax.y : windowMin.y)),
-                Vec2f(windowMax.x, MathUtil::Max(edge, dz > 0 ? windowMax.y : windowMin.y)));
-        }
-    }
-
-    m_hasProbeWindows = true;
-}
-
 void GlimmerRelight::Schedule(
     const GlimmerChannelState& state,
     const GlimmerSurfaceCache& surfaceCache,
@@ -327,8 +267,6 @@ void GlimmerRelight::Schedule(
 
         AddPending(level, spanCache.GetFilledRect(levelIndex));
     }
-
-    UpdateProbeWindows(state);
 
     m_frameIndex++;
 
@@ -485,7 +423,6 @@ void GlimmerRelight::Invalidate()
     m_refreshBudget = 0;
 
     m_echoes.Clear();
-    m_hasProbeWindows = false;
 }
 
 #pragma endregion GlimmerRelight

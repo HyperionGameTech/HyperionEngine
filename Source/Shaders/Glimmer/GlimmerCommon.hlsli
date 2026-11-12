@@ -47,6 +47,16 @@ GlimmerTriangle UnpackGlimmerTriangle(uint word0, uint word1, uint word2, uint w
     return glimmerTriangle;
 }
 
+uint GlimmerPackHalf2(float2 value)
+{
+    return f32tof16(value.x) | (f32tof16(value.y) << 16);
+}
+
+float2 GlimmerUnpackHalf2(uint packed)
+{
+    return float2(f16tof32(packed & 0xFFFFu), f16tof32(packed >> 16));
+}
+
 uint2 GlimmerWrapGroundTexel(int2 texel)
 {
     return uint2(texel & (GLIMMER_GROUND_RESOLUTION - 1));
@@ -101,7 +111,7 @@ float3 GlimmerOctahedralDecode(float2 uv)
 struct GlimmerSkyParams
 {
     uint4 info;    // x = sky probe color texture index (~0 without one)
-    float4 params; // x = sky probe diffuse strength, y = luminance escaping rays are clamped to, z = luminance of the sky's irradiance from above (without the world's sky intensity)
+    float4 params; // x = sky probe diffuse strength, y = luminance escaping rays are clamped to, z = luminance of the sky's irradiance from above (without the world's sky intensity), w = the sky probe's radiance scale, with it
 };
 
 // non-negative L1 reconstruction (Hazel, "Reconstructing Diffuse Lighting from SH L1")

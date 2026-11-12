@@ -32,7 +32,7 @@ enum GlimmerInstanceFlags : uint32
     GIF_MIRRORED = 0x2,         //!< negative determinant
     GIF_ALPHA_TESTED = 0x4,
     GIF_FOLIAGE = 0x8,          //!< span instances only: splatted as canopy rather than solid
-    GIF_EMITTER = 0x10          //!< small emitter whose light probe rays take from its enlarged sphere instead
+    GIF_EMITTER = 0x10          //!< small emitter whose light surfel rays take from its enlarged sphere instead
 };
 
 static constexpr uint32 GlimmerMaxEmitters = 64; // GLIMMER_MAX_EMITTERS

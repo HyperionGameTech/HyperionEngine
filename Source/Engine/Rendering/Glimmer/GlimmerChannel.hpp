@@ -103,18 +103,6 @@ struct GlimmerChannelState
     uint32 numLocalLights = 0;
 };
 
-struct GlimmerProbeDebugRecord
-{
-    Vec4f position; // xyz = where the probe is (its grid point plus its offset), w = its level, or -1 for a probe of a free slot
-    Vec4u info;     // x = GlimmerProbeState | 0x100 in an occupied voxel | sleep interval << 9 | rays that started inside a solid << 16
-                    // y = back face rays of its last update
-                    // z = height above the ground (float bits)
-                    // w = updates
-    Vec4f sh[3];    // L1 irradiance / pi per colour channel
-};
-
-static_assert(sizeof(GlimmerProbeDebugRecord) == 80);
-
 class ENGINE_API GlimmerChannel final
 {
 public:
@@ -126,16 +114,10 @@ public:
     void Publish(const GlimmerChannelState& state, Array<GlimmerGroundUpload, GlimmerAllocator>&& groundUploads);
     void Consume(GlimmerChannelState& outState, Array<GlimmerGroundUpload, GlimmerAllocator>& outGroundUploads);
 
-    void PublishProbeDebug(Array<GlimmerProbeDebugRecord, GlimmerAllocator>&& records);
-    bool ConsumeProbeDebug(Array<GlimmerProbeDebugRecord, GlimmerAllocator>& outRecords);
-
 private:
     Mutex m_mutex;
     GlimmerChannelState m_state;
     Array<GlimmerGroundUpload, GlimmerAllocator> m_pendingGroundUploads;
-
-    Array<GlimmerProbeDebugRecord, GlimmerAllocator> m_probeDebugRecords;
-    bool m_hasProbeDebugRecords = false;
 };
 
 } // namespace Hyperion

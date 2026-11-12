@@ -132,7 +132,7 @@ DECLARE_BUFFER_DYNAMIC(DeferredPass, CBuffer) cbuffer CBuffer
     Camera camera;
     EnvProbe skyProbe;
     SkyVisibilityCapture skyVisibilityCapture;
-    uint4 glimmerParams; // GlimmerIrradianceShaderData: x = 1 when GlimmerIrradianceTexture holds Glimmer, y = 1 when it holds a debug view, z = 1 when sky reflections use GlimmerSpecularTexture, w = 1 when GlimmerBrickReflectionTexture holds reflections
+    uint4 glimmerParams; // GlimmerIrradianceShaderData: x = 1 when GlimmerIrradianceTexture holds Glimmer (2 when it holds the reference's irradiance), y = 1 when it holds a debug view, z = 1 when sky reflections use GlimmerSpecularTexture, w = 1 when GlimmerBrickReflectionTexture holds reflections
 };
 
 DECLARE_SRV(DeferredPass, GlimmerIrradianceTexture) Texture2D GlimmerIrradianceTexture;
@@ -158,6 +158,47 @@ DECLARE_SAMPLER(DeferredPass, SamplerShadow) SamplerComparisonState SamplerShado
 #undef HYP_DEFERRED_NO_PROBE_REFLECTIONS
 
 #define DDGI_MULTIPLIER 1.0
+
+#define GLIMMER_AO_FOOTPRINT 0.3
+#define GLIMMER_AO_FOOTPRINT_TAPS 12
+
+// screen-space AO over the stretch of surface a Glimmer surfel's light covers: the surfel's light already holds the occlusion
+// common to all of it, so only how the pixel's AO differs from it is applied on top
+float GlimmerFootprintAO(float2 texcoord, float centerAO, float3 positionVS, float3 positionWS, float3 N, uint2 dimensions)
+{
+    const float2 centerUV = GetProjectedPositionFromView(camera.projection, positionVS);
+    const float radiusU = abs(GetProjectedPositionFromView(camera.projection, positionVS + float3(GLIMMER_AO_FOOTPRINT, 0.0, 0.0)).x - centerUV.x);
+    const float2 radiusUV = float2(radiusU, radiusU * float(dimensions.x) / float(dimensions.y));
+
+    float aoSum = centerAO;
+    float weightSum = 1.0;
+
+    [loop]
+    for (uint tap = 0; tap < GLIMMER_AO_FOOTPRINT_TAPS; tap++)
+    {
+        const float angle = float(tap) * 2.39996323;
+        const float2 tapUV = texcoord + float2(cos(angle), sin(angle)) * radiusUV * sqrt((float(tap) + 0.5) / float(GLIMMER_AO_FOOTPRINT_TAPS));
+
+        if (any(tapUV < 0.0) || any(tapUV > 1.0))
+        {
+            continue;
+        }
+
+        const float tapDepth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, GBufferDepthTexture, tapUV, 0).r;
+        float4 tapWS = mul(camera.invViewMat, ReconstructViewSpacePositionFromDepth(camera.invProjMat, tapUV, tapDepth));
+        tapWS /= tapWS.w;
+
+        const float planeDistance = abs(dot(tapWS.xyz - positionWS, N));
+        const float tapFacing = dot(GBufferUnpackNormal(SAMPLE_TEXTURE_2D_LOD(sampler_nearest, GBufferNormalsTexture, tapUV, 0)), N);
+
+        const float weight = saturate(1.0 - planeDistance / (GLIMMER_AO_FOOTPRINT * 0.5)) * saturate((tapFacing - 0.5) * 2.0);
+
+        aoSum += SAMPLE_TEXTURE_2D_LOD(sampler_linear, SSAOResultTexture, tapUV, 0).r * weight;
+        weightSum += weight;
+    }
+
+    return aoSum / weightSum;
+}
 
 // #define DEBUG_NORMALS
 
@@ -218,12 +259,14 @@ PSOutput PSMain(PSInput input)
     // material ambient occlusion rides in gbuffer albedo alpha; screen-space AO can only resolve a few pixels of radius,
     // so large surfaces like terrain depend on this to darken their own creases and hollows
     float ao = albedo.a;
+    float screenAO = 1.0;
     float4 irradiance = (float4)0.0;
     float4 reflections = (float4)0.0;
 
 #if GTAO_ENABLED || SSAO_ENABLED
     const float4 ssao_data = SAMPLE_TEXTURE_2D_LOD(sampler_linear, SSAOResultTexture, texcoord, 0);
-    ao *= ssao_data.r;
+    screenAO = ssao_data.r;
+    ao *= screenAO;
 #endif
 
     const uint2 viewportExtent = camera.dimensions.xy;
@@ -300,7 +343,19 @@ PSOutput PSMain(PSInput input)
     const float3 F0 = CalculateF0(albedo.rgb, metalness);
     const float3 dfg = CalculateDFG(perceptualRoughness, NdotV);
     const float3 E = CalculateE(F0, dfg);
-    float3 Fd = diffuse_color.rgb * irradiance.rgb * (1.0 - E) * GTAOMultiBounce(ao, diffuse_color.rgb);
+    float glimmerAO = 1.0;
+
+#if GTAO_ENABLED || SSAO_ENABLED
+    if (g_glimmerIrradiance.a > 0.0 && glimmerParams.x == 1u)
+    {
+        const float footprintAO = GlimmerFootprintAO(texcoord, screenAO, positionVS.xyz, positionWS.xyz, N, gbufferDimensions);
+
+        glimmerAO = clamp(screenAO / max(footprintAO, 0.05), 0.0, 2.0);
+    }
+#endif
+
+    const float diffuseAO = albedo.a * lerp(screenAO, glimmerAO, g_glimmerIrradiance.a);
+    float3 Fd = diffuse_color.rgb * irradiance.rgb * (1.0 - E) * GTAOMultiBounce(diffuseAO, diffuse_color.rgb);
 
 #ifdef SSR_ENABLED
     result = Fd;

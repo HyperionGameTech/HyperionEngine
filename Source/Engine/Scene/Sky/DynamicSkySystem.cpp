@@ -14,6 +14,9 @@
 #include <Scene/Prefab.hpp>
 #include <Scene/EntityManager.hpp>
 #include <Scene/Util/SceneHelpers.hpp>
+#include <Scene/EnvironmentSettings.hpp>
+#include <Scene/Light/Light.hpp>
+#include <Scene/Sky/TimeOfDay.hpp>
 
 #include <Scene/Components/TransformComponent.hpp>
 #include <Scene/Components/MeshComponent.hpp>
@@ -59,7 +62,9 @@ uint32 DynamicSkySystem::GetSkyVisibilityMapDimensions()
 
 DynamicSkySystem::DynamicSkySystem()
     : m_updateTimer { DynamicSkyUpdateTimer },
-      m_lastFrame(UINT32_MAX)
+      m_lastFrame(UINT32_MAX),
+      m_timeOfDayHour(0.0f),
+      m_timeOfDaySetHour(-1.0f)
 {
 }
 
@@ -313,7 +318,7 @@ void DynamicSkySystem::OnRemovedFromWorld(World* world)
     GetWorld()->RemoveScene(m_visScene);
 }
 
-void DynamicSkySystem::Process(float delta, Span<Handle<Scene>>)
+void DynamicSkySystem::Process(float delta, Span<Handle<Scene>> scenes)
 {
     // advances whether or not the game is simulating, so clouds move in the editor too
     if (m_cloudEffectVolume.IsValid())
@@ -322,6 +327,8 @@ void DynamicSkySystem::Process(float delta, Span<Handle<Scene>>)
     }
 
     UpdateSkyVisibilityView();
+
+    UpdateTimeOfDay(delta, scenes);
 
     if (!m_envProbe)
     {
@@ -347,6 +354,65 @@ void DynamicSkySystem::Process(float delta, Span<Handle<Scene>>)
 
     m_lastFrame = currFrame;
     //}
+}
+
+void DynamicSkySystem::UpdateTimeOfDay(float delta, Span<Handle<Scene>> scenes)
+{
+    World* world = GetWorld();
+
+    if (!world)
+    {
+        return;
+    }
+
+    const TimeOfDaySettings& timeOfDay = world->GetEnvironmentSettings().timeOfDay;
+
+    if (!timeOfDay.enabled)
+    {
+        m_timeOfDaySetHour = -1.0f;
+
+        return;
+    }
+
+    if (timeOfDay.hour != m_timeOfDaySetHour)
+    {
+        m_timeOfDayHour = timeOfDay.hour;
+        m_timeOfDaySetHour = timeOfDay.hour;
+    }
+
+    m_timeOfDayHour = MathUtil::Mod(m_timeOfDayHour + timeOfDay.hoursPerSecond * delta + 24.0f, 24.0f);
+
+    const Vec3f toSun = GetSunArcDirection(GetSunArc(timeOfDay), m_timeOfDayHour);
+
+    DirectionalLight* sun = nullptr;
+
+    for (const Handle<Scene>& scene : scenes)
+    {
+        if (sun)
+        {
+            break;
+        }
+
+        if (!scene || !(scene->GetSceneFlags() & SceneFlags::FOREGROUND))
+        {
+            continue;
+        }
+
+        for (auto [light] : scene->GetEntityManager()->GetEntitySet<EntityType<Light>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        {
+            if (light->GetLightType() == LightType::Directional)
+            {
+                sun = static_cast<DirectionalLight*>(light);
+
+                break;
+            }
+        }
+    }
+
+    if (sun && sun->GetDirection().Distance(toSun) > 1e-5f)
+    {
+        sun->SetDirection(toSun);
+    }
 }
 
 } // namespace Hyperion

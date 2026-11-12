@@ -10,7 +10,18 @@
 #define GLIMMER_SH_RADIANCE_ROW_STRIDE (GLIMMER_SH_CASCADES * GLIMMER_SH_GRID_Y)
 
 #define GLIMMER_SH_LIGHT_WIDE_ENTRIES GLIMMER_LIGHT_BOUNCE_SCALARS_ENTRY
-#define GLIMMER_SH_LIGHT_UINTS (GLIMMER_SH_LIGHT_WIDE_ENTRIES + GLIMMER_LIGHT_TRANSFER_ENTRIES + (GLIMMER_LIGHT_ENTRIES - GLIMMER_LIGHT_TRANSFER_ENTRIES) * 2)
+
+// per voxel: the light entries, then its sun bounce (GLIMMER_SUN_BOUNCE_UINTS; NOTE must match LightUints in GlimmerSHVolume.cpp)
+#define GLIMMER_SH_SUN_UINT (GLIMMER_SH_LIGHT_WIDE_ENTRIES + GLIMMER_LIGHT_TRANSFER_ENTRIES + (GLIMMER_LIGHT_ENTRIES - GLIMMER_LIGHT_TRANSFER_ENTRIES) * 2)
+#ifndef GLIMMER_SUN_KEYS
+#define GLIMMER_SUN_KEYS 14u
+#endif
+
+// the sun bounce at each key along the sun's arc (2 each, GLIMMER_SUN_KEY_L1_UINTS), then the arc's epoch and the updates the keys hold
+#define GLIMMER_SH_SUN_KEYS_UINT (GLIMMER_SH_SUN_UINT + 7)
+#define GLIMMER_SH_SUN_KEY_SETTLE GLIMMER_SUN_KEYS
+#define GLIMMER_SH_SUN_KEY_STATE_UINT (GLIMMER_SH_SUN_KEYS_UINT + GLIMMER_SUN_KEYS * 2u)
+#define GLIMMER_SH_LIGHT_UINTS (GLIMMER_SH_SUN_KEY_STATE_UINT + 1)
 
 struct GlimmerSHCascade
 {
@@ -58,6 +69,25 @@ uint3 GlimmerSHRadianceTexel(uint3 texel, uint channel)
 bool GlimmerSHIsWideLightEntry(uint entry)
 {
     return entry < GLIMMER_SH_LIGHT_WIDE_ENTRIES || entry >= GLIMMER_LIGHT_TRANSFER_ENTRIES;
+}
+
+uint GlimmerSHSunIndex(uint3 texel)
+{
+    const uint voxelIndex = (texel.z * GLIMMER_SH_RADIANCE_ROW_STRIDE + texel.y) * GLIMMER_SH_GRID_XZ + texel.x;
+
+    return voxelIndex * GLIMMER_SH_LIGHT_UINTS + GLIMMER_SH_SUN_UINT;
+}
+
+// the voxel a texel holds, in the window of its cascade
+int3 GlimmerSHTexelVoxel(GlimmerSHVolume volume, uint3 texel, out uint outCascadeIndex)
+{
+    outCascadeIndex = texel.y / GLIMMER_SH_GRID_Y;
+
+    const int3 origin = volume.cascades[outCascadeIndex].origin.xyz;
+    const int3 wrapped = int3(texel.x, texel.y % GLIMMER_SH_GRID_Y, texel.z);
+    const int3 gridMask = int3(GLIMMER_SH_GRID_XZ - 1, GLIMMER_SH_GRID_Y - 1, GLIMMER_SH_GRID_XZ - 1);
+
+    return origin + ((wrapped - origin) & gridMask);
 }
 
 uint GlimmerSHLightIndex(uint3 texel, uint entry)

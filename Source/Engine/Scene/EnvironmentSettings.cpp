@@ -8,6 +8,8 @@
 
 #include <Scene/EnvironmentSettings.hpp>
 
+#include <Scene/Sky/TimeOfDay.hpp>
+
 #include <Rendering/RenderProxy.hpp>
 
 #include <Core/Math/MathUtil.hpp>
@@ -184,6 +186,13 @@ void WriteEnvironmentShaderData(const EnvironmentSettings& settings, WorldShader
         MathUtil::Max(heightFog.glow, 0.0f));
 
     outShaderData.volumetricFogTint = Vec4f(MathUtil::Max(heightFog.tint, Vec3f::Zero()), 0.0f);
+
+    outShaderData.sunArc = GetSunArc(settings.timeOfDay);
+
+    if (settings.timeOfDay.enabled)
+    {
+        outShaderData.environmentFlags |= uint32(WorldEnvironmentFlags::SunArc);
+    }
 
     const GlobalIlluminationSettings& globalIllumination = settings.globalIllumination;
 

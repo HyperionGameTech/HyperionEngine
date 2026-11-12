@@ -52,12 +52,6 @@ private:
     void UpdateViewerMotion(const Vec3f& viewerPosition, float delta, GlimmerChannelState& outState);
     void CollectLocalLights(Span<Handle<Scene>> scenes, const Vec3f& nearPosition, GlimmerChannelState& outState);
 
-    ////////// DEBUG //////////
-    void UpdateProbeDebugRecords(float delta);
-    void LogProbeStats();
-    void DebugDrawProbes(const Vec3f& viewerPosition);
-    ///////////////////////////
-
     virtual SystemComponentDescriptors GetComponentDescriptors() const override
     {
         return {
@@ -75,9 +69,6 @@ private:
 
     SharedPtr<GlimmerChannel> m_channel;
     GlimmerGroundClipmap m_groundClipmap;
-
-    Array<GlimmerProbeDebugRecord, GlimmerAllocator> m_probeDebugRecords;
-    float m_probeStatsLogTimer = 0.0f;
 
     Vec3f m_lastViewerPosition;
     Vec3f m_viewerVelocity;

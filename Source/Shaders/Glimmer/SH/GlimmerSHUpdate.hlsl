@@ -3,7 +3,8 @@
 #include "../../Include/Packing.hlsli"
 
 PERMUTE(MODE, UPDATE, COMPOSE)
-PERMUTE(PROBES);
+PERMUTE(SURFELS);
+PERMUTE(BVH);
 
 #define GLIMMER_SH_PROFILE 0
 
@@ -18,7 +19,7 @@ PERMUTE(PROBES);
 #include "GlimmerSHCommon.hlsli"
 #include "../GlimmerRelight.hlsli"
 #include "../GlimmerLocalLights.hlsli"
-#include "../Probes/GlimmerProbeTypes.hlsli"
+#include "../Surfels/GlimmerSurfelTypes.hlsli"
 
 #define GLIMMER_SH_OCCUPANCY_NO_TRACE
 #include "GlimmerSHOccupancy.hlsli"
@@ -44,7 +45,7 @@ struct GlimmerSHUpdateConstants
     /// w = how much of the radiance's history is kept
     float4 params;
     GlimmerRelightParams relight;
-    GlimmerProbeVolume probes;
+    GlimmerSurfels surfels;
     GlimmerSkyParams sky;
     EnvProbe skyProbe;         // textureIndices is ~0 without a sky probe
     GlimmerLightParams light;
@@ -53,6 +54,9 @@ struct GlimmerSHUpdateConstants
     uint4 options;
     
     GlimmerLocalLights localLights;
+
+    /// x = instances the BVH traces (0 without one)
+    uint4 bvh;
 };
 
 #include "../../Include/Clouds.hlsli"
@@ -68,23 +72,61 @@ DECLARE_BUFFER_DYNAMIC(GlimmerSHUpdate, CBuffer) cbuffer CBuffer
 DECLARE_UAV(GlimmerSHUpdate, OutRadiance) RWTexture3D<float4> OutRadiance;
 DECLARE_UAV(GlimmerSHUpdate, OutLight) RWStructuredBuffer<uint> OutLight;
 
-void GlimmerSHWriteComposed(uint3 texel, float4 entries[GLIMMER_LIGHT_ENTRIES])
+DECLARE_SAMPLER(GlimmerSHUpdate, SamplerLinearMipmap) SamplerState glimmerMaterialSampler;
+
+DECLARE_SRV(GlimmerSHUpdate, CloudWeatherMapTexture) Texture2DArray cloudWeatherMapTexture;
+DECLARE_SRV(GlimmerSHUpdate, CloudShadowMapTexture) Texture2D cloudShadowMapTexture;
+
+// the sun bounce is traced without the clouds, which move on long after it settles; the cloud shadow over the voxel stands in for the one over what it sees
+void GlimmerSHWriteComposed(uint3 texel, float3 center, float4 entries[GLIMMER_LIGHT_ENTRIES], float4 sun[3], uint sunState)
 {
+    const float cloudShadow = GetCloudShadow(cloudWeatherMapTexture, cloudShadowMapTexture, glimmerMaterialSampler, cloudVolume, cloudWeatherMap, cloudShadowMap, center, constants.surfels.sun.xyz);
+
+    [unroll]
+    for (uint channel = 0; channel < 3; channel++)
+    {
+        sun[channel] *= cloudShadow;
+    }
+
+    // the light now is for the sun now, whatever key was traced
+    const uint tracedKey = glimmerSunKey;
+    glimmerSunKey = GLIMMER_SUN_KEY_NONE;
+
+    float4 keyedSun[3];
+    float keyedFreshness;
+    bool hasKeys;
+    GLIMMER_KEYED_SUN_L1(OutLight, constants.surfels, GlimmerSHSunIndex(texel) + 7u, GlimmerSHSunIndex(texel) + 7u + GLIMMER_SUN_KEYS * 2u, GLIMMER_SH_SUN_KEY_SETTLE, keyedSun, keyedFreshness, hasKeys);
+
+    glimmerSunKey = tracedKey;
+
+    float freshness = GlimmerSurfelSunFreshness(constants.surfels, sunState);
+
+    if (hasKeys)
+    {
+        [unroll]
+        for (uint keyChannel = 0; keyChannel < 3; keyChannel++)
+        {
+            sun[keyChannel] = keyedSun[keyChannel] * cloudShadow;
+        }
+
+        freshness = keyedFreshness;
+    }
+
     float4 composed[3];
-    GlimmerComposeStoredLight(constants.light, entries, composed);
+    GlimmerComposeStoredLightWithSun(constants.light, entries, sun, freshness, composed);
 
     OutRadiance[GlimmerSHRadianceTexel(texel, 0u)] = composed[0];
     OutRadiance[GlimmerSHRadianceTexel(texel, 1u)] = composed[1];
     OutRadiance[GlimmerSHRadianceTexel(texel, 2u)] = composed[2];
 }
 
-void GlimmerSHWriteLight(uint3 texel, float4 entries[GLIMMER_LIGHT_ENTRIES])
+void GlimmerSHWriteLight(uint3 texel, float3 center, float4 entries[GLIMMER_LIGHT_ENTRIES], float4 sun[3], uint sunState)
 {
-    const uint seed = GlimmerProbeHash(GlimmerSHLightIndex(texel, 0u) ^ asuint(constants.rayRotation.x));
+    const uint seed = GlimmerSurfelHash(GlimmerSHLightIndex(texel, 0u) ^ asuint(constants.rayRotation.x));
 
     for (uint entry = 0; entry < GLIMMER_LIGHT_ENTRIES; entry++)
     {
-        const uint bits = GlimmerProbeHash(seed + entry * 0x9E3779B9u);
+        const uint bits = GlimmerSurfelHash(seed + entry * 0x9E3779B9u);
         const float4 dither = float4(bits & 0xFFu, (bits >> 8) & 0xFFu, (bits >> 16) & 0xFFu, bits >> 24) * (1.0 / 256.0);
 
         const uint2 packed = GlimmerSHPackLight(entry, entries[entry], dither);
@@ -98,7 +140,9 @@ void GlimmerSHWriteLight(uint3 texel, float4 entries[GLIMMER_LIGHT_ENTRIES])
         }
     }
 
-    GlimmerSHWriteComposed(texel, entries);
+    GLIMMER_STORE_SUN_BOUNCE(OutLight, GlimmerSHSunIndex(texel), sun, sunState);
+
+    GlimmerSHWriteComposed(texel, center, entries, sun, sunState);
 }
 
 #if defined(MODE_COMPOSE)
@@ -115,7 +159,14 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
         light[entry] = GLIMMER_SH_LOAD_LIGHT_FROM(OutLight, texel, entry);
     }
 
-    GlimmerSHWriteComposed(texel, light);
+    float4 sun[3];
+    uint sunState;
+    GLIMMER_LOAD_SUN_BOUNCE(OutLight, GlimmerSHSunIndex(texel), sun, sunState);
+
+    uint cascadeIndex;
+    const int3 voxel = GlimmerSHTexelVoxel(constants.volume, texel, cascadeIndex);
+
+    GlimmerSHWriteComposed(texel, GlimmerSHVoxelCenter(constants.volume.cascades[cascadeIndex], voxel), light, sun, sunState);
 }
 
 #else
@@ -124,8 +175,6 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
 
 DECLARE_SRV(GlimmerSHUpdate, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
 #define world_shader_data _worlds_buffer[0]
-
-DECLARE_SAMPLER(GlimmerSHUpdate, SamplerLinearMipmap) SamplerState glimmerMaterialSampler;
 
 DECLARE_SRV(GlimmerSHUpdate, GlimmerGroundTexture) Texture2DArray<float> glimmerGround;
 DECLARE_SRV(GlimmerSHUpdate, GlimmerGroundAlbedoTexture) Texture2DArray<float4> glimmerGroundAlbedo;
@@ -139,35 +188,27 @@ DECLARE_SRV(GlimmerSHUpdate, GlimmerRelightTexture) Texture2DArray<float4> glimm
 
 DECLARE_SRV(GlimmerSHUpdate, EnvProbesColorTexture) TextureCubeArray envProbesColorTexture;
 
-DECLARE_SRV(GlimmerSHUpdate, CloudWeatherMapTexture) Texture2DArray cloudWeatherMapTexture;
-DECLARE_SRV(GlimmerSHUpdate, CloudShadowMapTexture) Texture2D cloudShadowMapTexture;
+#if defined(SURFELS)
+DECLARE_SRV(GlimmerSHUpdate, GlimmerSurfelsBuffer) StructuredBuffer<uint4> glimmerSurfels;
+DECLARE_SRV(GlimmerSHUpdate, GlimmerSurfelHashBuffer) StructuredBuffer<uint> glimmerSurfelHash;
+DECLARE_SRV(GlimmerSHUpdate, GlimmerSurfelDataBuffer) StructuredBuffer<uint> glimmerSurfelData;
+DECLARE_SRV(GlimmerSHUpdate, GlimmerFoliageBuffer) StructuredBuffer<uint> glimmerFoliage;
 
-#if defined(PROBES)
+#include "../Surfels/GlimmerSurfelsLight.hlsli"
 
-DECLARE_SRV(GlimmerSHUpdate, GlimmerProbeBlockTableBuffer) StructuredBuffer<uint> glimmerProbeBlockTable;
-DECLARE_SRV(GlimmerSHUpdate, GlimmerProbeLightBuffer) StructuredBuffer<float4> glimmerProbeLight;
-DECLARE_SRV(GlimmerSHUpdate, GlimmerProbeStatesBuffer) StructuredBuffer<uint4> glimmerProbeStates;
-DECLARE_SRV(GlimmerSHUpdate, GlimmerProbeVisibilityBuffer) StructuredBuffer<uint> glimmerProbeVisibility;
+#define GLIMMER_LIGHTING_SURFELS constants.surfels
+#endif
 
-#define GLIMMER_PROBES_SPLIT
-#include "../Probes/GlimmerProbes.hlsli"
+#if defined(BVH)
+#include "../../Include/RayTracing/BVH.hlsli"
+#include "../BVH/GlimmerBVHCommon.hlsli"
 
-#else
+DECLARE_SRV(GlimmerSHUpdate, GlimmerTLASNodesBuffer) StructuredBuffer<BVHNode> glimmerTLASNodes;
+DECLARE_SRV(GlimmerSHUpdate, GlimmerTracedInstancesBuffer) StructuredBuffer<GlimmerTracedInstance> glimmerTracedInstances;
+DECLARE_SRV(GlimmerSHUpdate, GlimmerBLASNodesBuffer) StructuredBuffer<BVHBLASNode> glimmerBLASNodes;
+DECLARE_SRV(GlimmerSHUpdate, GlimmerTrianglesBuffer) StructuredBuffer<uint> glimmerTriangles;
 
-float SampleGlimmerProbesLight(GlimmerProbeVolume volume, float3 P, float3 N, out GlimmerLight outLight)
-{
-    outLight = GlimmerNoLight();
-
-    return 0.0;
-}
-
-bool SampleGlimmerNearestProbeLight(GlimmerProbeVolume volume, float3 P, float3 N, out GlimmerLight outLight)
-{
-    outLight = GlimmerNoLight();
-
-    return false;
-}
-
+#include "../BVH/GlimmerBVHTrace.hlsli"
 #endif
 
 DECLARE_UAV(GlimmerSHUpdate, OutData) RWTexture3D<float4> OutData;
@@ -180,6 +221,9 @@ DECLARE_SRV(GlimmerSHUpdate, GlimmerSHOccupancyMaskBuffer) StructuredBuffer<uint
 #define GLIMMER_SH_LOAD_STATE(texel) OutState[texel]
 #define GLIMMER_SH_LOAD_RADIANCE(texel) OutRadiance[texel]
 #define GLIMMER_SH_LOAD_LIGHT(texel, entry) GLIMMER_SH_LOAD_LIGHT_FROM(OutLight, texel, entry)
+#define GLIMMER_SH_LOAD_SUN(texel, outSun, outState) GLIMMER_LOAD_SUN_BOUNCE(OutLight, GlimmerSHSunIndex(texel), outSun, outState)
+#define GLIMMER_SH_LOAD_SUN_KEYS(surfels, texel, outSun, outFreshness, outHasKeys) \
+    GLIMMER_KEYED_SUN_L1(OutLight, surfels, GlimmerSHSunIndex(texel) + 7u, GlimmerSHSunIndex(texel) + 7u + GLIMMER_SUN_KEYS * 2u, GLIMMER_SH_SUN_KEY_SETTLE, outSun, outFreshness, outHasKeys)
 
 #define GLIMMER_SH_SPLIT
 #define GLIMMER_APPLY_WITH_SAMPLING
@@ -189,7 +233,6 @@ DECLARE_SRV(GlimmerSHUpdate, GlimmerSHOccupancyMaskBuffer) StructuredBuffer<uint
 #undef GLIMMER_APPLY_WITH_SAMPLING
 
 #define GLIMMER_LIGHTING_SKY constants.sky
-#define GLIMMER_LIGHTING_PROBES constants.probes
 #define GLIMMER_LIGHTING_SH constants.volume
 #define GLIMMER_LIGHTING_GROUND constants.ground
 #define GLIMMER_LIGHTING_SPANS constants.spans
@@ -214,7 +257,12 @@ groupshared float3 gsRayLight[GLIMMER_SH_RAYS * GLIMMER_LIGHT_PARTS];
 groupshared float3 gsRayDirections[GLIMMER_SH_RAYS];
 groupshared float gsRayEscapes[GLIMMER_SH_RAYS];
 groupshared float gsRayBasis[GLIMMER_SH_RAYS * GLIMMER_LIGHT_TERMS]; // each ray's light basis, times how much of it got out
-groupshared float4 gsSums[GLIMMER_LIGHT_PARTS * 3 + GLIMMER_LIGHT_TERMS];
+groupshared float3 gsRaySun[GLIMMER_SH_RAYS]; // per unit of the sun's irradiance
+
+#define GLIMMER_SH_SUN_SUM (GLIMMER_LIGHT_PARTS * 3 + GLIMMER_LIGHT_TERMS)
+#define GLIMMER_SH_SUMS (GLIMMER_SH_SUN_SUM + 3)
+
+groupshared float4 gsSums[GLIMMER_SH_SUMS];
 groupshared uint gsSubVoxelFree[8];
 groupshared float gsAxisDepths[GLIMMER_SH_AXIS_DEPTHS]; // in voxels
 
@@ -358,24 +406,80 @@ bool GlimmerSHTraceAirRay(float3 origin, float3 direction, uint minGroundLevel, 
     return true;
 }
 
-bool GlimmerSHLocalLightVisible(float3 origin, float3 direction, float tMax)
+float GlimmerSHShadowTransmittance(float3 origin, float3 direction, float tMax)
 {
     GlimmerHeightfieldHit hit;
     float4 lightmap;
 
-    return !GlimmerSHTraceScene(origin, direction, tMax, 0u, false, hit, lightmap);
+    if (GlimmerSHTraceScene(origin, direction, tMax, 0u, false, hit, lightmap))
+    {
+        return 0.0;
+    }
+
+    return hit.transmittance;
 }
 
-#define GLIMMER_LOCAL_LIGHT_VISIBLE GlimmerSHLocalLightVisible
+#define GLIMMER_LOCAL_LIGHT_TRANSMITTANCE GlimmerSHShadowTransmittance
 #include "../GlimmerLocalLights.hlsli"
-#undef GLIMMER_LOCAL_LIGHT_VISIBLE
+#undef GLIMMER_LOCAL_LIGHT_TRANSMITTANCE
 
-GlimmerLight GlimmerSHShadeHit(float3 P, GlimmerHeightfieldHit hit, float3 albedo, float4 lightmap)
+float GlimmerSHSunTransmittance(float3 origin, float3 direction, float tMax)
 {
+#if defined(BVH)
+    if (constants.bvh.x != 0u)
+    {
+        GlimmerBVHHit bvhHit;
+        GlimmerBVHStats stats = GlimmerMakeBVHStats();
+
+        if (TraceGlimmerBVH(origin, direction, 0.0, tMax, constants.bvh.x, true, bvhHit, stats))
+        {
+            return 0.0;
+        }
+
+        GlimmerHeightfieldHit heightfieldHit;
+
+        if (GlimmerTraceHeightfield(constants.ground, constants.spans, origin, direction, tMax, 0u, GlimmerBVHWindowExit(origin, direction, constants.bvh.x), constants.params.x, false, heightfieldHit))
+        {
+            return 0.0;
+        }
+
+        return heightfieldHit.transmittance;
+    }
+#endif
+
+    return GlimmerSHShadowTransmittance(origin, direction, tMax);
+}
+
+// what a sun of unit irradiance gives a surface facing N at P straight, behind a shadow ray; the clouds dim it when it is composed
+float GlimmerSHSunAt(float3 P, float3 N)
+{
+    const float3 toSun = GlimmerSurfelSunDirection(constants.surfels);
+    const float cosine = dot(N, toSun);
+
+    [branch]
+    if (cosine <= 0.0 || (constants.surfels.foliage.w == 0.0 && !GlimmerSurfelHasSunKeys(constants.surfels)))
+    {
+        return 0.0;
+    }
+
+    return cosine * HYP_FMATH_ONE_OVER_PI * GlimmerSHSunTransmittance(P + N * GLIMMER_LOCAL_LIGHT_SHADOW_BIAS, toSun, constants.params.y);
+}
+
+/// what a hit sends on, and the sun it sends on, per unit of the sun's irradiance: straight from the sun, and of the sun bounce it receives
+GlimmerLight GlimmerSHShadeHit(float3 P, GlimmerHeightfieldHit hit, float3 albedo, float4 lightmap, out float3 outSun)
+{
+    outSun = (float3)0.0;
+
+    const float3 shadedAlbedo = min(albedo, (float3)GLIMMER_MAX_ALBEDO);
+
     GlimmerLight light;
 
-    if (hit.kind != GLIMMER_SH_HIT_OCCUPANCY && GlimmerShadeRelitHit(P, albedo, hit.normal, hit.kind == GLIMMER_HEIGHTFIELD_GROUND, hit.level, light))
+    float3 relitSun;
+
+    if (hit.kind != GLIMMER_SH_HIT_OCCUPANCY && GlimmerShadeRelitHit(P, albedo, hit.normal, hit.kind == GLIMMER_HEIGHTFIELD_GROUND, hit.level, light, relitSun))
     {
+        outSun = shadedAlbedo * (GlimmerSHSunAt(P, hit.normal) + relitSun);
+
         return light;
     }
 
@@ -385,22 +489,29 @@ GlimmerLight GlimmerSHShadeHit(float3 P, GlimmerHeightfieldHit hit, float3 albed
     }
 
     GlimmerLight received;
+    float3 receivedSun = (float3)0.0;
     bool hasReceived = false;
 
     // GlimmerIndirect loads every light entry of up to 8 voxels per cascade.
-    // read just the nearest probe or SH voxel half a voxel out - falls back if that voxel's origin is behind the surface
+    // read just the nearest SH voxel half a voxel out - falls back if that voxel's origin is behind the surface
     if (constants.options.x != 0u)
     {
-        hasReceived = SampleGlimmerNearestProbeLight(constants.probes, P + hit.normal * (0.5 * constants.volume.cascades[0].params.x), hit.normal, received)
-            || GlimmerSHSampleNearestLight(constants.volume, P, hit.normal, 0.5, received);
+#if defined(SURFELS)
+        hasReceived = GlimmerSampleSurfelsLightAndSun(constants.surfels, P, hit.normal, received, receivedSun) >= 0.5
+            || GlimmerSampleFoliageLightAndSun(constants.surfels, P, hit.normal, received, receivedSun) >= 0.5;
+#endif
+
+        hasReceived = hasReceived || GlimmerSHSampleNearestLightAndSun(constants.volume, constants.surfels, P, hit.normal, 0.5, received, receivedSun);
     }
 
     if (!hasReceived)
     {
-        received = GlimmerIndirect(P, hit.normal);
+        received = GlimmerIndirectWithSun(P, hit.normal, receivedSun);
     }
 
     received.parts[GLIMMER_LIGHT_REST] += GlimmerLocalLightsAt(constants.localLights, P, hit.normal);
+
+    outSun = shadedAlbedo * (GlimmerSHSunAt(P, hit.normal) + receivedSun);
 
     return GlimmerShade(albedo, received);
 }
@@ -481,6 +592,22 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
     const uint3 texel = GlimmerSHTexel(cascadeIndex, voxel);
     const float3 center = GlimmerSHVoxelCenter(cascade, voxel);
 
+    // with a time of day a voxel bakes its sun bounce for the keys along the sun's arc in turn, a key a pass
+    const uint keyStateIndex = GlimmerSHSunIndex(texel) + 7u + GLIMMER_SUN_KEYS * 2u;
+    uint keyUpdates = 0u;
+
+    if (GlimmerSurfelHasSunKeys(constants.surfels))
+    {
+        GlimmerSHVoxel keyHistory;
+
+        if (GlimmerSHUnpackVoxel(OutState[texel], voxel, keyHistory) && !keyHistory.isBuried)
+        {
+            keyUpdates = GlimmerSurfelSunKeyUpdates(constants.surfels, OutLight[keyStateIndex]);
+        }
+
+        glimmerSunKey = keyUpdates % GLIMMER_SUN_KEYS;
+    }
+
     // the sub-voxels' burial tests, one a thread
     if (groupIndex < 8u)
     {
@@ -540,8 +667,9 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
             OutData[texel] = (float4)0.0;
             
             float4 noLight[GLIMMER_LIGHT_ENTRIES] = (float4[GLIMMER_LIGHT_ENTRIES]) 0;
+            float4 noSun[3] = (float4[3]) 0;
 
-            GlimmerSHWriteLight(texel, noLight);
+            GlimmerSHWriteLight(texel, center, noLight, noSun, 0u);
             OutState[texel] = GlimmerSHPackVoxel(voxel, data);
 
             voxelKind = GLIMMER_SH_VOXEL_BURIED;
@@ -618,6 +746,7 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
     else if (isRayThread)
     {
         GlimmerLight light;
+        float3 hitSun = (float3)0.0;
 
         if (didHit)
         {
@@ -630,7 +759,7 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
 #if GLIMMER_SH_PROFILE == 4
             light = GlimmerNoLight();
 #else
-            light = GlimmerSHShadeHit(P, hit, albedo, hitLightmap);
+            light = GlimmerSHShadeHit(P, hit, albedo, hitLightmap, hitSun);
 #endif
         }
         else
@@ -640,6 +769,8 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
 
         GlimmerLight rayLight = hit.inscatter;
         GlimmerAddLight(rayLight, light, (float3)hit.transmittance);
+
+        gsRaySun[groupIndex] = GlimmerSmoothSun(hit.inscatter, GlimmerSurfelSunDirection(constants.surfels)) + hitSun * hit.transmittance;
 
         [unroll]
         for (uint part = 0; part < GLIMMER_LIGHT_PARTS; part++)
@@ -698,7 +829,7 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
         GroupMemoryBarrierWithGroupSync();
     }
 
-    if (!isBuried && groupIndex < uint(GLIMMER_LIGHT_PARTS * 3 + GLIMMER_LIGHT_TERMS))
+    if (!isBuried && groupIndex < uint(GLIMMER_SH_SUMS))
     {
         float4 sum = (float4)0.0;
 
@@ -710,6 +841,17 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
             for (uint rayIndex = 0; rayIndex < GLIMMER_SH_RAYS; rayIndex++)
             {
                 const float value = gsRayLight[rayIndex * GLIMMER_LIGHT_PARTS + part][channel];
+
+                sum += float4(value, value * gsRayDirections[rayIndex]);
+            }
+        }
+        else if (groupIndex >= uint(GLIMMER_SH_SUN_SUM))
+        {
+            const uint channel = groupIndex - uint(GLIMMER_SH_SUN_SUM);
+
+            for (uint rayIndex = 0; rayIndex < GLIMMER_SH_RAYS; rayIndex++)
+            {
+                const float value = gsRaySun[rayIndex][channel];
 
                 sum += float4(value, value * gsRayDirections[rayIndex]);
             }
@@ -765,6 +907,52 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
     {
         light[GLIMMER_LIGHT_DIRECT_ENTRY + term] = GlimmerSHProjectSum(gsSums[GLIMMER_LIGHT_PARTS * 3 + term]);
     }
+    float4 sun[3];
+    uint sunState;
+    GLIMMER_LOAD_SUN_BOUNCE(OutLight, GlimmerSHSunIndex(texel), sun, sunState);
+
+    if (GlimmerSurfelHasSunKeys(constants.surfels))
+    {
+        const uint keyAt = GlimmerSHSunIndex(texel) + 7u + glimmerSunKey * GLIMMER_SUN_KEY_L1_UINTS;
+
+        float4 keySun[3];
+        GlimmerUnpackSunKeyL1(uint2(OutLight[keyAt], OutLight[keyAt + 1u]), keySun);
+
+        const float keyBlend = keyUpdates >= GLIMMER_SUN_KEYS ? max(1.0 - constants.params.w, GlimmerSurfelSunKeyBlendWeight(keyUpdates, GLIMMER_SUN_KEYS)) : 1.0;
+
+        [unroll]
+        for (uint keyChannel = 0; keyChannel < 3; keyChannel++)
+        {
+            keySun[keyChannel] = lerp(keySun[keyChannel], GlimmerSHProjectSum(gsSums[GLIMMER_SH_SUN_SUM + keyChannel]), keyBlend);
+        }
+
+        const uint2 packedKey = GlimmerPackSunKeyL1(keySun);
+
+        OutLight[keyAt] = packedKey.x;
+        OutLight[keyAt + 1u] = packedKey.y;
+        OutLight[keyStateIndex] = GlimmerSurfelNextSunKeyState(constants.surfels, keyUpdates);
+    }
+    else
+    {
+        // a voxel's own sun bounce, or one from before the sun jumped, starts over; one for a sun that only turned a little follows it
+        uint sunUpdates = 0u;
+
+        if (hasHistory)
+        {
+            sunUpdates = GlimmerSurfelSunUpdatesHeld(constants.surfels, sunState);
+        }
+
+        const float sunBlend = sunUpdates > 0u ? max(1.0 - constants.params.w, GlimmerSurfelSunBlendWeight(sunUpdates)) : 1.0;
+
+        [unroll]
+        for (uint sunChannel = 0; sunChannel < 3; sunChannel++)
+        {
+            sun[sunChannel] = lerp(sun[sunChannel], GlimmerSHProjectSum(gsSums[GLIMMER_SH_SUN_SUM + sunChannel]), sunBlend);
+        }
+
+        sunState = GlimmerSurfelNextSunState(constants.surfels, sunUpdates);
+    }
+
     if (hasHistory)
     {
         visibility = lerp(visibility, previousVisibility, constants.params.w);
@@ -797,7 +985,7 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
     }
 
     OutData[texel] = visibility;
-    GlimmerSHWriteLight(texel, light);
+    GlimmerSHWriteLight(texel, center, light, sun, sunState);
     OutState[texel] = GlimmerSHPackVoxel(voxel, data);
 }
 

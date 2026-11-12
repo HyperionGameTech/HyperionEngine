@@ -9,7 +9,6 @@
 #include <Rendering/RenderTypes.hpp>
 #include <Rendering/Glimmer/GlimmerChannel.hpp>
 #include <Rendering/Glimmer/GlimmerHelpers.hpp>
-#include <Rendering/Glimmer/Probes/GlimmerProbeVolume.hpp>
 
 #include <Core/Containers/Array.hpp>
 #include <Core/Containers/FixedArray.hpp>
@@ -86,7 +85,7 @@ private:
         int32 refreshRow = 0; // absolute texel row the refresh is at
     };
 
-    // what is lit again once the probes around it have had time to settle
+    // what is lit again once the surfels around it have had time to settle
     struct Echo
     {
         uint32 level;
@@ -99,7 +98,6 @@ private:
     void AddPending(Level& level, const Rect& rect);
     void AddEcho(uint32 levelIndex, const Rect& rect);
     void AddEchoAround(const Vec2f& min, const Vec2f& max);
-    void UpdateProbeWindows(const GlimmerChannelState& state);
 
     Handle<Texture> m_texture;
 
@@ -109,8 +107,6 @@ private:
     int32 m_refreshBudget;
 
     Array<Echo, GlimmerAllocator> m_echoes;
-    FixedArray<Vec3i, GlimmerProbeLevels> m_probeWindows;
-    bool m_hasProbeWindows;
     uint32 m_frameIndex;
 
     Array<GlimmerRelightDispatch, GlimmerAllocator> m_dispatches;

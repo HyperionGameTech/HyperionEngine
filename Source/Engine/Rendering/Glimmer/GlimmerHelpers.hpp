@@ -37,7 +37,7 @@ struct EnvProbeShaderData;
 // luminance the sky (and emissive surfaces) seen by Glimmer's rays is clamped to
 static constexpr float GlimmerSkyMaxLuminance = 64.0f;
 
-// how far the probe and SH voxel rays look before taking the sky
+// how far the surfel and SH voxel rays look before taking the sky
 static constexpr float GlimmerMaxRayDistance = 2000.0f;
 
 static constexpr float GlimmerDefaultGroundAlbedo = 0.25f;
@@ -56,8 +56,9 @@ static constexpr uint32 GlimmerLightEntries = GlimmerLightTransferEntries + 3;
 
 struct GlimmerLightShaderData
 {
-    Vec4f bounceWeights[GlimmerLightTerms]; // rgb = the sun's and the sky's SH term
+    Vec4f bounceWeights[GlimmerLightTerms]; // rgb = the sun's and the sky's radiance in each term
     Vec4f directWeights[GlimmerLightTerms]; // rgb = the sky's alone
+    Vec4f sun;                              // rgb = the sun's irradiance
 
     GlimmerLightShaderData()
     {
@@ -68,7 +69,7 @@ struct GlimmerLightShaderData
 struct GlimmerSkyShaderData
 {
     Vec4u info;   // x = sky probe color texture index (~0 without one)
-    Vec4f params; // x = sky probe diffuse strength, y = luminance escaping rays are clamped to, z = luminance of the sky's irradiance from above (without the world's sky intensity)
+    Vec4f params; // x = sky probe diffuse strength, y = luminance escaping rays are clamped to, z = luminance of the sky's irradiance from above (without the world's sky intensity), w = the sky probe's radiance scale, with it
 };
 
 struct GlimmerTexelRect
@@ -129,11 +130,7 @@ float GetGlimmerRegionMinRadius();
 float GetGlimmerSHCascadeSpacing(uint32 cascadeIndex);
 float GetGlimmerSHOccupancySpacing(uint32 cascadeIndex);
 
-float GetGlimmerProbeLevelSpacing(uint32 levelIndex);
-
 Vec3f GetGlimmerWindowCenter(const Vec3f& viewerPosition, const Vec3f& lookAhead, const Vec3f& windowExtent);
-Vec3f GetGlimmerProbeWindowCenter(const Vec3f& viewerPosition, const Vec3f& lookAhead, uint32 levelIndex);
-Vec3i GetGlimmerProbeWindowOrigin(const Vec3f& viewerPosition, const Vec3f& lookAhead, uint32 levelIndex);
 
 Vec4f MakeGlimmerRandomRotation(uint32 seed);
 
@@ -151,10 +148,18 @@ void CollectGlimmerTerrainPatches(RenderProxyList& rpl, Array<GlimmerTerrainPatc
 
 void FillGlimmerGroundCover(TerrainWorldGridLayer* terrain, GlimmerChannelState& outState);
 
-// the sky as both the probe and SH voxel traces see it
+// the sky as both the surfel and SH voxel traces see it
 void GetGlimmerSkyShaderData(EnvProbe* skyProbe, GlimmerSkyShaderData& outSky, EnvProbeShaderData& outSkyProbe);
 
 void GetGlimmerLightShaderData(EnvProbe* skyProbe, GlimmerLightShaderData& outLight);
+
+// NOTE must match GlimmerLightBasis in GlimmerLight.hlsli
+void GetGlimmerSkyTerms(const Vec3f& direction, float outTerms[GlimmerLightTerms]);
+
+// the sky probe's mean radiance in each term, as GlimmerSkyBins measured it
+void SetGlimmerSkyBins(uint32 skyTextureIndex, const Vec4f (&radiance)[GlimmerLightTerms]);
+
+Vec3f GetGlimmerSunDirection();
 
 float GetGlimmerFoliageExtinction();
 

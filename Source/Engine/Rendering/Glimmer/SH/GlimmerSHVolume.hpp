@@ -28,7 +28,9 @@ class CloudPass;
 class GlimmerSurfaceCache;
 class GlimmerSpanCache;
 class GlimmerSceneInstances;
-class GlimmerProbeVolume;
+class GlimmerTriangleCache;
+class GlimmerSurfelCache;
+struct GlimmerSurfelShaderData;
 class GlimmerLocalLights;
 struct GlimmerSHOccupancyShaderData;
 struct GlimmerRelightShaderData;
@@ -37,7 +39,7 @@ static constexpr uint32 GlimmerSHCascades = 5;
 static constexpr uint32 GlimmerSHGridXZ = 32;
 static constexpr uint32 GlimmerSHGridY = 16;
 
-static constexpr float GlimmerSHSpacing = 4.0f;
+static constexpr float GlimmerSHSpacing = 2.0f;
 
 struct GlimmerSHCascadeShaderData
 {
@@ -72,6 +74,7 @@ struct GlimmerSHVolumeUpdateInputs
     const GlimmerSurfaceCache* surfaceCache = nullptr;
     const GlimmerSpanCache* spanCache = nullptr;
     const GlimmerSceneInstances* sceneInstances = nullptr;
+    const GlimmerTriangleCache* triangleCache = nullptr;
 
     const GlimmerSHOccupancyShaderData* occupancy = nullptr;
     GpuImageViewRef occupancyImageView;
@@ -81,7 +84,7 @@ struct GlimmerSHVolumeUpdateInputs
     const GlimmerRelightShaderData* relight = nullptr;
     GpuImageViewRef relightImageView;
 
-    const GlimmerProbeVolume* probeVolume = nullptr;
+    const GlimmerSurfelCache* surfelCache = nullptr; // what lights hits near static geometry; may be nullptr
 
     EnvProbe* skyProbe = nullptr;
     const CloudPass* cloudPass = nullptr;
@@ -175,7 +178,7 @@ private:
         const GlimmerSHVolumeUpdateInputs& inputs,
         bool& inOutHasBarriers);
 
-    void Compose(Frame* frame, const GlimmerLightShaderData& light);
+    void Compose(Frame* frame, const GlimmerSHVolumeUpdateInputs& inputs, const GlimmerSurfelShaderData& surfels, bool hasClouds);
 
     Handle<Texture> m_dataTexture;      // sky visibility L1
     Handle<Texture> m_stateTexture;
@@ -190,11 +193,19 @@ private:
     uint32 m_seenInstancesGeneration;
     uint32 m_seenLightsGeneration = 0;
     uint32 m_occupancyWaitFrames;
+    bool m_hasTracedUnsettledOccupancy = false;
 
     int32 m_refreshBudget;                              /// voxels the refresh may still trace, carried between frames so a rate below a slice still gets its turn
 
     GlimmerLightShaderData m_composedLight;
     bool m_hasComposedLight;
+    bool m_wasComposedWithClouds;
+    bool m_wasComposedWithTracedSun;
+
+    Vec3f m_sunTracedDirection;    // the sun the voxels' sun bounces were last traced for
+    uint32 m_sunTracedJumpEpoch;
+    uint32 m_sunArcEpoch;          // the arc the voxels' sun keys were baked along
+    bool m_hasSunKeys;
 
     GlimmerSHVolumeShaderData m_shaderData;
 };

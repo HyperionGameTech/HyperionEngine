@@ -4,6 +4,7 @@
 #include "GlimmerSHCommon.hlsli"
 
 #define GLIMMER_SH_VISIBILITY_NORMAL_BIAS 0.3
+#define GLIMMER_SH_SAMPLE_NORMAL_OFFSET 0.25
 #define GLIMMER_SH_CRUSH_THRESHOLD 0.2
 #define GLIMMER_SH_AXIS_FADE 0.5
 // a rejected voxel keeps this much weight: with next to none, the blend jumps where the voxels around the point change
@@ -183,7 +184,7 @@ float GlimmerSHSampleVolume(GlimmerSHVolume volume, float3 P, float3 N, out floa
     {
         float4 cascadeVisibility;
         GlimmerSHRadiance cascadeRadiance;
-        const float cascadeWeight = GlimmerSHSampleCascade(volume, cascadeIndex, P + N * 0.05, N, cascadeVisibility, cascadeRadiance);
+        const float cascadeWeight = GlimmerSHSampleCascade(volume, cascadeIndex, P + N * (GLIMMER_SH_SAMPLE_NORMAL_OFFSET * volume.cascades[cascadeIndex].params.x), N, cascadeVisibility, cascadeRadiance);
 
         if (cascadeWeight <= 0.0)
         {
@@ -223,9 +224,30 @@ float GlimmerSHSampleVolume(GlimmerSHVolume volume, float3 P, float3 N, out floa
 #define GLIMMER_SH_LIGHT_TAP_CUTOFF 0.02
 #define GLIMMER_SH_LIGHT_MIN_REMAINING 0.02
 
-float GlimmerSHSampleCascadeLight(GlimmerSHVolume volume, uint cascadeIndex, float3 P, float3 N, out GlimmerLight outLight)
+// the sun bounce a voxel holds facing N, for the sun now as fresh as it is, per unit of the sun's irradiance
+float3 GlimmerSHVoxelSun(GlimmerSurfels surfels, uint3 texel, float3 N)
+{
+    float4 keyedSun[3];
+    float keyedFreshness;
+    bool hasKeys;
+    GLIMMER_SH_LOAD_SUN_KEYS(surfels, texel, keyedSun, keyedFreshness, hasKeys);
+
+    if (hasKeys)
+    {
+        return GlimmerEvaluateSunBounce(keyedSun, keyedFreshness, N);
+    }
+
+    float4 sun[3];
+    uint sunState;
+    GLIMMER_SH_LOAD_SUN(texel, sun, sunState);
+
+    return GlimmerEvaluateSunBounce(sun, GlimmerSurfelSunFreshness(surfels, sunState), N);
+}
+
+float GlimmerSHSampleCascadeLight(GlimmerSHVolume volume, GlimmerSurfels surfels, uint cascadeIndex, float3 P, float3 N, out GlimmerLight outLight, out float3 outSun)
 {
     outLight = GlimmerNoLight();
+    outSun = (float3)0.0;
 
     GlimmerSHTaps taps;
     const float cascadeWeight = GlimmerSHGatherTaps(volume, cascadeIndex, P, N, taps);
@@ -264,6 +286,8 @@ float GlimmerSHSampleCascadeLight(GlimmerSHVolume volume, uint cascadeIndex, flo
             {
                 entries[entry] += GLIMMER_SH_LOAD_LIGHT(taps.texels[tap], entry) * weight;
             }
+
+            outSun += GlimmerSHVoxelSun(surfels, taps.texels[tap], N) * weight;
         }
     }
 
@@ -272,9 +296,11 @@ float GlimmerSHSampleCascadeLight(GlimmerSHVolume volume, uint cascadeIndex, flo
     return cascadeWeight;
 }
 
-float GlimmerSHSampleVolumeLight(GlimmerSHVolume volume, float3 P, float3 N, out GlimmerLight outLight)
+/// what the volume receives at P facing N, and its sun bounce for the sun now as fresh as it is; returns its coverage
+float GlimmerSHSampleVolumeLightAndSun(GlimmerSHVolume volume, GlimmerSurfels surfels, float3 P, float3 N, out GlimmerLight outLight, out float3 outSun)
 {
     outLight = GlimmerNoLight();
+    outSun = (float3)0.0;
 
     if (volume.info.w == 0u)
     {
@@ -282,13 +308,15 @@ float GlimmerSHSampleVolumeLight(GlimmerSHVolume volume, float3 P, float3 N, out
     }
 
     GlimmerLight light = GlimmerNoLight();
+    float3 sun = (float3)0.0;
     float remaining = 1.0;
 
     [loop]
     for (uint cascadeIndex = 0; cascadeIndex < GLIMMER_SH_CASCADES && remaining > GLIMMER_SH_LIGHT_MIN_REMAINING; cascadeIndex++)
     {
         GlimmerLight cascadeLight;
-        const float cascadeWeight = GlimmerSHSampleCascadeLight(volume, cascadeIndex, P + N * 0.05, N, cascadeLight);
+        float3 cascadeSun;
+        const float cascadeWeight = GlimmerSHSampleCascadeLight(volume, surfels, cascadeIndex, P + N * 0.05, N, cascadeLight, cascadeSun);
 
         if (cascadeWeight <= 0.0)
         {
@@ -296,6 +324,7 @@ float GlimmerSHSampleVolumeLight(GlimmerSHVolume volume, float3 P, float3 N, out
         }
 
         GlimmerAddLight(light, cascadeLight, (float3)(cascadeWeight * remaining));
+        sun += cascadeSun * (cascadeWeight * remaining);
         remaining *= 1.0 - cascadeWeight;
     }
 
@@ -307,13 +336,15 @@ float GlimmerSHSampleVolumeLight(GlimmerSHVolume volume, float3 P, float3 N, out
     }
 
     outLight = GlimmerScaleLight(light, (float3)(1.0 / coverage));
+    outSun = sun / coverage;
 
     return coverage;
 }
 
-bool GlimmerSHSampleNearestLight(GlimmerSHVolume volume, float3 P, float3 N, float surfaceOffset, out GlimmerLight outLight)
+bool GlimmerSHSampleNearestLightAndSun(GlimmerSHVolume volume, GlimmerSurfels surfels, float3 P, float3 N, float surfaceOffset, out GlimmerLight outLight, out float3 outSun)
 {
     outLight = GlimmerNoLight();
+    outSun = (float3)0.0;
 
     if (volume.info.w == 0u)
     {
@@ -355,6 +386,7 @@ bool GlimmerSHSampleNearestLight(GlimmerSHVolume volume, float3 P, float3 N, flo
         }
 
         outLight = GlimmerEvaluateStoredLight(entries, N);
+        outSun = GlimmerSHVoxelSun(surfels, texel, N);
 
         return true;
     }

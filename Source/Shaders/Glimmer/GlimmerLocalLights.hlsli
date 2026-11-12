@@ -28,8 +28,8 @@ struct GlimmerLocalLights
 
 #endif
 
-// GLIMMER_LOCAL_LIGHT_VISIBLE(origin, direction, tMax) is the including shader's shadow test
-#if defined(GLIMMER_LOCAL_LIGHT_VISIBLE) && !defined(GLIMMER_LOCAL_LIGHTS_SAMPLING_HLSLI)
+// GLIMMER_LOCAL_LIGHT_TRANSMITTANCE(origin, direction, tMax) is the including shader's shadow test: how much of the light gets through
+#if defined(GLIMMER_LOCAL_LIGHT_TRANSMITTANCE) && !defined(GLIMMER_LOCAL_LIGHTS_SAMPLING_HLSLI)
 #define GLIMMER_LOCAL_LIGHTS_SAMPLING_HLSLI
 
 float3 GlimmerLocalLightsAt(GlimmerLocalLights localLights, float3 P, float3 N)
@@ -79,12 +79,19 @@ float3 GlimmerLocalLightsAt(GlimmerLocalLights localLights, float3 P, float3 N)
         const float3 originToLight = light.positionRadius.xyz - origin;
         const float shadowDistance = length(originToLight) - GLIMMER_LOCAL_LIGHT_NEAR;
 
-        if (shadowDistance > 0.0 && !GLIMMER_LOCAL_LIGHT_VISIBLE(origin, originToLight / max(shadowDistance + GLIMMER_LOCAL_LIGHT_NEAR, 1e-4), shadowDistance))
+        float transmittance = 1.0;
+
+        if (shadowDistance > 0.0)
+        {
+            transmittance = GLIMMER_LOCAL_LIGHT_TRANSMITTANCE(origin, originToLight / max(shadowDistance + GLIMMER_LOCAL_LIGHT_NEAR, 1e-4), shadowDistance);
+        }
+
+        if (transmittance <= 0.0)
         {
             continue;
         }
 
-        received += light.color.rgb * (attenuation * NdotL * HYP_FMATH_ONE_OVER_PI);
+        received += light.color.rgb * (attenuation * NdotL * transmittance * HYP_FMATH_ONE_OVER_PI);
     }
 
     return received;

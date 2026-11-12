@@ -1,14 +1,12 @@
 #ifndef GLIMMER_APPLY_HLSLI
 #define GLIMMER_APPLY_HLSLI
 
-#include "Probes/GlimmerProbesApply.hlsli"
 #include "SH/GlimmerSHApply.hlsli"
 
 struct GlimmerApply
 {
-    uint4 params;    // x = GLIMMER_DEBUG_VIS_*, y = 1 when either volume can be sampled, z = GLIMMER_DEBUG_SH_*
+    uint4 params;    // x = GLIMMER_DEBUG_VIS_*, y = 1 when the volume can be sampled, z = GLIMMER_DEBUG_SH_*
     float4 settings; // x = intensity
-    GlimmerProbeVolume probes;
     GlimmerSHVolume sh;
 };
 
@@ -24,7 +22,6 @@ struct GlimmerApply
 #if defined(GLIMMER_APPLY_WITH_SAMPLING) && !defined(GLIMMER_APPLY_SAMPLING_HLSLI)
 #define GLIMMER_APPLY_SAMPLING_HLSLI
 
-#include "Probes/GlimmerProbesApply.hlsli"
 #include "SH/GlimmerSHApply.hlsli"
 
 float4 EvaluateGlimmer(GlimmerApply glimmer, float3 P, float3 N)
@@ -34,16 +31,7 @@ float4 EvaluateGlimmer(GlimmerApply glimmer, float3 P, float3 N)
         return (float4)0.0;
     }
 
-    const float4 nearField = EvaluateGlimmerProbes(glimmer.probes, P, N);
-
-    float4 farField = (float4)0.0;
-
-    if (nearField.a < 0.999)
-    {
-        farField = EvaluateGlimmerSH(glimmer.sh, P, N);
-    }
-
-    float4 irradiance = GlimmerBlendFarField(nearField, farField);
+    float4 irradiance = EvaluateGlimmerSH(glimmer.sh, P, N);
     irradiance.rgb *= glimmer.settings.x;
 
     return irradiance;
@@ -59,29 +47,19 @@ float4 EvaluateGlimmer(GlimmerApply glimmer, float3 P, float3 N, float3 R, out f
         return (float4)0.0;
     }
 
-    float3 nearFieldR;
-    const float4 nearField = EvaluateGlimmerProbes(glimmer.probes, P, N, R, nearFieldR);
-
     float4 visibility;
     GlimmerSHRadiance radiance;
     const float shCoverage = GlimmerSHSampleVolume(glimmer.sh, P, N, visibility, radiance);
 
-    float4 farField = (float4)0.0;
-    float3 farFieldR = (float3)0.0;
-
-    if (shCoverage > 0.0)
+    if (shCoverage <= 0.0)
     {
-        farField = float4(GlimmerSHEvaluate(radiance, N), shCoverage);
-        farFieldR = GlimmerSHEvaluate(radiance, R);
-        outSpecular = GlimmerSHSpecularVisibility(visibility, shCoverage, R);
+        return (float4)0.0;
     }
 
-    float4 irradiance = GlimmerBlendFarField(nearField, farField);
-    irradiance.rgb *= glimmer.settings.x;
+    outSpecular = GlimmerSHSpecularVisibility(visibility, shCoverage, R);
+    outReflection = GlimmerSHEvaluate(radiance, R) * glimmer.settings.x;
 
-    outReflection = GlimmerBlendFarField(float4(nearFieldR, nearField.a), float4(farFieldR, farField.a)).rgb * glimmer.settings.x;
-
-    return irradiance;
+    return float4(GlimmerSHEvaluate(radiance, N) * glimmer.settings.x, shCoverage);
 }
 
 float3 EvaluateGlimmerSHDebug(GlimmerApply glimmer, float3 P, float3 N)
@@ -112,28 +90,17 @@ float3 EvaluateGlimmerSHDebug(GlimmerApply glimmer, float3 P, float3 N)
     return GlimmerSHEvaluate(radiance, N) * glimmer.settings.x;
 }
 
-float3 EvaluateGlimmerCoverage(GlimmerApply glimmer, float3 P, float3 N)
+/// green for surfels, yellow for foliage voxels, then what's left by SH cascade
+float3 EvaluateGlimmerCoverage(GlimmerApply glimmer, float3 P, float3 N, float surfelCoverage, float foliageCoverage)
 {
-    float3 color = (float3)0.0;
-    float remaining = 1.0;
+    float3 color = float3(0.1, 1.0, 0.2) * surfelCoverage;
+    float remaining = 1.0 - surfelCoverage;
+
+    color += float3(1.0, 0.85, 0.1) * foliageCoverage * remaining;
+    remaining *= 1.0 - foliageCoverage;
 
     if (glimmer.params.y != 0u)
     {
-        if (glimmer.probes.info.w != 0u)
-        {
-            [loop]
-            for (uint probeLevel = 0; probeLevel < glimmer.probes.info.x && remaining > 1e-3; probeLevel++)
-            {
-                float3 levelIrradiance;
-                const float weight = GlimmerSampleProbeLevel(glimmer.probes, probeLevel, P + N * 0.05, N, levelIrradiance);
-
-                const float t = float(probeLevel) / float(max(GLIMMER_PROBE_LEVELS - 1, 1));
-
-                color += lerp(float3(1.0, 0.85, 0.1), float3(1.0, 0.15, 0.05), t) * weight * remaining;
-                remaining *= 1.0 - weight;
-            }
-        }
-
         [loop]
         for (uint shCascade = 0; shCascade < GLIMMER_SH_CASCADES && remaining > 1e-3; shCascade++)
         {

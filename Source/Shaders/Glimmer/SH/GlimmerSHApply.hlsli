@@ -19,6 +19,9 @@ DECLARE_SRV(DeferredPass, GlimmerSHRadianceTexture) Texture3D<float4> glimmerSHR
 #define GLIMMER_SH_LOAD_STATE(texel) glimmerSHState.Load(int4(texel, 0))
 #define GLIMMER_SH_LOAD_RADIANCE(texel) glimmerSHRadiance.Load(int4(texel, 0))
 #define GLIMMER_SH_LOAD_LIGHT(texel, entry) GLIMMER_SH_LOAD_LIGHT_FROM(glimmerSHLight, texel, entry)
+#define GLIMMER_SH_LOAD_SUN(texel, outSun, outState) GLIMMER_LOAD_SUN_BOUNCE(glimmerSHLight, GlimmerSHSunIndex(texel), outSun, outState)
+#define GLIMMER_SH_LOAD_SUN_KEYS(surfels, texel, outSun, outFreshness, outHasKeys) \
+    GLIMMER_KEYED_SUN_L1(glimmerSHLight, surfels, GlimmerSHSunIndex(texel) + 7u, GlimmerSHSunIndex(texel) + 7u + GLIMMER_SUN_KEYS * 2u, GLIMMER_SH_SUN_KEY_SETTLE, outSun, outFreshness, outHasKeys)
 #endif
 
 #include "GlimmerSHSample.hlsli"

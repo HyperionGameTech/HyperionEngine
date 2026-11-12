@@ -11,7 +11,6 @@
 #include <Rendering/Glimmer/GlimmerSpanCache.hpp>
 #include <Rendering/Glimmer/GlimmerHelpers.hpp>
 #include <Rendering/Glimmer/GlimmerCVars.hpp>
-#include <Rendering/Glimmer/Probes/GlimmerProbeCVars.hpp>
 
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/RenderProxy.hpp>
@@ -24,6 +23,7 @@
 #include <Rendering/Material.hpp>
 #include <Rendering/Texture.hpp>
 #include <Rendering/RenderHelpers.hpp>
+#include <Rendering/ObjectMasks.hpp>
 
 #include <Rendering/Util/DeletionQueue.hpp>
 
@@ -296,7 +296,7 @@ void GlimmerSceneInstances::Gather(RenderProxyList& rpl, const BoundingBox& regi
     FatArray<EmitterCandidate, InlineAllocator<8, GlimmerTempAllocator>> emitterCandidates;
     emitterCandidates.Reserve(8);
 
-    m_emitterRadiusAtGather = g_cvGlimmerProbesEmitterRadius.Get();
+    m_emitterRadiusAtGather = g_cvGlimmerEmitterRadius.Get();
 
     const Vec3f emitterOrigin = Vec3f(
         tracedCenter.x,
@@ -547,6 +547,11 @@ void GlimmerSceneInstances::Gather(RenderProxyList& rpl, const BoundingBox& regi
         RenderProxyMesh* proxy = rpl.GetMeshEntities().GetProxy(entity->Id());
 
         if (!proxy || !proxy->mesh || !proxy->material || proxy->skeleton != nullptr)
+        {
+            continue;
+        }
+
+        if (proxy->bufferData.objectMask & DynamicObjectMask)
         {
             continue;
         }
@@ -992,7 +997,7 @@ void GlimmerSceneInstances::Update(
         m_dirty = true;
     }
 
-    if (g_cvGlimmerProbesEmitterRadius.Get() != m_emitterRadiusAtGather)
+    if (g_cvGlimmerEmitterRadius.Get() != m_emitterRadiusAtGather)
     {
         m_dirty = true;
     }

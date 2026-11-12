@@ -201,6 +201,30 @@ void GlimmerTraverseBLAS(
     }
 }
 
+// where the ray leaves the traced instances' bounds, so the BVH owns the solids up to there and the spans past it; 0 when it starts outside them
+float GlimmerBVHWindowExit(float3 origin, float3 direction, uint numInstances)
+{
+    if (numInstances == 0u)
+    {
+        return 0.0;
+    }
+
+    const BVHNode root = glimmerTLASNodes[0];
+
+    const float3 boundsMin = min(root.leftMinIndex.xyz, root.rightMinIndex.xyz);
+    const float3 boundsMax = max(root.leftMaxCount.xyz, root.rightMaxCount.xyz);
+
+    if (any(origin < boundsMin) || any(origin > boundsMax))
+    {
+        return 0.0;
+    }
+
+    const float3 safeDirection = select(abs(direction) < 1e-8, (float3)1e-8, direction);
+    const float3 exits = max((boundsMin - origin) / safeDirection, (boundsMax - origin) / safeDirection);
+
+    return min(exits.x, min(exits.y, exits.z));
+}
+
 bool TraceGlimmerBVH(
     float3 origin,
     float3 direction,

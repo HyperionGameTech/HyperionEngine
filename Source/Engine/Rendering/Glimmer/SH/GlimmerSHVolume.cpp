@@ -13,12 +13,12 @@
 #include <Rendering/Glimmer/GlimmerSurfaceCache.hpp>
 #include <Rendering/Glimmer/GlimmerRelight.hpp>
 #include <Rendering/Glimmer/GlimmerSceneInstances.hpp>
+#include <Rendering/Glimmer/GlimmerTriangleCache.hpp>
 #include <Rendering/Glimmer/GlimmerLocalLights.hpp>
 #include <Rendering/Glimmer/GlimmerCVars.hpp>
 #include <Rendering/Glimmer/GlimmerHelpers.hpp>
 
-#include <Rendering/Glimmer/Probes/GlimmerProbeVolume.hpp>
-#include <Rendering/Glimmer/Probes/GlimmerProbeCVars.hpp>
+#include <Rendering/Glimmer/Surfels/GlimmerSurfelCache.hpp>
 
 #include <Rendering/Util/DeletionQueue.hpp>
 
@@ -50,9 +50,12 @@ static EngineStatCounter<uint32> s_statGlimmerSHVoxelsTraced("Rendering/Glimmer/
 
 static StaticShaderPropertyId s_propSHModeUpdate { ShaderProperty(NAME("MODE"), NAME("UPDATE")) };
 static StaticShaderPropertyId s_propSHModeCompose { ShaderProperty(NAME("MODE"), NAME("COMPOSE")) };
-static StaticShaderPropertyId s_propSHProbes { ShaderProperty(NAME("PROBES")) };
+static StaticShaderPropertyId s_propSHSurfels { ShaderProperty(NAME("SURFELS")) };
+static StaticShaderPropertyId s_propSHBVH { ShaderProperty(NAME("BVH")) };
 
 static constexpr int32 VoxelsPerFrame = 512;
+
+static constexpr float SunRetraceCosine = 0.9961947f; // the sun turning further than 5 degrees since the voxels traced their sun bounce traces it again
 
 // lines the windows up with GlimmerSHOccupancy's, which snap to 8 of its half spaced voxels
 static constexpr int32 WindowSnapVoxels = 4;
@@ -69,7 +72,7 @@ static constexpr size_t MaxAccumulatingBoxes = 64;
 static constexpr uint32 RadianceSections = 3;
 
 // NOTE must match GLIMMER_SH_LIGHT_UINTS in GlimmerSHCommon.hlsli
-static constexpr uint32 LightUints = GlimmerLightFullTerms * 3 + GlimmerLightTransferEntries + (GlimmerLightEntries - GlimmerLightTransferEntries) * 2;
+static constexpr uint32 LightUints = GlimmerLightFullTerms * 3 + GlimmerLightTransferEntries + (GlimmerLightEntries - GlimmerLightTransferEntries) * 2 + 7 + GlimmerSunKeys * 2 + 1; // GLIMMER_SH_LIGHT_UINTS: the light entries, the sun bounce, then the sun keys and their state
 static constexpr uint32 RadianceColumns = 3;
 static constexpr uint32 RadianceRows = (RadianceSections + RadianceColumns - 1) / RadianceColumns;
 
@@ -96,8 +99,8 @@ struct GlimmerSHUpdateConstants
     Vec4f params;
     GlimmerRelightShaderData relight;
     
-    /// zeroed while the probes can't be sampled
-    GlimmerProbeVolumeShaderData probes;
+    /// zeroed while the surfels can't be sampled
+    GlimmerSurfelShaderData surfels;
     GlimmerSkyShaderData sky;
     EnvProbeShaderData skyProbe;
     GlimmerLightShaderData light;
@@ -106,6 +109,9 @@ struct GlimmerSHUpdateConstants
     Vec4u options;
 
     GlimmerLocalLightsShaderData localLights;
+
+    /// x = instances the BVH traces (0 without one)
+    Vec4u bvh;
 };
 
 namespace /* Helpers */ {
@@ -164,6 +170,12 @@ GlimmerSHVolume::GlimmerSHVolume()
       m_refreshBudget(0),
       m_composedLight {},
       m_hasComposedLight(false),
+      m_wasComposedWithClouds(false),
+      m_wasComposedWithTracedSun(false),
+      m_sunTracedDirection(Vec3f::Zero()),
+      m_sunTracedJumpEpoch(0),
+      m_sunArcEpoch(0),
+      m_hasSunKeys(false),
       m_shaderData {}
 {
     for (uint32 cascadeIndex = 0; cascadeIndex < GlimmerSHCascades; cascadeIndex++)
@@ -378,7 +390,8 @@ void GlimmerSHVolume::AddPendingWorld(const Vec3f& worldMin, const Vec3f& worldM
 
 void GlimmerSHVolume::QueuePasses(uint32 cascadeIndex, const Box& box)
 {
-    const int32 passes = g_cvGlimmerSHPasses.Get() - 1;
+    // with sun keys each pass bakes one key, so every key gets a couple of passes
+    const int32 passes = MathUtil::Max(g_cvGlimmerSHPasses.Get(), m_hasSunKeys ? int32(GlimmerSunKeys * 2) : 0) - 1;
 
     if (passes <= 0 || box.IsEmpty())
     {
@@ -399,8 +412,12 @@ void GlimmerSHVolume::DispatchBox(Frame* frame, uint32 cascadeIndex, const Box& 
 {
     CommandRecorder& cr = frame->cr;
 
-    const GlimmerProbeVolume* probeVolume = inputs.probeVolume;
-    const bool isSamplingProbes = probeVolume && probeVolume->IsReady() && g_cvGlimmerProbesEnabled.Get();
+    const GlimmerSurfelCache* surfelCache = inputs.surfelCache;
+    const bool isSamplingSurfels = surfelCache && surfelCache->IsReady();
+
+    const bool isTracingBVH = g_cvGlimmerTracer.Get() != 0
+        && inputs.sceneInstances && inputs.sceneInstances->HasTLAS()
+        && inputs.triangleCache && inputs.triangleCache->HasBLAS();
 
     if (!inOutHasBarriers)
     {
@@ -414,9 +431,14 @@ void GlimmerSHVolume::DispatchBox(Frame* frame, uint32 cascadeIndex, const Box& 
         ShaderPropertySet shaderProperties;
         shaderProperties.Add(s_propSHModeUpdate);
 
-        if (isSamplingProbes)
+        if (isSamplingSurfels)
         {
-            shaderProperties.Add(s_propSHProbes);
+            shaderProperties.Add(s_propSHSurfels);
+        }
+
+        if (isTracingBVH)
+        {
+            shaderProperties.Add(s_propSHBVH);
         }
 
         cr << SetCurrentShader(ShaderDesc(NAME("GlimmerSHUpdate"), shaderProperties));
@@ -440,9 +462,9 @@ void GlimmerSHVolume::DispatchBox(Frame* frame, uint32 cascadeIndex, const Box& 
         constants.relight = *inputs.relight;
     }
 
-    if (isSamplingProbes)
+    if (isSamplingSurfels)
     {
-        constants.probes = probeVolume->GetShaderData();
+        constants.surfels = surfelCache->GetShaderData();
     }
 
     GlimmerHelpers::GetGlimmerSkyShaderData(inputs.skyProbe, constants.sky, constants.skyProbe);
@@ -453,6 +475,11 @@ void GlimmerSHVolume::DispatchBox(Frame* frame, uint32 cascadeIndex, const Box& 
     if (inputs.localLights)
     {
         constants.localLights = inputs.localLights->GetShaderData();
+    }
+
+    if (isTracingBVH)
+    {
+        constants.bvh = Vec4u(inputs.sceneInstances->GetNumTracedInstances(), 0u, 0u, 0u);
     }
 
     GpuBuffer* cbuffer = nullptr;
@@ -495,21 +522,22 @@ void GlimmerSHVolume::DispatchBox(Frame* frame, uint32 cascadeIndex, const Box& 
     cr << SetShaderUniform(uniformIndex++, "CloudWeatherMapTexture"_sh, inputs.cloudPass != nullptr ? inputs.cloudPass->GetWeatherMapView() : RI.placeholderData->GetImageView2D1x1R8Array());
     cr << SetShaderUniform(uniformIndex++, "CloudShadowMapTexture"_sh, inputs.cloudPass != nullptr ? inputs.cloudPass->GetShadowMapView() : RI.placeholderData->GetImageView2D1x1R8());
 
-    if (probeVolume)
+    if (isSamplingSurfels)
     {
-        cr << SetShaderUniform(uniformIndex++, "GlimmerProbeBlockTableBuffer"_sh, probeVolume->GetBlockTableBuffer().Get(), ShaderDataOffset(0, sizeof(uint32)));
-        cr << SetShaderUniform(uniformIndex++, "GlimmerProbeLightBuffer"_sh, probeVolume->GetLightBuffer().Get(), ShaderDataOffset(0, sizeof(Vec4f)));
-        cr << SetShaderUniform(uniformIndex++, "GlimmerProbeStatesBuffer"_sh, probeVolume->GetStatesBuffer().Get(), ShaderDataOffset(0, sizeof(Vec4u)));
-        cr << SetShaderUniform(uniformIndex++, "GlimmerProbeVisibilityBuffer"_sh, probeVolume->GetVisibilityBuffer().Get(), ShaderDataOffset(0, sizeof(uint32)));
+        cr << SetShaderUniform(uniformIndex++, "GlimmerSurfelsBuffer"_sh, surfelCache->GetSurfelsBuffer().Get(), ShaderDataOffset(0, sizeof(Vec4u)));
+        cr << SetShaderUniform(uniformIndex++, "GlimmerSurfelHashBuffer"_sh, surfelCache->GetHashBuffer().Get(), ShaderDataOffset(0, sizeof(uint32)));
+        cr << SetShaderUniform(uniformIndex++, "GlimmerSurfelDataBuffer"_sh, surfelCache->GetDataBuffer().Get(), ShaderDataOffset(0, sizeof(uint32)));
+        cr << SetShaderUniform(uniformIndex++, "GlimmerFoliageBuffer"_sh, surfelCache->GetFoliageBuffer().Get(), ShaderDataOffset(0, sizeof(uint32)));
     }
-    else
+
+    if (isTracingBVH)
     {
-        // HACK: any structured buffer will do, as the zeroed constants keep the probes from being read
-        cr << SetShaderUniform(uniformIndex++, "GlimmerProbeBlockTableBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
-        cr << SetShaderUniform(uniformIndex++, "GlimmerProbeLightBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
-        cr << SetShaderUniform(uniformIndex++, "GlimmerProbeStatesBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
-        cr << SetShaderUniform(uniformIndex++, "GlimmerProbeVisibilityBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
+        cr << SetShaderUniform(uniformIndex++, "GlimmerTLASNodesBuffer"_sh, inputs.sceneInstances->GetTLASNodesBuffer().Get(), ShaderDataOffset(0, sizeof(SAHBVHNode)));
+        cr << SetShaderUniform(uniformIndex++, "GlimmerTracedInstancesBuffer"_sh, inputs.sceneInstances->GetTracedInstancesBuffer().Get(), ShaderDataOffset(0, sizeof(GlimmerTracedInstanceShaderData)));
+        cr << SetShaderUniform(uniformIndex++, "GlimmerBLASNodesBuffer"_sh, inputs.triangleCache->GetNodesBuffer().Get(), ShaderDataOffset(0, sizeof(GlimmerBLASNode)));
+        cr << SetShaderUniform(uniformIndex++, "GlimmerTrianglesBuffer"_sh, inputs.triangleCache->GetTrianglesBuffer().Get(), ShaderDataOffset(0, sizeof(uint32)));
     }
+
     cr << SetShaderUniform(uniformIndex++, "GlimmerSHOccupancyTexture"_sh, inputs.occupancyImageView);
     cr << SetShaderUniform(uniformIndex++, "GlimmerSHOccupancyMaskBuffer"_sh, inputs.occupancyMaskBuffer.Get(), ShaderDataOffset(0, sizeof(uint32)));
 
@@ -586,27 +614,38 @@ bool GlimmerSHVolume::DispatchRefreshSlice(
     return true;
 }
 
-void GlimmerSHVolume::Compose(Frame* frame, const GlimmerLightShaderData& light)
+void GlimmerSHVolume::Compose(Frame* frame, const GlimmerSHVolumeUpdateInputs& inputs, const GlimmerSurfelShaderData& surfels, bool hasClouds)
 {
     ENGINE_STAT_GPU_SCOPE(&s_statGlimmerSHCompose);
 
     CommandRecorder& cr = frame->cr;
 
     GlimmerSHUpdateConstants constants {};
-    constants.light = light;
-
-    static const EffectVolumeShaderData s_noCloudVolume {};
-    static const CloudWeatherMapShaderData s_noWeatherMap {};
-    static const CloudShadowMapShaderData s_noShadowMap {};
+    constants.volume = m_shaderData;
+    constants.surfels = surfels;
+    constants.light = inputs.light;
 
     GpuBuffer* cbuffer = nullptr;
     size_t cbufferOffset = 0;
     size_t cbufferSize = 0;
 
     RI.cbufferAllocator->Write(&constants);
-    RI.cbufferAllocator->Write(&s_noCloudVolume);
-    RI.cbufferAllocator->Write(&s_noWeatherMap);
-    RI.cbufferAllocator->Write(&s_noShadowMap);
+
+    if (hasClouds)
+    {
+        inputs.cloudPass->WriteShaderData(*RI.cbufferAllocator);
+    }
+    else
+    {
+        static const EffectVolumeShaderData s_noCloudVolume {};
+        static const CloudWeatherMapShaderData s_noWeatherMap {};
+        static const CloudShadowMapShaderData s_noShadowMap {};
+
+        RI.cbufferAllocator->Write(&s_noCloudVolume);
+        RI.cbufferAllocator->Write(&s_noWeatherMap);
+        RI.cbufferAllocator->Write(&s_noShadowMap);
+    }
+
     RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
 
     cr << InsertBarrier(m_radianceTexture->GetGpuImage(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
@@ -620,6 +659,9 @@ void GlimmerSHVolume::Compose(Frame* frame, const GlimmerLightShaderData& light)
     cr << SetShaderUniform(0, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
     cr << SetShaderUniform(1, "OutRadiance"_sh, RI.textureViewCache->GetOrCreate(m_radianceTexture));
     cr << SetShaderUniform(2, "OutLight"_sh, m_lightBuffer.Get(), ShaderDataOffset(0, sizeof(uint32)));
+    cr << SetShaderUniform(3, "SamplerLinearMipmap"_sh, RI.placeholderData->GetSamplerLinearMipmap());
+    cr << SetShaderUniform(4, "CloudWeatherMapTexture"_sh, hasClouds ? inputs.cloudPass->GetWeatherMapView() : RI.placeholderData->GetImageView2D1x1R8Array());
+    cr << SetShaderUniform(5, "CloudShadowMapTexture"_sh, hasClouds ? inputs.cloudPass->GetShadowMapView() : RI.placeholderData->GetImageView2D1x1R8());
 
     // 2 rows of voxels a group
     cr << DispatchCompute(Vec3u { 1, GlimmerSHGridY * GlimmerSHCascades / 2, GlimmerSHGridXZ });
@@ -627,8 +669,10 @@ void GlimmerSHVolume::Compose(Frame* frame, const GlimmerLightShaderData& light)
     cr << InsertBarrier(m_radianceTexture->GetGpuImage(), ResourceState::ShaderResource);
     cr << InsertBarrier(m_lightBuffer.Get(), ResourceState::ShaderResource);
 
-    m_composedLight = light;
+    m_composedLight = inputs.light;
     m_hasComposedLight = true;
+    m_wasComposedWithClouds = hasClouds;
+    m_wasComposedWithTracedSun = surfels.foliage.w != 0.0f;
 }
 
 void GlimmerSHVolume::Update(Frame* frame, const GlimmerSHVolumeUpdateInputs& inputs)
@@ -645,10 +689,25 @@ void GlimmerSHVolume::Update(Frame* frame, const GlimmerSHVolumeUpdateInputs& in
         CreateResources();
     }
 
-    // voxels that aren't traced this frame still hold the light as it was put together before
-    if (m_shaderData.info.w != 0 && (!m_hasComposedLight || memcmp(&m_composedLight, &inputs.light, sizeof(GlimmerLightShaderData)) != 0))
+    GlimmerSurfelShaderData surfels {};
+
+    if (inputs.surfelCache && inputs.surfelCache->IsReady())
     {
-        Compose(frame, inputs.light);
+        surfels = inputs.surfelCache->GetShaderData();
+    }
+
+    // moving clouds change the sun bounce every frame, and once more when they go
+    const bool hasClouds = inputs.cloudPass != nullptr && inputs.cloudPass->IsActive();
+
+    // voxels that aren't traced this frame still hold the light as it was put together before
+    if (m_shaderData.info.w != 0
+        && (!m_hasComposedLight
+            || memcmp(&m_composedLight, &inputs.light, sizeof(GlimmerLightShaderData)) != 0
+            || hasClouds
+            || m_wasComposedWithClouds
+            || m_wasComposedWithTracedSun != (surfels.foliage.w != 0.0f)))
+    {
+        Compose(frame, inputs, surfels, hasClouds);
     }
 
     for (uint32 cascadeIndex = 0; cascadeIndex < GlimmerSHCascades; cascadeIndex++)
@@ -671,6 +730,43 @@ void GlimmerSHVolume::Update(Frame* frame, const GlimmerSHVolumeUpdateInputs& in
         m_shaderData.cascades[cascadeIndex].center = Vec4f(center / spacing, 0.0f);
 
         MoveWindow(cascadeIndex, origin);
+    }
+
+    // the keys along a new arc are all to bake
+    m_hasSunKeys = surfels.sunArc.y != 0.0f;
+
+    if (m_hasSunKeys && uint32(surfels.sunArc.z) != m_sunArcEpoch)
+    {
+        for (uint32 cascadeIndex = 0; cascadeIndex < GlimmerSHCascades; cascadeIndex++)
+        {
+            if (m_cascades[cascadeIndex].origin.HasValue())
+            {
+                AddPending(cascadeIndex, GetWindow(*m_cascades[cascadeIndex].origin));
+            }
+        }
+
+        m_sunArcEpoch = uint32(surfels.sunArc.z);
+    }
+
+    // a sun bounce traced for a sun that jumped stops counting; one for a sun that turned a little keeps standing in until it is traced again
+    const Vec3f sunDirection = surfels.sun.GetXYZ();
+    const uint32 sunJumpEpoch = uint32(surfels.foliage.z);
+
+    if (sunDirection.LengthSquared() > 0.5f
+        && surfels.foliage.w != 0.0f
+        && surfels.sunArc.y == 0.0f
+        && (sunJumpEpoch != m_sunTracedJumpEpoch || sunDirection.Dot(m_sunTracedDirection) < SunRetraceCosine))
+    {
+        for (uint32 cascadeIndex = 0; cascadeIndex < GlimmerSHCascades; cascadeIndex++)
+        {
+            if (m_cascades[cascadeIndex].origin.HasValue())
+            {
+                AddPending(cascadeIndex, GetWindow(*m_cascades[cascadeIndex].origin));
+            }
+        }
+
+        m_sunTracedDirection = sunDirection;
+        m_sunTracedJumpEpoch = sunJumpEpoch;
     }
 
     if (inputs.sceneInstances && inputs.sceneInstances->IsReady() && inputs.sceneInstances->GetGeneration() != m_seenInstancesGeneration)
@@ -763,12 +859,26 @@ void GlimmerSHVolume::Update(Frame* frame, const GlimmerSHVolumeUpdateInputs& in
     if (inputs.isOccupancySettled)
     {
         m_occupancyWaitFrames = 0;
+
+        if (m_hasTracedUnsettledOccupancy)
+        {
+            m_hasTracedUnsettledOccupancy = false;
+
+            for (uint32 cascadeIndex = 0; cascadeIndex < GlimmerSHCascades; cascadeIndex++)
+            {
+                AddPending(cascadeIndex, GetWindow(*m_cascades[cascadeIndex].origin));
+            }
+        }
     }
     else if (m_occupancyWaitFrames < MaxOccupancyWaitFrames)
     {
         m_occupancyWaitFrames++;
 
         return;
+    }
+    else
+    {
+        m_hasTracedUnsettledOccupancy = true;
     }
 
     ENGINE_STAT_GPU_SCOPE(&s_statGlimmerSHUpdate);

@@ -13,6 +13,7 @@
 #include <Rendering/Glimmer/GlimmerMemory.hpp>
 
 #include <Core/Memory/UniquePtr.hpp>
+#include <Core/Containers/FixedArray.hpp>
 
 #include <Core/Math/BoundingBox.hpp>
 #include <Core/Math/Vector2.hpp>
@@ -31,14 +32,13 @@ class GlimmerSurfaceCache;
 class GlimmerTriangleCache;
 class GlimmerSceneInstances;
 class GlimmerSpanCache;
-class GlimmerProbeVolume;
-class GlimmerProbeDebug;
 class GlimmerChannel;
 class GlimmerSHOccupancy;
 class GlimmerSHVolume;
 class GlimmerRelight;
 class GlimmerLocalLights;
 class GlimmerBrickWorld;
+class GlimmerSurfelCache;
 struct GlimmerChannelState;
 
 struct GlimmerSceneRegionParams
@@ -60,7 +60,7 @@ struct GlimmerTechniqueUpdateContext
     GlimmerTriangleCache* triangleCache = nullptr;
     const GlimmerSceneInstances* sceneInstances = nullptr;
 
-    const CloudPass* cloudPass = nullptr; // its cloud shadows dim the sun at probe hits; may be nullptr
+    const CloudPass* cloudPass = nullptr; // its cloud shadows dim the sun at surfel hits; may be nullptr
 
     // nullptr until the world's GlimmerSystem has published - the caches are up to date for this frame when set
     const GlimmerChannelState* channelState = nullptr;
@@ -85,6 +85,9 @@ struct GlimmerDebugViewContext
     GpuImageViewRef outputImageView;
     Vec2u extent;
 
+    EnvProbe* skyProbe = nullptr;
+    GpuImageViewRef irradianceImageView; // what Glimmer gave the frame, for the reference to compare with
+
     // GlimmerDebugView::TechniqueFirst + 1
     int techniqueView = 0;
 };
@@ -97,6 +100,9 @@ public:
 
     static void WriteApplyShaderData(CBufferAllocator& cbufferAllocator, const GlimmerTechnique* technique);
     static uint32 BindApplyResources(CommandRecorder& cr, uint32 uniformIndex, const GlimmerTechnique* technique);
+
+    static void WriteSurfelApplyShaderData(CBufferAllocator& cbufferAllocator, const GlimmerTechnique* technique);
+    static uint32 BindSurfelApplyResources(CommandRecorder& cr, uint32 uniformIndex, const GlimmerTechnique* technique);
 
     GlimmerTechnique();
 
@@ -124,16 +130,15 @@ public:
     }
 
     bool IsSHReady() const;
-    bool IsProbesReady() const;
+    bool IsSurfelsReady() const;
 
 private:
-    UniquePtr<GlimmerProbeVolume, GlimmerAllocator> m_probeVolume;
-    UniquePtr<GlimmerProbeDebug, GlimmerAllocator> m_probeDebug;
     UniquePtr<GlimmerSHOccupancy, GlimmerAllocator> m_shOccupancy;
     UniquePtr<GlimmerSHVolume, GlimmerAllocator> m_shVolume;
     UniquePtr<GlimmerRelight, GlimmerAllocator> m_relight;
     UniquePtr<GlimmerLocalLights, GlimmerAllocator> m_localLights;
     UniquePtr<GlimmerBrickWorld, GlimmerAllocator> m_brickWorld;
+    UniquePtr<GlimmerSurfelCache, GlimmerAllocator> m_surfelCache;
 
     uint32 m_relightLightsGeneration = 0;
 
@@ -142,6 +147,13 @@ private:
     GlimmerLightShaderData m_light;
     bool m_hasLight = false;
     uint64 m_lightTime = 0;
+
+    void UpdateSkyBins(Frame* frame, EnvProbe* skyProbe);
+
+    GpuBufferRef m_skyBinsBuffer;
+    FixedArray<GpuBufferRef, NumFramesInFlight> m_skyBinsReadbackBuffers;
+    FixedArray<uint32, NumFramesInFlight> m_skyBinsReadbackTextures {}; // the sky texture index + 1 each holds, 0 when none is on its way
+    uint32 m_skyBinsFrame = 0;
 };
 
 } // namespace Hyperion

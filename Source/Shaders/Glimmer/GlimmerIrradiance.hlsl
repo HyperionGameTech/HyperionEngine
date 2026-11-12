@@ -54,6 +54,7 @@ DECLARE_SRV(DeferredPass, GBufferMaterialTexture) Texture2D<uint> GBufferMateria
 DECLARE_SRV(DeferredPass, GlimmerHalfIrradianceTexture) Texture2D GlimmerHalfIrradianceTexture;
 DECLARE_SRV(DeferredPass, GlimmerHalfSpecularTexture) Texture2D GlimmerHalfSpecularTexture;
 DECLARE_SRV(DeferredPass, GlimmerHalfReflectionTexture) Texture2D GlimmerHalfReflectionTexture;
+DECLARE_SRV(DeferredPass, GlimmerReferenceTexture) Texture2D GlimmerReferenceTexture;
 
 #include "../Include/Gbuffer.hlsli"
 #include "../Include/Scene.hlsli"
@@ -66,11 +67,18 @@ DECLARE_SRV(DeferredPass, WorldsBuffer) StructuredBuffer<WorldShaderData> _world
 #define world_shader_data _worlds_buffer[0]
 
 #include "GlimmerApply.hlsli"
+#include "Surfels/GlimmerSurfelsApply.hlsli"
+
+#define GLIMMER_SURFELS_DEBUG_IRRADIANCE 1
+#define GLIMMER_SURFELS_DEBUG_FOLIAGE 2
+#define GLIMMER_SURFELS_DEBUG_SH_ONLY 3
 
 DECLARE_BUFFER_DYNAMIC(DeferredPass, CBuffer) cbuffer CBuffer
 {
     GlimmerApply glimmer;
-    uint4 irradianceParams; // xy = the pixel of each 2x2 quad HALF shades this frame
+    uint4 irradianceParams; // xy = the pixel of each 2x2 quad HALF shades this frame, z = 1 to light the frame by the reference, w = what scales its sum to the mean (float bits)
+    GlimmerSurfels surfels;
+    uint4 surfelParams;     // x = GLIMMER_SURFELS_DEBUG_*, y = centimetres out along the normal GLIMMER_SURFELS_DEBUG_SH_ONLY samples at
 };
 
 #define GLIMMER_APPLY_WITH_SAMPLING
@@ -91,6 +99,7 @@ struct GlimmerSurface
     float transmission;
     bool isValid;
     bool isDynamic;
+    bool isFoliage;
 };
 
 GlimmerSurface GlimmerLoadSurface(int2 pixel, uint2 dimensions)
@@ -114,31 +123,95 @@ GlimmerSurface GlimmerLoadSurface(int2 pixel, uint2 dimensions)
     const uint objectMask = GBufferUnpackObjectMask(materialBits);
 
     surface.isDynamic = (objectMask & OBJECT_MASK_DYNAMIC) != 0u;
-    surface.transmission = (objectMask & OBJECT_MASK_FOLIAGE) != 0u ? GBufferUnpackTransmission(materialBits) : 0.0;
+    surface.isFoliage = (objectMask & OBJECT_MASK_FOLIAGE) != 0u;
+    surface.transmission = surface.isFoliage ? GBufferUnpackTransmission(materialBits) : 0.0;
 
     return surface;
 }
 
-void GlimmerSetSurfaceBehindFade(GlimmerSurface surface)
+float4 GlimmerSurfelIrradiance(GlimmerSurface surface)
 {
-    g_glimmerProbeBehindFade = surface.isDynamic ? GLIMMER_PROBE_DYNAMIC_BEHIND_FADE : GLIMMER_PROBE_BEHIND_FADE;
+    if (surface.isDynamic || surface.isFoliage)
+    {
+        return (float4)0.0;
+    }
+
+    float4 irradiance = EvaluateGlimmerSurfels(surfels, surface.P, surface.N);
+    irradiance.rgb *= glimmer.settings.x;
+
+    return irradiance;
+}
+
+struct GlimmerSurfaceFoliage
+{
+    float4 r;
+    float4 g;
+    float4 b;
+    float coverage;
+};
+
+GlimmerSurfaceFoliage GlimmerSampleSurfaceFoliage(GlimmerSurface surface)
+{
+    GlimmerSurfaceFoliage foliage;
+    foliage.coverage = GlimmerSampleFoliageRadiance(surfels, surface.P, foliage.r, foliage.g, foliage.b);
+
+    return foliage;
+}
+
+float4 GlimmerFoliageIrradiance(GlimmerSurfaceFoliage foliage, float3 N)
+{
+    if (foliage.coverage <= 0.0)
+    {
+        return (float4)0.0;
+    }
+
+    return float4(GlimmerEvaluateL1(foliage.r, foliage.g, foliage.b, N) * glimmer.settings.x, foliage.coverage);
 }
 
 PSOutput GlimmerEvaluateSurface(GlimmerSurface surface)
 {
     PSOutput output;
 
-    GlimmerSetSurfaceBehindFade(surface);
-
     const float3 V = normalize(camera.position.xyz - surface.P);
     const float3 R = reflect(-V, surface.N);
 
     output.irradiance = EvaluateGlimmer(glimmer, surface.P, surface.N, R, output.specular, output.reflection);
 
+    float4 surfelIrradiance = GlimmerSurfelIrradiance(surface);
+    GlimmerSurfaceFoliage foliage = GlimmerSampleSurfaceFoliage(surface);
+
+    if (surfelParams.x == GLIMMER_SURFELS_DEBUG_SH_ONLY)
+    {
+        surfelIrradiance = (float4)0.0;
+        foliage.coverage = 0.0;
+
+        output.irradiance = EvaluateGlimmer(glimmer, surface.P + surface.N * (float(surfelParams.y) * 0.01), surface.N, R, output.specular, output.reflection);
+    }
+
+    const float4 foliageIrradiance = GlimmerFoliageIrradiance(foliage, surface.N);
+
+    if (surfelParams.x == GLIMMER_SURFELS_DEBUG_IRRADIANCE)
+    {
+        output.irradiance = float4(lerp(float3(1.0, 0.0, 1.0), surfelIrradiance.rgb, surfelIrradiance.a), 1.0);
+
+        return output;
+    }
+
+    if (surfelParams.x == GLIMMER_SURFELS_DEBUG_FOLIAGE)
+    {
+        output.irradiance = float4(lerp(float3(1.0, 0.0, 1.0), foliageIrradiance.rgb, foliageIrradiance.a), 1.0);
+
+        return output;
+    }
+
+    output.irradiance = GlimmerBlendFarField(surfelIrradiance, GlimmerBlendFarField(foliageIrradiance, output.irradiance));
+
     // light reaching the far side of a leaf comes through it
     if (surface.transmission > 0.0)
     {
-        output.irradiance.rgb += EvaluateGlimmer(glimmer, surface.P, -surface.N).rgb * surface.transmission;
+        const float4 behind = GlimmerBlendFarField(GlimmerFoliageIrradiance(foliage, -surface.N), EvaluateGlimmer(glimmer, surface.P, -surface.N));
+
+        output.irradiance.rgb += behind.rgb * surface.transmission;
     }
 
     return output;
@@ -265,14 +338,17 @@ PSOutput PSMain(PSInput input)
     }
     else if (glimmer.params.x == GLIMMER_DEBUG_VIS_COVERAGE)
     {
-        GlimmerSetSurfaceBehindFade(surface);
-
-        output.irradiance = float4(EvaluateGlimmerCoverage(glimmer, surface.P, surface.N), 1.0);
+        output.irradiance = float4(EvaluateGlimmerCoverage(glimmer, surface.P, surface.N, GlimmerSurfelIrradiance(surface).a, GlimmerSampleSurfaceFoliage(surface).coverage), 1.0);
     }
     else
     {
         // GLIMMER_DEBUG_VIS_IRRADIANCE shows this as it is
         output = GlimmerEvaluateSurface(surface);
+    }
+
+    if (irradianceParams.z != 0u)
+    {
+        output.irradiance = float4(GlimmerReferenceTexture.Load(int3(pixel, 0)).rgb * asfloat(irradianceParams.w), 1.0);
     }
 
     return output;

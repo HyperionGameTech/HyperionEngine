@@ -166,9 +166,12 @@ struct WorldShaderData
 
     /// rgb = tint
     Vec4f volumetricFogTint;
+
+    /// GetSunArc: x = sunrise, y = sunset (hours), z = tilt, w = heading (radians)
+    Vec4f sunArc;
 };
 
-static_assert(sizeof(WorldShaderData) == 448);
+static_assert(sizeof(WorldShaderData) == 464);
 
 struct EntityShaderData
 {
